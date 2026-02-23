@@ -49,36 +49,98 @@ class TodayDashboard extends StatelessWidget {
                 .map((c) => c.taskId)
                 .toSet();
 
+            final completionRate = todayTasks.isEmpty
+                ? 0
+                : ((completedTaskIds.length / todayTasks.length) * 100).round();
+
             return Scaffold(
               backgroundColor: Colors.transparent,
               body: CustomScrollView(
                 slivers: [
                   SliverToBoxAdapter(
                     child: Padding(
-                      padding: const EdgeInsets.all(20.0),
+                      padding: const EdgeInsets.fromLTRB(20, 20, 20, 8),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
+                          // Date line
                           Text(
                             DateFormat('EEEE, MMM d').format(DateTime.now()),
                             style: const TextStyle(
                               color: AppTheme.greyColor,
-                              fontSize: 16,
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
                             ),
                           ),
-                          Text(
-                            'Your Daily Habits',
-                            style: Theme.of(context).textTheme.displaySmall,
-                          ),
-                          const SizedBox(height: 20),
-                          _buildStreakCard(),
-                          const SizedBox(height: 30),
                           const Text(
-                            'TODAY\'S TASKS',
+                            "Today's Mission",
+                            style: TextStyle(
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textColor,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // ── 4 stat cards ─────────────────────────────
+                          Row(
+                            children: [
+                              _StatCard(
+                                label: 'Completion',
+                                value: '$completionRate%',
+                                gradient: AppTheme.emeraldGradient,
+                                icon: Icons.check_circle_rounded,
+                                change: '+12%',
+                              ),
+                              const SizedBox(width: 10),
+                              _StatCard(
+                                label: 'Tasks Today',
+                                value: '${todayTasks.length}',
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFF60A5FA),
+                                    Color(0xFF06B6D4),
+                                  ],
+                                ),
+                                icon: Icons.task_alt_rounded,
+                                change: '${completedTaskIds.length} done',
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 10),
+                          Row(
+                            children: [
+                              _StatCard(
+                                label: 'Streak',
+                                value: '12',
+                                gradient: AppTheme.orangeGradient,
+                                icon: Icons.local_fire_department_rounded,
+                                change: 'Best: 21',
+                              ),
+                              const SizedBox(width: 10),
+                              _StatCard(
+                                label: 'Team Rank',
+                                value: '#2',
+                                gradient: const LinearGradient(
+                                  colors: [
+                                    Color(0xFFA78BFA),
+                                    Color(0xFFEC4899),
+                                  ],
+                                ),
+                                icon: Icons.emoji_events_rounded,
+                                change: '↑ 1',
+                              ),
+                            ],
+                          ),
+
+                          const SizedBox(height: 24),
+                          const Text(
+                            "TODAY'S TASKS",
                             style: TextStyle(
                               letterSpacing: 1.5,
                               fontWeight: FontWeight.bold,
                               color: AppTheme.primaryColor,
+                              fontSize: 12,
                             ),
                           ),
                           const SizedBox(height: 10),
@@ -86,6 +148,7 @@ class TodayDashboard extends StatelessWidget {
                       ),
                     ),
                   ),
+
                   if (todayTasks.isEmpty)
                     const SliverToBoxAdapter(
                       child: Center(
@@ -99,17 +162,19 @@ class TodayDashboard extends StatelessWidget {
                       ),
                     )
                   else
-                    SliverList(
-                      delegate: SliverChildBuilderDelegate((context, index) {
-                        final task = todayTasks[index];
-                        final isDone = completedTaskIds.contains(task.id);
-                        return _buildTaskItem(
-                          context,
-                          task,
-                          isDone,
-                          userProfile,
-                        );
-                      }, childCount: todayTasks.length),
+                    SliverPadding(
+                      padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                      sliver: SliverList(
+                        delegate: SliverChildBuilderDelegate((context, index) {
+                          final task = todayTasks[index];
+                          final isDone = completedTaskIds.contains(task.id);
+                          return _TaskCard(
+                            task: task,
+                            isDone: isDone,
+                            user: userProfile,
+                          );
+                        }, childCount: todayTasks.length),
+                      ),
                     ),
                 ],
               ),
@@ -119,113 +184,130 @@ class TodayDashboard extends StatelessWidget {
       },
     );
   }
+}
 
-  Widget _buildStreakCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            AppTheme.primaryColor,
-            AppTheme.primaryColor.withOpacity(0.7),
+// ── Stat card ────────────────────────────────────────────────────────────────
+
+class _StatCard extends StatelessWidget {
+  final String label;
+  final String value;
+  final LinearGradient gradient;
+  final IconData icon;
+  final String change;
+
+  const _StatCard({
+    required this.label,
+    required this.value,
+    required this.gradient,
+    required this.icon,
+    required this.change,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Container(
+        padding: const EdgeInsets.all(14),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.55),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.04),
+              blurRadius: 12,
+              offset: const Offset(0, 4),
+            ),
           ],
         ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: AppTheme.primaryColor.withOpacity(0.3),
-            blurRadius: 10,
-            offset: const Offset(0, 5),
-          ),
-        ],
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: const [
-              Text(
-                'Current Streak',
-                style: TextStyle(color: Colors.white70, fontSize: 14),
-              ),
-              Text(
-                '12 Days',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-          const Icon(
-            Icons.fireplace_rounded,
-            color: Colors.orangeAccent,
-            size: 50,
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildTaskItem(
-    BuildContext context,
-    TaskDefinitionModel task,
-    bool isDone,
-    UserModel user,
-  ) {
-    Color categoryColor = task.category == TaskCategory.spear
-        ? Colors.blue
-        : (task.category == TaskCategory.seed ? Colors.green : Colors.purple);
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: AppTheme.secondaryColor,
-        borderRadius: BorderRadius.circular(15),
-        border: isDone
-            ? Border.all(color: AppTheme.successColor.withOpacity(0.5))
-            : null,
-      ),
-      child: Row(
-        children: [
-          Container(
-            width: 5,
-            height: 40,
-            decoration: BoxDecoration(
-              color: isDone ? AppTheme.successColor : categoryColor,
-              borderRadius: BorderRadius.circular(10),
-            ),
-          ),
-          const SizedBox(width: 15),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
               children: [
-                Text(
-                  task.title,
-                  style: TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 16,
-                    decoration: isDone ? TextDecoration.lineThrough : null,
-                    color: isDone ? AppTheme.greyColor : Colors.white,
+                Container(
+                  width: 36,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    gradient: gradient,
+                    borderRadius: BorderRadius.circular(10),
                   ),
+                  child: Icon(icon, color: Colors.white, size: 18),
                 ),
+                const SizedBox(width: 10),
                 Text(
-                  task.category.name.toUpperCase(),
-                  style: TextStyle(
-                    color: isDone ? AppTheme.greyColor : categoryColor,
-                    fontSize: 10,
-                    letterSpacing: 1,
+                  value,
+                  style: const TextStyle(
+                    fontSize: 26,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.textColor,
                   ),
                 ),
               ],
             ),
+            const SizedBox(height: 6),
+            Text(
+              label,
+              style: const TextStyle(
+                color: AppTheme.greyColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
+            ),
+            Text(
+              change,
+              style: const TextStyle(
+                color: AppTheme.successColor,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Task card ────────────────────────────────────────────────────────────────
+
+class _TaskCard extends StatelessWidget {
+  final TaskDefinitionModel task;
+  final bool isDone;
+  final UserModel user;
+
+  const _TaskCard({
+    required this.task,
+    required this.isDone,
+    required this.user,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final (badgeBg, badgeText, typeName) = _typeBadge(task.category);
+
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: isDone
+            ? Colors.white.withValues(alpha: 0.35)
+            : Colors.white.withValues(alpha: 0.55),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withValues(alpha: 0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 3),
           ),
-          IconButton(
-            onPressed: () {
+        ],
+      ),
+      child: Row(
+        children: [
+          // Check button
+          GestureDetector(
+            onTap: () {
               if (!isDone) {
                 context.read<FirebaseService>().completeTask(
                   taskId: task.id,
@@ -235,15 +317,125 @@ class TodayDashboard extends StatelessWidget {
                 );
               }
             },
-            icon: Icon(
+            child: Icon(
               isDone
                   ? Icons.check_circle_rounded
                   : Icons.radio_button_unchecked,
-              color: isDone ? AppTheme.successColor : AppTheme.greyColor,
+              color: isDone ? AppTheme.successColor : AppTheme.subtleColor,
+              size: 28,
+            ),
+          ),
+          const SizedBox(width: 12),
+
+          // Content
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  task.title,
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    fontSize: 15,
+                    color: isDone ? AppTheme.greyColor : AppTheme.textColor,
+                    decoration: isDone ? TextDecoration.lineThrough : null,
+                    decorationColor: AppTheme.greyColor,
+                  ),
+                ),
+                const SizedBox(height: 6),
+                Row(
+                  children: [
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: badgeBg,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        typeName,
+                        style: TextStyle(
+                          color: badgeText,
+                          fontSize: 10,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 6,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: Colors.white.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(8),
+                        border: Border.all(
+                          color: Colors.white.withValues(alpha: 0.5),
+                        ),
+                      ),
+                      child: const Row(
+                        children: [
+                          Icon(
+                            Icons.local_fire_department,
+                            color: Colors.orange,
+                            size: 12,
+                          ),
+                          SizedBox(width: 2),
+                          Text(
+                            '12',
+                            style: TextStyle(
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              color: AppTheme.textColor,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (task.priority == TaskPriority.high) ...[
+                      const SizedBox(width: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 3,
+                        ),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFFFFE4E6),
+                          borderRadius: BorderRadius.circular(20),
+                        ),
+                        child: const Text(
+                          'HIGH',
+                          style: TextStyle(
+                            color: Color(0xFFE11D48),
+                            fontSize: 10,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ],
             ),
           ),
         ],
       ),
     );
+  }
+
+  (Color, Color, String) _typeBadge(TaskCategory category) {
+    switch (category) {
+      case TaskCategory.spear:
+        return (AppTheme.spearBg, AppTheme.spearText, 'Spear');
+      case TaskCategory.seed:
+        return (AppTheme.seedBg, AppTheme.seedText, 'Seed');
+      case TaskCategory.net:
+        return (AppTheme.netBg, AppTheme.netText, 'Net');
+      default:
+        return (const Color(0xFFF1F5F9), AppTheme.greyColor, category.name);
+    }
   }
 }

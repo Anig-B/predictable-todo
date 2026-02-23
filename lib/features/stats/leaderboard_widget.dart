@@ -17,7 +17,6 @@ class LeaderboardWidget extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    // Get stats for the current week
     final now = DateTime.now();
     final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
 
@@ -27,8 +26,14 @@ class LeaderboardWidget extends StatelessWidget {
         startOfWeek,
       ),
       builder: (context, completionSnapshot) {
-        if (!completionSnapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
+        if (!completionSnapshot.hasData) {
+          return const Center(
+            child: Padding(
+              padding: EdgeInsets.all(20.0),
+              child: CircularProgressIndicator(),
+            ),
+          );
+        }
 
         final completions = completionSnapshot.data!;
 
@@ -43,22 +48,45 @@ class LeaderboardWidget extends StatelessWidget {
             return Container(
               padding: const EdgeInsets.all(20),
               decoration: BoxDecoration(
-                color: AppTheme.secondaryColor,
+                color: Colors.white.withValues(alpha: 0.55),
                 borderRadius: BorderRadius.circular(20),
+                border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
               ),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
-                    'Team Leaderboard 🏆',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.emoji_events_rounded,
+                        color: Colors.amber,
+                        size: 20,
+                      ),
+                      const SizedBox(width: 8),
+                      const Text(
+                        'Team Standings',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        'Weekly',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: AppTheme.primaryColor,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 16),
                   ...leaderboardData.asMap().entries.map((entry) {
                     final index = entry.key;
-                    // Fix: Access the value property of the entry
                     final data = entry.value;
-                    return _buildLeaderboardItem(index + 1, data);
+                    return _buildLeaderboardRow(index + 1, data);
                   }).toList(),
                 ],
               ),
@@ -74,7 +102,6 @@ class LeaderboardWidget extends StatelessWidget {
     List<TaskCompletionModel> completions,
   ) {
     final Map<String, int> scores = {};
-
     for (var completion in completions) {
       if (completion.status == 'completed') {
         scores[completion.userId] = (scores[completion.userId] ?? 0) + 1;
@@ -84,74 +111,94 @@ class LeaderboardWidget extends StatelessWidget {
     final List<_LeaderboardItem> items = members.map((member) {
       return _LeaderboardItem(
         name: member.displayName,
-        photoUrl: member.photoUrl,
         score: scores[member.uid] ?? 0,
       );
     }).toList();
 
     items.sort((a, b) => b.score.compareTo(a.score));
-    return items.take(5).toList(); // Top 5
+    return items.take(5).toList();
   }
 
-  Widget _buildLeaderboardItem(int rank, _LeaderboardItem item) {
-    Color rankColor;
-    if (rank == 1)
-      rankColor = Colors.amber;
-    else if (rank == 2)
-      rankColor = Colors.grey.shade400;
-    else if (rank == 3)
-      rankColor = Colors.orangeAccent;
-    else
-      rankColor = Colors.white;
+  Widget _buildLeaderboardRow(int rank, _LeaderboardItem item) {
+    Color medalColor;
+    switch (rank) {
+      case 1:
+        medalColor = Colors.amber;
+        break;
+      case 2:
+        medalColor = const Color(0xFF94A3B8);
+        break;
+      case 3:
+        medalColor = const Color(0xFFB45309);
+        break;
+      default:
+        medalColor = Colors.transparent;
+    }
 
     return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8.0),
+      padding: const EdgeInsets.only(bottom: 12.0),
       child: Row(
         children: [
           Container(
-            width: 30,
-            alignment: Alignment.center,
-            child: Text(
-              '#$rank',
-              style: TextStyle(
-                color: rankColor,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
+            width: 24,
+            height: 24,
+            decoration: BoxDecoration(
+              color: medalColor.withValues(alpha: 0.15),
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                '$rank',
+                style: TextStyle(
+                  color: rank <= 3 ? medalColor : AppTheme.greyColor,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
               ),
             ),
           ),
-          const SizedBox(width: 10),
-          CircleAvatar(
-            radius: 16,
-            backgroundImage: item.photoUrl.isNotEmpty
-                ? NetworkImage(item.photoUrl)
-                : null,
-            backgroundColor: AppTheme.primaryColor,
-            child: item.photoUrl.isEmpty
-                ? Text(
-                    item.name.isNotEmpty ? item.name[0] : '?',
-                    style: const TextStyle(fontSize: 12, color: Colors.white),
-                  )
-                : null,
+          const SizedBox(width: 12),
+          Container(
+            width: 32,
+            height: 32,
+            decoration: BoxDecoration(
+              gradient: AppTheme.primaryGradient,
+              shape: BoxShape.circle,
+            ),
+            child: Center(
+              child: Text(
+                item.name[0],
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontWeight: FontWeight.bold,
+                  fontSize: 12,
+                ),
+              ),
+            ),
           ),
-          const SizedBox(width: 10),
+          const SizedBox(width: 12),
           Expanded(
             child: Text(
               item.name,
-              style: const TextStyle(fontWeight: FontWeight.bold),
-              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontWeight: FontWeight.w600,
+                color: AppTheme.textColor,
+                fontSize: 14,
+              ),
             ),
           ),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: AppTheme.bgColor,
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.white.withValues(alpha: 0.6),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
             ),
             child: Text(
               '${item.score} tasks',
               style: const TextStyle(
-                fontSize: 12,
+                fontSize: 11,
+                fontWeight: FontWeight.bold,
                 color: AppTheme.primaryColor,
               ),
             ),
@@ -164,12 +211,6 @@ class LeaderboardWidget extends StatelessWidget {
 
 class _LeaderboardItem {
   final String name;
-  final String photoUrl;
   final int score;
-
-  _LeaderboardItem({
-    required this.name,
-    required this.photoUrl,
-    required this.score,
-  });
+  _LeaderboardItem({required this.name, required this.score});
 }

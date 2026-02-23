@@ -22,148 +22,180 @@ class StatsDashboard extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.transparent,
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const SizedBox(height: 10),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(
-                  'Performance',
-                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Row(
-                  children: [
-                    IconButton(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const HandoffScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(
-                        Icons.playlist_add_check_rounded,
-                        color: AppTheme.primaryColor,
-                      ),
-                      tooltip: 'Handoff Checklists',
-                    ),
-                    const SizedBox(width: 10),
-                    ElevatedButton.icon(
-                      onPressed: () {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (_) => const PipelineTrackerScreen(),
-                          ),
-                        );
-                      },
-                      icon: const Icon(Icons.add_chart_rounded, size: 18),
-                      label: const Text('Log'),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: AppTheme.primaryColor,
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 10,
-                        ),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(10),
+      body: CustomScrollView(
+        slivers: [
+          SliverToBoxAdapter(
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Performance',
+                        style: TextStyle(
+                          fontSize: 28,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor,
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ],
-            ),
-            const SizedBox(height: 20),
-            _buildPipelineSummary(context, firebaseService, userProfile.uid),
-            const SizedBox(height: 20),
-            _buildQuickStats(),
-            const SizedBox(height: 30),
-            _buildChartCard(
-              context,
-              title: 'Completion Rate',
-              child: SizedBox(
-                height: 200,
-                child: BarChart(
-                  BarChartData(
-                    alignment: BarChartAlignment.spaceAround,
-                    maxY: 100,
-                    barGroups: [
-                      _makeGroupData(0, 85),
-                      _makeGroupData(1, 90),
-                      _makeGroupData(2, 75),
-                      _makeGroupData(3, 95),
-                      _makeGroupData(4, 100),
-                      _makeGroupData(5, 40),
-                      _makeGroupData(6, 60),
+                      Row(
+                        children: [
+                          _AnimatedActionButton(
+                            icon: Icons.playlist_add_check_rounded,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const HandoffScreen(),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _AnimatedActionButton(
+                            icon: Icons.add_chart_rounded,
+                            isPrimary: true,
+                            onTap: () => Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => const PipelineTrackerScreen(),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
                     ],
-                    gridData: FlGridData(show: false),
-                    borderData: FlBorderData(show: false),
-                    titlesData: FlTitlesData(
-                      leftTitles: AxisTitles(
-                        sideTitles: SideTitles(showTitles: false),
-                      ),
-                      bottomTitles: AxisTitles(
-                        sideTitles: SideTitles(
-                          showTitles: true,
-                          getTitlesWidget: (value, meta) {
-                            const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
-                            return Text(
-                              days[value.toInt()],
-                              style: const TextStyle(color: AppTheme.greyColor),
-                            );
-                          },
+                  ),
+                  const SizedBox(height: 24),
+                  _buildPipelineSummary(
+                    context,
+                    firebaseService,
+                    userProfile.uid,
+                  ),
+                  const SizedBox(height: 20),
+                  _buildQuickStats(),
+                  const SizedBox(height: 24),
+                  const Text(
+                    'TRENDS',
+                    style: TextStyle(
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  _buildChartCard(
+                    context,
+                    title: 'Completion Rate',
+                    child: SizedBox(
+                      height: 180,
+                      child: BarChart(
+                        BarChartData(
+                          alignment: BarChartAlignment.spaceAround,
+                          maxY: 100,
+                          barGroups: [
+                            _makeGroupData(0, 85),
+                            _makeGroupData(1, 90),
+                            _makeGroupData(2, 75),
+                            _makeGroupData(3, 95),
+                            _makeGroupData(4, 100),
+                            _makeGroupData(5, 40),
+                            _makeGroupData(6, 60),
+                          ],
+                          gridData: FlGridData(show: false),
+                          borderData: FlBorderData(show: false),
+                          titlesData: FlTitlesData(
+                            rightTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            topTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            leftTitles: const AxisTitles(
+                              sideTitles: SideTitles(showTitles: false),
+                            ),
+                            bottomTitles: AxisTitles(
+                              sideTitles: SideTitles(
+                                showTitles: true,
+                                getTitlesWidget: (value, meta) {
+                                  const days = [
+                                    'M',
+                                    'T',
+                                    'W',
+                                    'T',
+                                    'F',
+                                    'S',
+                                    'S',
+                                  ];
+                                  return Padding(
+                                    padding: const EdgeInsets.only(top: 8.0),
+                                    child: Text(
+                                      days[value.toInt()],
+                                      style: const TextStyle(
+                                        color: AppTheme.greyColor,
+                                        fontSize: 12,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  );
+                                },
+                              ),
+                            ),
+                          ),
                         ),
                       ),
                     ),
                   ),
-                ),
-              ),
-            ),
-            const SizedBox(height: 20),
-            _buildChartCard(
-              context,
-              title: 'Activity Heatmap',
-              child: Container(
-                height: 120,
-                padding: const EdgeInsets.all(10),
-                decoration: BoxDecoration(
-                  color: AppTheme.bgColor.withOpacity(0.5),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: GridView.builder(
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 15,
-                    crossAxisSpacing: 4,
-                    mainAxisSpacing: 4,
-                  ),
-                  itemCount: 60,
-                  itemBuilder: (context, index) {
-                    return Container(
-                      decoration: BoxDecoration(
-                        color: index % 5 == 0
-                            ? AppTheme.primaryColor
-                            : AppTheme.secondaryColor,
-                        borderRadius: BorderRadius.circular(2),
+                  const SizedBox(height: 16),
+                  _buildChartCard(
+                    context,
+                    title: 'Activity Heatmap',
+                    child: Container(
+                      height: 120,
+                      padding: const EdgeInsets.all(4),
+                      child: GridView.builder(
+                        physics: const NeverScrollableScrollPhysics(),
+                        gridDelegate:
+                            const SliverGridDelegateWithFixedCrossAxisCount(
+                              crossAxisCount: 15,
+                              crossAxisSpacing: 3,
+                              mainAxisSpacing: 3,
+                            ),
+                        itemCount: 60,
+                        itemBuilder: (context, index) {
+                          final activity = (index * 7) % 100;
+                          return Container(
+                            decoration: BoxDecoration(
+                              color: AppTheme.primaryColor.withValues(
+                                alpha: activity / 120 + 0.05,
+                              ),
+                              borderRadius: BorderRadius.circular(3),
+                            ),
+                          );
+                        },
                       ),
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  const SizedBox(height: 32),
+                  const Text(
+                    'TEAM LEADERBOARD',
+                    style: TextStyle(
+                      letterSpacing: 1.5,
+                      fontWeight: FontWeight.bold,
+                      color: AppTheme.primaryColor,
+                      fontSize: 12,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  const LeaderboardWidget(),
+                  const SizedBox(height: 100),
+                ],
               ),
             ),
-            const SizedBox(height: 30),
-            const LeaderboardWidget(),
-            const SizedBox(height: 30),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -171,9 +203,21 @@ class StatsDashboard extends StatelessWidget {
   Widget _buildQuickStats() {
     return Row(
       children: [
-        _buildStatItem('85%', 'Weekly Rate', Icons.trending_up, Colors.green),
-        const SizedBox(width: 15),
-        _buildStatItem('12', 'Day Streak', Icons.fireplace, Colors.orange),
+        _buildStatItem(
+          '85%',
+          'Weekly Rate',
+          Icons.trending_up_rounded,
+          AppTheme.successColor,
+          AppTheme.emeraldGradient,
+        ),
+        const SizedBox(width: 12),
+        _buildStatItem(
+          '12',
+          'Day Streak',
+          Icons.fireplace_rounded,
+          Colors.orange,
+          AppTheme.orangeGradient,
+        ),
       ],
     );
   }
@@ -183,26 +227,43 @@ class StatsDashboard extends StatelessWidget {
     String label,
     IconData icon,
     Color color,
+    LinearGradient gradient,
   ) {
     return Expanded(
       child: Container(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(16),
         decoration: BoxDecoration(
-          color: AppTheme.secondaryColor,
+          color: Colors.white.withValues(alpha: 0.55),
           borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
         ),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Icon(icon, color: color, size: 30),
-            const SizedBox(height: 15),
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 20),
+            ),
+            const SizedBox(height: 12),
             Text(
               value,
-              style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+              style: const TextStyle(
+                fontSize: 24,
+                fontWeight: FontWeight.bold,
+                color: AppTheme.textColor,
+              ),
             ),
             Text(
               label,
-              style: const TextStyle(color: AppTheme.greyColor, fontSize: 12),
+              style: const TextStyle(
+                color: AppTheme.greyColor,
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+              ),
             ),
           ],
         ),
@@ -219,15 +280,20 @@ class StatsDashboard extends StatelessWidget {
       width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: AppTheme.secondaryColor,
+        color: Colors.white.withValues(alpha: 0.55),
         borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
             title,
-            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            style: const TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor,
+            ),
           ),
           const SizedBox(height: 20),
           child,
@@ -241,31 +307,13 @@ class StatsDashboard extends StatelessWidget {
     FirebaseService service,
     String userId,
   ) {
-    // Get last 7 days including today
     return StreamBuilder<List<PipelineMetricModel>>(
       stream: service.getPipelineMetrics(
         userId,
         DateTime.now().subtract(const Duration(days: 7)),
       ),
       builder: (context, snapshot) {
-        if (!snapshot.hasData || snapshot.data!.isEmpty) {
-          return _buildChartCard(
-            context,
-            title: 'Pipeline Health',
-            child: const Center(
-              child: Padding(
-                padding: EdgeInsets.all(20.0),
-                child: Text(
-                  'No data yet. Log your activity!',
-                  style: TextStyle(color: AppTheme.greyColor),
-                ),
-              ),
-            ),
-          );
-        }
-
-        final metrics = snapshot.data!;
-        // Simple aggregate for the week or show today's if available
+        final metrics = snapshot.data ?? [];
         final todayStr = DateFormat('yyyy-MM-dd').format(DateTime.now());
         final todayMetric = metrics.firstWhere(
           (m) => m.date == todayStr,
@@ -273,7 +321,7 @@ class StatsDashboard extends StatelessWidget {
             id: '',
             userId: '',
             teamId: '',
-            date: '',
+            date: todayStr,
             calls: 0,
             connects: 0,
             meetingsBooked: 0,
@@ -282,47 +330,70 @@ class StatsDashboard extends StatelessWidget {
         );
 
         return Container(
-          padding: const EdgeInsets.all(20),
+          padding: const EdgeInsets.all(24),
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [
-                AppTheme.primaryColor.withOpacity(0.8),
-                AppTheme.primaryColor,
-              ],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(20),
+            gradient: AppTheme.primaryGradient,
+            borderRadius: BorderRadius.circular(24),
+            boxShadow: [
+              BoxShadow(
+                color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text(
-                'Today\'s Pipeline 🚀',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
-                  fontSize: 18,
-                ),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  const Text(
+                    'Today\'s Pipeline',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 18,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.2),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    child: const Text(
+                      'Live',
+                      style: TextStyle(
+                        color: Colors.white,
+                        fontSize: 10,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 24),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   _buildPipelineItem(
                     'Calls',
                     todayMetric.calls.toString(),
-                    Icons.phone,
+                    Icons.phone_rounded,
                   ),
                   _buildPipelineItem(
                     'Connects',
                     todayMetric.connects.toString(),
-                    Icons.record_voice_over,
+                    Icons.record_voice_over_rounded,
                   ),
                   _buildPipelineItem(
                     'Meetings',
                     todayMetric.meetingsBooked.toString(),
-                    Icons.calendar_today,
+                    Icons.calendar_today_rounded,
                   ),
                 ],
               ),
@@ -337,25 +408,29 @@ class StatsDashboard extends StatelessWidget {
     return Column(
       children: [
         Container(
-          padding: const EdgeInsets.all(10),
+          padding: const EdgeInsets.all(12),
           decoration: BoxDecoration(
-            color: Colors.white.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.15),
             shape: BoxShape.circle,
           ),
-          child: Icon(icon, color: Colors.white, size: 20),
+          child: Icon(icon, color: Colors.white, size: 22),
         ),
-        const SizedBox(height: 8),
+        const SizedBox(height: 12),
         Text(
           value,
           style: const TextStyle(
             color: Colors.white,
             fontWeight: FontWeight.bold,
-            fontSize: 20,
+            fontSize: 22,
           ),
         ),
         Text(
           label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
+          style: TextStyle(
+            color: Colors.white.withValues(alpha: 0.7),
+            fontSize: 11,
+            fontWeight: FontWeight.w500,
+          ),
         ),
       ],
     );
@@ -367,11 +442,58 @@ class StatsDashboard extends StatelessWidget {
       barRods: [
         BarChartRodData(
           toY: y,
-          color: y > 70 ? AppTheme.primaryColor : AppTheme.greyColor,
-          width: 12,
-          borderRadius: BorderRadius.circular(4),
+          gradient: AppTheme.primaryGradient,
+          width: 16,
+          borderRadius: BorderRadius.circular(6),
+          backDrawRodData: BackgroundBarChartRodData(
+            show: true,
+            toY: 100,
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+          ),
         ),
       ],
+    );
+  }
+}
+
+class _AnimatedActionButton extends StatelessWidget {
+  final IconData icon;
+  final VoidCallback onTap;
+  final bool isPrimary;
+
+  const _AnimatedActionButton({
+    required this.icon,
+    required this.onTap,
+    this.isPrimary = false,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: isPrimary
+              ? AppTheme.primaryColor
+              : Colors.white.withValues(alpha: 0.7),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+          boxShadow: [
+            BoxShadow(
+              color: (isPrimary ? AppTheme.primaryColor : Colors.black)
+                  .withValues(alpha: 0.1),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Icon(
+          icon,
+          color: isPrimary ? Colors.white : AppTheme.primaryColor,
+          size: 20,
+        ),
+      ),
     );
   }
 }

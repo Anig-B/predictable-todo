@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_theme.dart';
+import '../../models/user_model.dart';
 
 class TeamSelectionScreen extends StatefulWidget {
   const TeamSelectionScreen({super.key});
@@ -181,13 +182,7 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
             onPressed: () => Navigator.pop(context),
             child: const Text('Cancel'),
           ),
-          ElevatedButton(
-            onPressed: () {
-              // TODO: Implement join logic in FirebaseService
-              Navigator.pop(context);
-            },
-            child: const Text('Join'),
-          ),
+          ElevatedButton(onPressed: _joinTeam, child: const Text('Join')),
         ],
       ),
     );
@@ -200,15 +195,50 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
     Navigator.pop(context); // Close dialog
 
     try {
-      // Simulate network request
-      await Future.delayed(const Duration(seconds: 1));
+      final user = context.read<UserModel?>();
+      if (user == null) throw Exception('User not logged in');
+
+      await context.read<FirebaseService>().createTeam(
+        user.uid,
+        _teamNameController.text.trim(),
+      );
+
+      if (!mounted) return;
+      // Success is handled by auth state change -> dashboard redirect
+    } catch (e) {
+      if (!mounted) return;
+      debugPrint('CREATE_TEAM_ERROR_DUMP: $e');
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _joinTeam() async {
+    if (_inviteCodeController.text.isEmpty) return;
+
+    setState(() => _isLoading = true);
+    Navigator.pop(context); // Close dialog
+
+    try {
+      final user = context.read<UserModel?>();
+      if (user == null) throw Exception('User not logged in');
+
+      await context.read<FirebaseService>().joinTeam(
+        _inviteCodeController.text.trim(),
+        user.uid,
+      );
+
+      // Success is handled by auth state change -> dashboard redirect
     } catch (e) {
       if (!mounted) return;
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
-      setState(() => _isLoading = false);
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 }

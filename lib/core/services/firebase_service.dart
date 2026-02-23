@@ -1,84 +1,56 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:google_sign_in/google_sign_in.dart' as gsis;
 import 'package:rxdart/rxdart.dart';
 import 'package:intl/intl.dart';
-import '../../models/user_model.dart';
-import '../../models/task_model.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:uuid/uuid.dart';
 import '../../models/user_model.dart';
 import '../../models/task_model.dart';
 import '../../models/pipeline_metric_model.dart';
 import '../../models/handoff_checklist_model.dart';
 
 class FirebaseService {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final gsis.GoogleSignIn _googleSignIn = gsis.GoogleSignIn();
+  final BehaviorSubject<UserModel?> _userSubject = BehaviorSubject<UserModel?>.seeded(null);
+  String? _localUid;
 
-  Stream<User?> get authStateChanges => _auth.authStateChanges();
+  Stream<UserModel?> get userProfileStream => _userSubject.stream;
 
-  Stream<UserModel?> get userProfileStream {
-    return _auth.authStateChanges().switchMap((user) {
-      if (user == null) return Stream.value(null);
-      return _db.collection('users').doc(user.uid).snapshots().map((doc) {
-        if (!doc.exists) return null;
-        return UserModel.fromMap(doc.data()!);
-      });
+  // Since we bypass auth, we expose the local ID as a stream for compatibility
+  Stream<String?> get authStateChanges => _userSubject.map((user) => user?.uid);
+
+  Future<void> initLocalUser() async {
+    final prefs = await SharedPreferences.getInstance();
+    _localUid = prefs.getString('local_device_uid');
+
+    if (_localUid == null) {
+      _localUid = const Uuid().v4();
+      await prefs.setString('local_device_uid', _localUid!);
+    }
+
+    // Subscribe to the un-authenticated local user document
+    _db.collection('users').doc(_localUid).snapshots().listen((doc) async {
+      if (!doc.exists) {
+        // Create the user profile on first launch since there's no auth trigger
+        final newUser = UserModel(
+          uid: _localUid!,
+          email: 'local_device@predictable_todo.local',
+          displayName: 'Local Guest',
+          photoUrl: 'https://ui-avatars.com/api/?name=Guest+User&background=random',
+          teams: [],
+        );
+        await _db.collection('users').doc(_localUid).set(newUser.toMap());
+        _userSubject.add(newUser);
+      } else {
+        _userSubject.add(UserModel.fromMap(doc.data()!));
+      }
     });
   }
 
-  Future<UserCredential?> signInWithGoogle() async {
-    try {
-      final gsis.GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
-      if (googleUser == null) return null;
-
-      final gsis.GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-      final AuthCredential credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final UserCredential userCredential = await _auth.signInWithCredential(
-        credential,
-      );
-      if (userCredential.user != null) {
-        await _updateUserData(userCredential.user!);
-      }
-      return userCredential;
-    } catch (e) {
-      print('Error signing in with Google: $e');
-      return null;
-    }
-  }
-
   Future<void> signOut() async {
-    await _googleSignIn.signOut();
-    await _auth.signOut();
-  }
-
-  Future<void> _updateUserData(User user) async {
-    final userRef = _db.collection('users').doc(user.uid);
-    final doc = await userRef.get();
-
-    if (!doc.exists) {
-      final newUser = UserModel(
-        uid: user.uid,
-        email: user.email ?? '',
-        displayName: user.displayName ?? '',
-        photoUrl: user.photoURL ?? '',
-        teams: [],
-      );
-      await userRef.set(newUser.toMap());
-    }
-  }
-
-  Future<UserModel?> getUserData(String uid) async {
-    final doc = await _db.collection('users').doc(uid).get();
-    if (doc.exists) {
-      return UserModel.fromMap(doc.data()!);
-    }
-    return null;
+    // In a local-only setup, sign out might just mean clearing local storage.
+    // However, since we rely on it as persistent identity, we won't implement a 
+    // destructive sign out here. We just leave it as a no-op to support UI elements
+    // that might still call it.
   }
 
   // Team Methods
@@ -106,9 +78,36 @@ class FirebaseService {
     return teamRef.id;
   }
 
+  Future<void> joinTeam(String inviteCode, String userId) async {
+    // 1. Find team by invite code
+    final query = await _db
+        .collection('teams')
+        .where('inviteCode', isEqualTo: inviteCode)
+        .limit(1)
+        .get();
+
+    if (query.docs.isEmpty) {
+      throw Exception('Invalid invite code');
+    }
+
+    final teamDoc = query.docs.first;
+    final teamId = teamDoc.id;
+
+    // 2. Add user to team members
+    await teamDoc.reference.update({'members.$userId': 'member'});
+
+    // 3. Update user profile
+    await _db.collection('users').doc(userId).update({
+      'currentTeamId': teamId,
+      'teams': FieldValue.arrayUnion([
+        {'teamId': teamId, 'role': 'member'},
+      ]),
+    });
+  }
+
   // Task Methods
   Future<void> createTask(TaskDefinitionModel task) async {
-    await _db.collection('task_definitions').add(task.toMap());
+    _db.collection('task_definitions').add(task.toMap()).catchError((e) => print('Error creating task: $e'));
   }
 
   Stream<List<TaskDefinitionModel>> getTasksForTeam(String teamId) {
@@ -147,10 +146,10 @@ class FirebaseService {
       timestamp: DateTime.now(),
     );
 
-    await _db
+    _db
         .collection('completions')
         .doc(completionId)
-        .set(completion.toMap());
+        .set(completion.toMap()).catchError((e) => print('Error completing task: $e'));
 
     // Potentially update streak logic here
   }
@@ -219,7 +218,7 @@ class FirebaseService {
 
   // Pipeline Methods
   Future<void> savePipelineMetric(PipelineMetricModel metric) async {
-    await _db.collection('pipeline_metrics').doc(metric.id).set(metric.toMap());
+    _db.collection('pipeline_metrics').doc(metric.id).set(metric.toMap()).catchError((e) => print('Error saving metric: $e'));
   }
 
   Stream<List<PipelineMetricModel>> getPipelineMetrics(
@@ -251,17 +250,17 @@ class FirebaseService {
   }
 
   Future<void> saveChecklistTemplate(ChecklistTemplateModel template) async {
-    await _db
+    _db
         .collection('checklist_templates')
         .doc(template.teamId)
-        .set(template.toMap());
+        .set(template.toMap()).catchError((e) => print('Error saving template: $e'));
   }
 
   Future<void> saveHandoffChecklist(HandoffChecklistModel checklist) async {
-    await _db
+    _db
         .collection('handoff_checklists')
         .doc(checklist.id)
-        .set(checklist.toMap());
+        .set(checklist.toMap()).catchError((e) => print('Error saving checklist: $e'));
   }
 
   Stream<List<HandoffChecklistModel>> getTeamHandoffs(String teamId) {
@@ -276,5 +275,29 @@ class FirebaseService {
               .map((doc) => HandoffChecklistModel.fromMap(doc.id, doc.data()))
               .toList();
         });
+  }
+  Future<UserModel?> getUserData(String uid) async {
+    final doc = await _db.collection('users').doc(uid).get();
+    if (doc.exists) {
+      return UserModel.fromMap(doc.data()!);
+    }
+    return null;
+  }
+
+  Stream<Map<String, dynamic>?> getTeamStream(String teamId) {
+    return _db.collection('teams').doc(teamId).snapshots().map((doc) {
+      if (!doc.exists) return null;
+      return doc.data();
+    });
+  }
+
+  Future<void> leaveTeam(String userId, String teamId) async {
+    await _db.collection('users').doc(userId).update({
+      'currentTeamId': null,
+      'teams': FieldValue.arrayRemove([
+        {'teamId': teamId, 'role': 'owner'},
+        {'teamId': teamId, 'role': 'member'},
+      ]),
+    });
   }
 }

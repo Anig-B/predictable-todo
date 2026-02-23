@@ -21,7 +21,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   RecurrenceType _recurrenceType = RecurrenceType.daily;
   TaskCategory _category = TaskCategory.other;
   TaskPriority _priority = TaskPriority.medium;
-  List<int> _selectedDays = []; // 1-7
+  List<int> _selectedDays = [];
   int? _dayOfMonth;
 
   final List<String> _weekDays = [
@@ -36,165 +36,261 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('New Recurring Task'),
+    return Container(
+      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: Form(
-        key: _formKey,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionTitle('Basic Info'),
-              TextFormField(
-                controller: _titleController,
-                decoration: InputDecoration(
-                  labelText: 'Task Title',
-                  filled: true,
-                  fillColor: AppTheme.secondaryColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+        appBar: AppBar(title: const Text('Design New Task'), centerTitle: true),
+        body: Form(
+          key: _formKey,
+          child: SingleChildScrollView(
+            padding: const EdgeInsets.all(24),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildSectionLabel('CORE DETAILS'),
+                _buildInputContainer(
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _titleController,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'Task Title',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: AppTheme.greyColor),
+                        ),
+                        validator: (v) =>
+                            v!.isEmpty ? 'Title is required' : null,
+                      ),
+                      const Divider(height: 24, color: Colors.white24),
+                      TextFormField(
+                        controller: _descriptionController,
+                        maxLines: 2,
+                        style: const TextStyle(
+                          fontSize: 14,
+                          color: AppTheme.textColor,
+                        ),
+                        decoration: const InputDecoration(
+                          hintText: 'What needs to be done?',
+                          border: InputBorder.none,
+                          hintStyle: TextStyle(color: AppTheme.greyColor),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
-                validator: (v) => v!.isEmpty ? 'Required' : null,
-              ),
-              const SizedBox(height: 15),
-              TextFormField(
-                controller: _descriptionController,
-                maxLines: 3,
-                decoration: InputDecoration(
-                  labelText: 'Description',
-                  filled: true,
-                  fillColor: AppTheme.secondaryColor,
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 32),
+                _buildSectionLabel('CATEGORY'),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    children: TaskCategory.values.map((cat) {
+                      final isSelected = _category == cat;
+                      return Padding(
+                        padding: const EdgeInsets.only(right: 8.0),
+                        child: ChoiceChip(
+                          label: Text(cat.name.toUpperCase()),
+                          selected: isSelected,
+                          onSelected: (selected) {
+                            if (selected) setState(() => _category = cat);
+                          },
+                          backgroundColor: Colors.white.withValues(alpha: 0.3),
+                          selectedColor: AppTheme.primaryColor,
+                          labelStyle: TextStyle(
+                            color: isSelected
+                                ? Colors.white
+                                : AppTheme.textColor,
+                            fontSize: 11,
+                            fontWeight: FontWeight.bold,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          border: BorderSide(
+                            color: isSelected
+                                ? AppTheme.primaryColor
+                                : Colors.white.withValues(alpha: 0.4),
+                          ),
+                        ),
+                      );
+                    }).toList(),
                   ),
                 ),
-              ),
-              const SizedBox(height: 25),
-              _buildSectionTitle('Category'),
-              Wrap(
-                spacing: 10,
-                children: TaskCategory.values.map((cat) {
-                  return ChoiceChip(
-                    label: Text(cat.name.toUpperCase()),
-                    selected: _category == cat,
-                    onSelected: (selected) {
-                      if (selected) setState(() => _category = cat);
-                    },
-                    selectedColor: AppTheme.primaryColor,
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 25),
-              _buildSectionTitle('Recurrence'),
-              Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: AppTheme.secondaryColor,
-                  borderRadius: BorderRadius.circular(12),
+                const SizedBox(height: 32),
+                _buildSectionLabel('FREQUENCY'),
+                _buildInputContainer(
+                  child: Column(
+                    children: [
+                      Row(
+                        children: [
+                          _buildRecurrenceTab(RecurrenceType.daily, 'Daily'),
+                          _buildRecurrenceTab(RecurrenceType.weekly, 'Weekly'),
+                          _buildRecurrenceTab(
+                            RecurrenceType.monthly,
+                            'Monthly',
+                          ),
+                        ],
+                      ),
+                      if (_recurrenceType != RecurrenceType.daily) ...[
+                        const SizedBox(height: 16),
+                        const Divider(height: 1, color: Colors.white24),
+                        const SizedBox(height: 16),
+                        if (_recurrenceType == RecurrenceType.weekly)
+                          _buildWeeklySelection(),
+                        if (_recurrenceType == RecurrenceType.monthly)
+                          _buildMonthlySelection(),
+                      ],
+                    ],
+                  ),
                 ),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        _buildRecurrenceOption(RecurrenceType.daily, 'Daily'),
-                        _buildRecurrenceOption(RecurrenceType.weekly, 'Weekly'),
-                        _buildRecurrenceOption(
-                          RecurrenceType.monthly,
-                          'Monthly',
+                const SizedBox(height: 32),
+                _buildSectionLabel('PRIORITY'),
+                Row(
+                  children: TaskPriority.values.map((p) {
+                    final isSelected = _priority == p;
+                    Color color = p == TaskPriority.high
+                        ? Colors.red
+                        : (p == TaskPriority.medium
+                              ? Colors.orange
+                              : Colors.green);
+                    return Expanded(
+                      child: Padding(
+                        padding: EdgeInsets.only(
+                          right: p != TaskPriority.values.last ? 8.0 : 0,
+                        ),
+                        child: GestureDetector(
+                          onTap: () => setState(() => _priority = p),
+                          child: AnimatedContainer(
+                            duration: const Duration(milliseconds: 200),
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: isSelected
+                                  ? color
+                                  : Colors.white.withValues(alpha: 0.4),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: isSelected
+                                    ? color
+                                    : Colors.white.withValues(alpha: 0.6),
+                              ),
+                              boxShadow: isSelected
+                                  ? [
+                                      BoxShadow(
+                                        color: color.withValues(alpha: 0.3),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 4),
+                                      ),
+                                    ]
+                                  : [],
+                            ),
+                            child: Center(
+                              child: Text(
+                                p.name.toUpperCase(),
+                                style: TextStyle(
+                                  color: isSelected
+                                      ? Colors.white
+                                      : AppTheme.textColor,
+                                  fontWeight: FontWeight.bold,
+                                  fontSize: 12,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    );
+                  }).toList(),
+                ),
+                const SizedBox(height: 48),
+                GestureDetector(
+                  onTap: _saveTask,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
                         ),
                       ],
                     ),
-                    const Divider(color: AppTheme.greyColor),
-                    if (_recurrenceType == RecurrenceType.weekly)
-                      _buildWeeklySelection(),
-                    if (_recurrenceType == RecurrenceType.monthly)
-                      _buildMonthlySelection(),
-                    if (_recurrenceType == RecurrenceType.daily)
-                      const Text(
-                        'Occurs every day',
-                        style: TextStyle(color: AppTheme.greyColor),
+                    child: const Center(
+                      child: Text(
+                        'Create Recurring Task',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
                       ),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 25),
-              _buildSectionTitle('Priority'),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceAround,
-                children: TaskPriority.values.map((p) {
-                  Color c = p == TaskPriority.high
-                      ? Colors.red
-                      : (p == TaskPriority.medium
-                            ? Colors.orange
-                            : Colors.green);
-                  return FilterChip(
-                    label: Text(p.name.toUpperCase()),
-                    selected: _priority == p,
-                    onSelected: (v) => setState(() => _priority = p),
-                    selectedColor: c.withOpacity(0.3),
-                    checkmarkColor: c,
-                  );
-                }).toList(),
-              ),
-              const SizedBox(height: 40),
-              ElevatedButton(
-                onPressed: _saveTask,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: AppTheme.primaryColor,
-                  minimumSize: const Size(double.infinity, 55),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(15),
+                    ),
                   ),
                 ),
-                child: const Text(
-                  'Create Task',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ),
-            ],
+                const SizedBox(height: 100),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildSectionTitle(String title) {
+  Widget _buildSectionLabel(String label) {
     return Padding(
-      padding: const EdgeInsets.only(bottom: 10, left: 5),
+      padding: const EdgeInsets.only(left: 4, bottom: 12),
       child: Text(
-        title,
+        label,
         style: const TextStyle(
-          fontSize: 16,
+          letterSpacing: 1.5,
           fontWeight: FontWeight.bold,
           color: AppTheme.primaryColor,
+          fontSize: 11,
         ),
       ),
     );
   }
 
-  Widget _buildRecurrenceOption(RecurrenceType type, String label) {
+  Widget _buildInputContainer({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+      ),
+      child: child,
+    );
+  }
+
+  Widget _buildRecurrenceTab(RecurrenceType type, String label) {
     bool isSelected = _recurrenceType == type;
     return Expanded(
-      child: InkWell(
+      child: GestureDetector(
         onTap: () => setState(() => _recurrenceType = type),
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 10),
           decoration: BoxDecoration(
-            color: isSelected ? AppTheme.primaryColor : Colors.transparent,
-            borderRadius: BorderRadius.circular(8),
+            color: isSelected
+                ? AppTheme.primaryColor.withValues(alpha: 0.1)
+                : Colors.transparent,
+            borderRadius: BorderRadius.circular(10),
           ),
           child: Text(
             label,
             textAlign: TextAlign.center,
             style: TextStyle(
-              color: isSelected ? Colors.white : AppTheme.greyColor,
-              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+              color: isSelected ? AppTheme.primaryColor : AppTheme.greyColor,
+              fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+              fontSize: 13,
             ),
           ),
         ),
@@ -204,22 +300,41 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
 
   Widget _buildWeeklySelection() {
     return Wrap(
-      spacing: 8,
+      spacing: 6,
+      runSpacing: 6,
       children: List.generate(7, (index) {
         int day = index + 1;
         bool isSelected = _selectedDays.contains(day);
-        return FilterChip(
-          label: Text(_weekDays[index]),
-          selected: isSelected,
-          onSelected: (v) {
+        return GestureDetector(
+          onTap: () {
             setState(() {
-              if (v) {
-                _selectedDays.add(day);
-              } else {
-                _selectedDays.remove(day);
-              }
+              isSelected ? _selectedDays.remove(day) : _selectedDays.add(day);
             });
           },
+          child: Container(
+            width: 44,
+            height: 44,
+            decoration: BoxDecoration(
+              color: isSelected
+                  ? AppTheme.primaryColor
+                  : Colors.white.withValues(alpha: 0.4),
+              shape: BoxShape.circle,
+              border: Border.all(
+                color: isSelected
+                    ? AppTheme.primaryColor
+                    : Colors.white.withValues(alpha: 0.6),
+              ),
+            ),
+            child: Center(
+              child: Text(
+                _weekDays[index][0],
+                style: TextStyle(
+                  color: isSelected ? Colors.white : AppTheme.textColor,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+          ),
         );
       }),
     );
@@ -228,15 +343,30 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   Widget _buildMonthlySelection() {
     return Row(
       children: [
-        const Text('On day: '),
-        const SizedBox(width: 10),
-        DropdownButton<int>(
-          value: _dayOfMonth ?? 1,
-          dropdownColor: AppTheme.secondaryColor,
-          items: List.generate(31, (index) => index + 1)
-              .map((d) => DropdownMenuItem(value: d, child: Text(d.toString())))
-              .toList(),
-          onChanged: (v) => setState(() => _dayOfMonth = v),
+        const Text(
+          'Repeat on day: ',
+          style: TextStyle(
+            color: AppTheme.textColor,
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: Colors.white.withValues(alpha: 0.4),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: DropdownButton<int>(
+            value: _dayOfMonth ?? 1,
+            underline: const SizedBox(),
+            items: List.generate(31, (index) => index + 1)
+                .map(
+                  (d) => DropdownMenuItem(value: d, child: Text(d.toString())),
+                )
+                .toList(),
+            onChanged: (v) => setState(() => _dayOfMonth = v),
+          ),
         ),
       ],
     );
@@ -269,9 +399,12 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
         if (mounted) Navigator.pop(context);
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error saving task: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving task: $e'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
         }
       }
     }

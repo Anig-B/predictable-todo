@@ -34,12 +34,23 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
       initialDate: _selectedDate,
       firstDate: DateTime(2023),
       lastDate: DateTime.now(),
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: AppTheme.primaryColor,
+              onPrimary: Colors.white,
+              onSurface: AppTheme.textColor,
+            ),
+          ),
+          child: child!,
+        );
+      },
     );
     if (picked != null && picked != _selectedDate) {
       setState(() {
         _selectedDate = picked;
       });
-      // TODO: Fetch existing data for this date and populate fields
     }
   }
 
@@ -64,15 +75,21 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
         await context.read<FirebaseService>().savePipelineMetric(metric);
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Metrics saved successfully!')),
+            const SnackBar(
+              content: Text('Metrics saved successfully!'),
+              backgroundColor: AppTheme.successColor,
+            ),
           );
           Navigator.pop(context);
         }
       } catch (e) {
         if (mounted) {
-          ScaffoldMessenger.of(
-            context,
-          ).showSnackBar(SnackBar(content: Text('Error saving metrics: $e')));
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Error saving metrics: $e'),
+              backgroundColor: AppTheme.errorColor,
+            ),
+          );
         }
       }
     }
@@ -80,70 +97,85 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: AppTheme.bgColor,
-      appBar: AppBar(
-        title: const Text('Pipeline Tracker'),
+    return Container(
+      decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+      child: Scaffold(
         backgroundColor: Colors.transparent,
-        elevation: 0,
-      ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20.0),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildDateSelector(),
-              const SizedBox(height: 30),
-              Text(
-                'Daily Activity',
-                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                'Log your sales activity to track conversion rates.',
-                style: TextStyle(color: AppTheme.greyColor),
-              ),
-              const SizedBox(height: 30),
-              _buildNumberInput(
-                controller: _callsController,
-                label: 'Calls Made 📞',
-                hint: 'e.g. 50',
-              ),
-              const SizedBox(height: 20),
-              _buildNumberInput(
-                controller: _connectsController,
-                label: 'Connects / Conversations 🗣️',
-                hint: 'e.g. 5',
-              ),
-              const SizedBox(height: 20),
-              _buildNumberInput(
-                controller: _meetingsController,
-                label: 'Meetings Booked 📅',
-                hint: 'e.g. 1',
-              ),
-              const SizedBox(height: 40),
-            ],
-          ),
+        appBar: AppBar(
+          title: const Text('Log Daily Activity'),
+          centerTitle: true,
         ),
-      ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(20.0),
-        child: ElevatedButton(
-          onPressed: _saveMetrics,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AppTheme.primaryColor,
-            padding: const EdgeInsets.symmetric(vertical: 16),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(15),
+        body: SingleChildScrollView(
+          padding: const EdgeInsets.all(24.0),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _buildDateSelector(),
+                const SizedBox(height: 32),
+                const Text(
+                  'CONVERSION METRICS',
+                  style: TextStyle(
+                    letterSpacing: 1.5,
+                    fontWeight: FontWeight.bold,
+                    color: AppTheme.primaryColor,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 16),
+                _buildNumberInput(
+                  controller: _callsController,
+                  label: 'Total Calls Made',
+                  hint: '50',
+                  icon: Icons.phone_callback_rounded,
+                ),
+                const SizedBox(height: 16),
+                _buildNumberInput(
+                  controller: _connectsController,
+                  label: 'Positive Connects',
+                  hint: '10',
+                  icon: Icons.forum_rounded,
+                ),
+                const SizedBox(height: 16),
+                _buildNumberInput(
+                  controller: _meetingsController,
+                  label: 'Meetings Booked',
+                  hint: '2',
+                  icon: Icons.event_available_rounded,
+                ),
+                const SizedBox(height: 40),
+                GestureDetector(
+                  onTap: _saveMetrics,
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.symmetric(vertical: 18),
+                    decoration: BoxDecoration(
+                      gradient: AppTheme.primaryGradient,
+                      borderRadius: BorderRadius.circular(16),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppTheme.primaryColor.withValues(alpha: 0.3),
+                          blurRadius: 15,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: const Center(
+                      child: Text(
+                        'Save Daily Log',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 100),
+              ],
             ),
-          ),
-          child: const Text(
-            'Save Metrics',
-            style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
           ),
         ),
       ),
@@ -154,21 +186,37 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
     return GestureDetector(
       onTap: () => _selectDate(context),
       child: Container(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
-          color: AppTheme.secondaryColor,
-          borderRadius: BorderRadius.circular(15),
-          border: Border.all(color: AppTheme.primaryColor.withOpacity(0.3)),
+          color: Colors.white.withValues(alpha: 0.6),
+          borderRadius: BorderRadius.circular(18),
+          border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
         ),
         child: Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: AppTheme.primaryColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: const Icon(
+                Icons.calendar_today_rounded,
+                color: AppTheme.primaryColor,
+                size: 20,
+              ),
+            ),
+            const SizedBox(width: 16),
             Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const Text(
-                  'Date',
-                  style: TextStyle(color: AppTheme.greyColor, fontSize: 12),
+                  'Reporting Date',
+                  style: TextStyle(
+                    color: AppTheme.greyColor,
+                    fontSize: 12,
+                    fontWeight: FontWeight.w500,
+                  ),
                 ),
                 const SizedBox(height: 4),
                 Text(
@@ -176,13 +224,15 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
                   style: const TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 16,
+                    color: AppTheme.textColor,
                   ),
                 ),
               ],
             ),
+            const Spacer(),
             const Icon(
-              Icons.calendar_today_rounded,
-              color: AppTheme.primaryColor,
+              Icons.keyboard_arrow_down_rounded,
+              color: AppTheme.greyColor,
             ),
           ],
         ),
@@ -194,43 +244,58 @@ class _PipelineTrackerScreenState extends State<PipelineTrackerScreen> {
     required TextEditingController controller,
     required String label,
     required String hint,
+    required IconData icon,
   }) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
-        ),
-        const SizedBox(height: 10),
-        TextFormField(
-          controller: controller,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            hintText: hint,
-            hintStyle: const TextStyle(color: AppTheme.greyColor),
-            filled: true,
-            fillColor: AppTheme.secondaryColor,
-            border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(15),
-              borderSide: BorderSide.none,
-            ),
-            contentPadding: const EdgeInsets.symmetric(
-              horizontal: 20,
-              vertical: 16,
-            ),
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.8)),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Icon(icon, size: 16, color: AppTheme.greyColor),
+              const SizedBox(width: 8),
+              Text(
+                label,
+                style: const TextStyle(
+                  fontWeight: FontWeight.bold,
+                  fontSize: 14,
+                  color: AppTheme.textColor,
+                ),
+              ),
+            ],
           ),
-          validator: (value) {
-            if (value == null || value.isEmpty) {
-              return 'Please enter a value (0 if none)';
-            }
-            if (int.tryParse(value) == null) {
-              return 'Please enter a valid number';
-            }
-            return null;
-          },
-        ),
-      ],
+          const SizedBox(height: 12),
+          TextFormField(
+            controller: controller,
+            keyboardType: TextInputType.number,
+            style: const TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: AppTheme.textColor,
+            ),
+            decoration: InputDecoration(
+              hintText: hint,
+              hintStyle: TextStyle(
+                color: AppTheme.greyColor.withValues(alpha: 0.5),
+              ),
+              border: InputBorder.none,
+              filled: false,
+              contentPadding: EdgeInsets.zero,
+            ),
+            validator: (value) {
+              if (value == null || value.isEmpty) return 'Enter 0 if none';
+              if (int.tryParse(value) == null) return 'Invalid number';
+              return null;
+            },
+          ),
+        ],
+      ),
     );
   }
 }

@@ -18,68 +18,140 @@ class ActivityFeedScreen extends StatelessWidget {
       return const Center(child: CircularProgressIndicator());
     }
 
-    return StreamBuilder<List<TaskCompletionModel>>(
-      stream: firebaseService.getTeamActivity(userProfile.currentTeamId!),
-      builder: (context, snapshot) {
-        if (!snapshot.hasData)
-          return const Center(child: CircularProgressIndicator());
+    return Scaffold(
+      backgroundColor: Colors.transparent,
+      body: StreamBuilder<List<TaskCompletionModel>>(
+        stream: firebaseService.getTeamActivity(userProfile.currentTeamId!),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
 
-        final activities = snapshot.data!;
-        if (activities.isEmpty) {
-          return const Center(
-            child: Text(
-              'No recent activity.',
-              style: TextStyle(color: AppTheme.greyColor),
-            ),
+          final activities = snapshot.data!;
+          if (activities.isEmpty) {
+            return const Center(
+              child: Text(
+                'No recent activity.',
+                style: TextStyle(color: AppTheme.greyColor),
+              ),
+            );
+          }
+
+          return CustomScrollView(
+            slivers: [
+              SliverToBoxAdapter(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 16),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const Text(
+                        'Team Activity',
+                        style: TextStyle(
+                          fontSize: 26,
+                          fontWeight: FontWeight.bold,
+                          color: AppTheme.textColor,
+                        ),
+                      ),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Colors.white.withValues(alpha: 0.6),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                            color: Colors.white.withValues(alpha: 0.4),
+                          ),
+                        ),
+                        child: Text(
+                          '${activities.length} updates',
+                          style: const TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.bold,
+                            color: AppTheme.primaryColor,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              SliverPadding(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 100),
+                sliver: SliverList(
+                  delegate: SliverChildBuilderDelegate((context, index) {
+                    return _ActivityItem(
+                      activity: activities[index],
+                      service: firebaseService,
+                    );
+                  }, childCount: activities.length),
+                ),
+              ),
+            ],
           );
-        }
-
-        return ListView.builder(
-          padding: const EdgeInsets.all(20),
-          itemCount: activities.length,
-          itemBuilder: (context, index) {
-            final activity = activities[index];
-            return _buildActivityItem(context, activity, firebaseService);
-          },
-        );
-      },
+        },
+      ),
     );
   }
+}
 
-  Widget _buildActivityItem(
-    BuildContext context,
-    TaskCompletionModel activity,
-    FirebaseService service,
-  ) {
+class _ActivityItem extends StatelessWidget {
+  final TaskCompletionModel activity;
+  final FirebaseService service;
+
+  const _ActivityItem({required this.activity, required this.service});
+
+  @override
+  Widget build(BuildContext context) {
     return FutureBuilder<UserModel?>(
       future: service.getUserData(activity.userId),
       builder: (context, userSnapshot) {
         final user = userSnapshot.data;
         if (user == null) return const SizedBox.shrink();
 
+        final initials = _initials(user.displayName);
+
         return Container(
-          margin: const EdgeInsets.only(bottom: 16),
+          margin: const EdgeInsets.only(bottom: 12),
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
-            color: AppTheme.secondaryColor,
-            borderRadius: BorderRadius.circular(15),
+            color: Colors.white.withValues(alpha: 0.55),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.7)),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.03),
+                blurRadius: 10,
+                offset: const Offset(0, 3),
+              ),
+            ],
           ),
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CircleAvatar(
-                backgroundImage: user.photoUrl.isNotEmpty
-                    ? NetworkImage(user.photoUrl)
-                    : null,
-                backgroundColor: AppTheme.primaryColor,
-                child: user.photoUrl.isEmpty
-                    ? Text(
-                        user.displayName[0],
-                        style: const TextStyle(color: Colors.white),
-                      )
-                    : null,
+              // Avatar
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  gradient: AppTheme.primaryGradient,
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Center(
+                  child: Text(
+                    initials,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
               ),
-              const SizedBox(width: 15),
+              const SizedBox(width: 14),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,65 +159,93 @@ class ActivityFeedScreen extends StatelessWidget {
                     RichText(
                       text: TextSpan(
                         style: const TextStyle(
-                          color: Colors.white,
+                          color: AppTheme.textColor,
                           fontSize: 14,
+                          fontFamily: 'Inter',
                         ),
                         children: [
                           TextSpan(
                             text: user.displayName,
                             style: const TextStyle(fontWeight: FontWeight.bold),
                           ),
-                          const TextSpan(text: ' completed a task'),
+                          const TextSpan(text: ' completed '),
+                          const TextSpan(
+                            text:
+                                'Daily Outreach', // Would be better if we had Task title in activity
+                            style: TextStyle(
+                              fontWeight: FontWeight.w600,
+                              color: AppTheme.primaryColor,
+                            ),
+                          ),
                         ],
                       ),
                     ),
-                    const SizedBox(height: 5),
+                    const SizedBox(height: 4),
                     Text(
                       _getRelativeTime(activity.timestamp),
                       style: const TextStyle(
                         color: AppTheme.greyColor,
-                        fontSize: 12,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
                       ),
                     ),
-                    const SizedBox(height: 10),
-                    if (activity.result.isNotEmpty)
+                    if (activity.result.isNotEmpty) ...[
+                      const SizedBox(height: 10),
                       Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 5,
-                        ),
+                        padding: const EdgeInsets.all(10),
                         decoration: BoxDecoration(
-                          color: AppTheme.primaryColor.withOpacity(0.1),
-                          borderRadius: BorderRadius.circular(5),
+                          color: AppTheme.primaryColor.withValues(alpha: 0.05),
+                          borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppTheme.primaryColor.withOpacity(0.3),
+                            color: AppTheme.primaryColor.withValues(alpha: 0.1),
                           ),
                         ),
-                        child: Text(
-                          'Result: ${activity.result}',
-                          style: const TextStyle(
-                            color: AppTheme.primaryColor,
-                            fontSize: 12,
-                          ),
+                        child: Row(
+                          children: [
+                            const Icon(
+                              Icons.notes_rounded,
+                              size: 14,
+                              color: AppTheme.primaryColor,
+                            ),
+                            const SizedBox(width: 8),
+                            Expanded(
+                              child: Text(
+                                activity.result,
+                                style: const TextStyle(
+                                  color: AppTheme.textColor,
+                                  fontSize: 12,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ),
+                          ],
                         ),
                       ),
+                    ],
                   ],
                 ),
               ),
+              // Fire button (reaction)
               IconButton(
                 icon: const Icon(
                   Icons.local_fire_department_rounded,
-                  color: AppTheme.greyColor,
+                  color: Colors.orange,
+                  size: 22,
                 ),
-                onPressed: () {
-                  // Todo: Implement like/reaction logic
-                },
+                onPressed: () {},
               ),
             ],
           ),
         );
       },
     );
+  }
+
+  String _initials(String name) {
+    if (name.isEmpty) return '?';
+    final parts = name.trim().split(' ');
+    if (parts.length >= 2) return '${parts[0][0]}${parts[1][0]}'.toUpperCase();
+    return parts[0][0].toUpperCase();
   }
 
   String _getRelativeTime(DateTime time) {

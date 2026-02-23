@@ -1,10 +1,9 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/firebase_service.dart';
 import 'core/theme/app_theme.dart';
-import 'features/auth/login_screen.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/team/team_selection_screen.dart';
 import 'models/user_model.dart';
@@ -18,21 +17,27 @@ void main() async {
       options: DefaultFirebaseOptions.currentPlatform,
     );
   } catch (e) {
-    print('Firebase initialization failed: $e');
+    debugPrint('Firebase initialization failed: $e');
   }
 
-  runApp(const MyApp());
+  final firebaseService = FirebaseService();
+  await firebaseService
+      .initLocalUser(); // Await local identity initialization before starting the app
+
+  runApp(MyApp(firebaseService: firebaseService));
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
+  final FirebaseService firebaseService;
+
+  const MyApp({super.key, required this.firebaseService});
 
   @override
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        Provider<FirebaseService>(create: (_) => FirebaseService()),
-        StreamProvider<User?>(
+        Provider<FirebaseService>.value(value: firebaseService),
+        StreamProvider<String?>(
           create: (context) => context.read<FirebaseService>().authStateChanges,
           initialData: null,
         ),
@@ -45,27 +50,26 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         title: 'Predictable Revenue Task Manager',
         debugShowCheckedModeBanner: false,
-        theme: AppTheme.darkTheme,
-        home: const AuthWrapper(),
+        theme: AppTheme.lightTheme,
+        home: Container(
+          decoration: const BoxDecoration(gradient: AppTheme.bgGradient),
+          child: const WelcomeWrapper(),
+        ),
       ),
     );
   }
 }
 
-class AuthWrapper extends StatelessWidget {
-  const AuthWrapper({super.key});
+class WelcomeWrapper extends StatelessWidget {
+  const WelcomeWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
-    final user = context.watch<User?>();
-
-    if (user == null) {
-      return const LoginScreen();
-    }
-
     final userProfile = context.watch<UserModel?>();
 
     if (userProfile == null) {
+      // The user profile will load almost immediately because it is seeded
+      // locally in `initLocalUser`, but just in case of a tiny delay, show a loader.
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
