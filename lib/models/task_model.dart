@@ -114,6 +114,9 @@ class TaskCompletionModel {
   final String result;
   final DateTime timestamp;
 
+  /// Map of userId → emoji (e.g. {'uid123': '🔥'})
+  final Map<String, String> reactions;
+
   TaskCompletionModel({
     required this.id,
     required this.taskId,
@@ -124,9 +127,11 @@ class TaskCompletionModel {
     required this.notes,
     required this.result,
     required this.timestamp,
+    this.reactions = const {},
   });
 
   factory TaskCompletionModel.fromMap(String id, Map<String, dynamic> data) {
+    final rawReactions = data['reactions'] as Map<String, dynamic>? ?? {};
     return TaskCompletionModel(
       id: id,
       taskId: data['taskId'] ?? '',
@@ -137,6 +142,7 @@ class TaskCompletionModel {
       notes: data['notes'] ?? '',
       result: data['result'] ?? '',
       timestamp: (data['timestamp'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      reactions: Map<String, String>.from(rawReactions),
     );
   }
 
@@ -150,6 +156,7 @@ class TaskCompletionModel {
       'notes': notes,
       'result': result,
       'timestamp': Timestamp.fromDate(timestamp),
+      'reactions': reactions,
     };
   }
 }

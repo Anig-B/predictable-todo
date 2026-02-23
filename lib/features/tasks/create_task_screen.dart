@@ -111,7 +111,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(12),
                           ),
-                          border: BorderSide(
+                          side: BorderSide(
                             color: isSelected
                                 ? AppTheme.primaryColor
                                 : Colors.white.withValues(alpha: 0.4),

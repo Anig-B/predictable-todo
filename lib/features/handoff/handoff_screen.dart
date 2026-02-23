@@ -110,7 +110,7 @@ class _HandoffScreenState extends State<HandoffScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: AppTheme.bgColor,
+      backgroundColor: Colors.transparent,
       appBar: AppBar(
         title: const Text('Handoff Checklists'),
         backgroundColor: Colors.transparent,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
 import '../../core/services/firebase_service.dart';
+import '../../core/services/notification_service.dart';
 import '../../core/services/seed_data_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
@@ -103,13 +104,10 @@ class ProfileScreen extends StatelessWidget {
               ),
 
             const SizedBox(height: 16),
-            _buildSettingsItem(
-              context,
-              icon: Icons.notifications_active_rounded,
-              title: 'Notifications',
-              subtitle: 'Configure daily reminders',
-              onTap: () {},
-            ),
+
+            // ── Notifications tile (functional) ───────────────────────────────
+            const _NotificationTile(),
+
             _buildSettingsItem(
               context,
               icon: Icons.security_rounded,
@@ -175,6 +173,134 @@ class ProfileScreen extends StatelessWidget {
   }
 }
 
+// ── Notification Tile (Stateful) ─────────────────────────────────────────────
+class _NotificationTile extends StatefulWidget {
+  const _NotificationTile();
+
+  @override
+  State<_NotificationTile> createState() => _NotificationTileState();
+}
+
+class _NotificationTileState extends State<_NotificationTile> {
+  bool _enabled = false;
+  int _hour = 9;
+  int _minute = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadPrefs();
+  }
+
+  Future<void> _loadPrefs() async {
+    final prefs = await NotificationService().getSavedPreferences();
+    if (mounted) {
+      setState(() {
+        _enabled = prefs.enabled;
+        _hour = prefs.hour;
+        _minute = prefs.minute;
+      });
+    }
+  }
+
+  String get _timeLabel {
+    final h = _hour.toString().padLeft(2, '0');
+    final m = _minute.toString().padLeft(2, '0');
+    return '$h:$m daily';
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (value) {
+      // Ask for permission first on iOS
+      final granted = await NotificationService().requestPermission();
+      if (!granted && mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Notification permission denied.')),
+        );
+        return;
+      }
+      // Pick a time
+      final time = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(hour: _hour, minute: _minute),
+      );
+      if (time == null) return;
+      setState(() {
+        _enabled = true;
+        _hour = time.hour;
+        _minute = time.minute;
+      });
+      await NotificationService().scheduleDailyReminder(
+        hour: _hour,
+        minute: _minute,
+      );
+    } else {
+      await NotificationService().cancelAllReminders();
+      setState(() => _enabled = false);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 16),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.6),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
+      ),
+      child: ListTile(
+        leading: Container(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: AppTheme.primaryColor.withValues(alpha: 0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: const Icon(
+            Icons.notifications_active_rounded,
+            color: AppTheme.primaryColor,
+          ),
+        ),
+        title: const Text(
+          'Daily Reminder',
+          style: TextStyle(fontWeight: FontWeight.bold),
+        ),
+        subtitle: Text(
+          _enabled
+              ? '✅ Set for $_timeLabel — tap to change'
+              : 'Get reminded to complete your tasks',
+          style: const TextStyle(color: AppTheme.greyColor, fontSize: 12),
+        ),
+        trailing: Switch.adaptive(
+          value: _enabled,
+          activeThumbColor: AppTheme.primaryColor,
+          onChanged: _toggle,
+        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+        onTap: _enabled
+            ? () async {
+                // Tap to reschedule
+                final time = await showTimePicker(
+                  context: context,
+                  initialTime: TimeOfDay(hour: _hour, minute: _minute),
+                );
+                if (time == null) return;
+                setState(() {
+                  _hour = time.hour;
+                  _minute = time.minute;
+                });
+                await NotificationService().scheduleDailyReminder(
+                  hour: _hour,
+                  minute: _minute,
+                );
+              }
+            : null,
+      ),
+    );
+  }
+}
+
+// ── Stat Cell ─────────────────────────────────────────────────────────────────
 class _StatCell extends StatelessWidget {
   final String value;
   final String label;
@@ -218,6 +344,7 @@ class _StatCell extends StatelessWidget {
   }
 }
 
+// ── Team Management Card ──────────────────────────────────────────────────────
 class _TeamManagementCard extends StatelessWidget {
   final String teamId;
   final String userId;
@@ -241,14 +368,10 @@ class _TeamManagementCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white.withValues(alpha: 0.6),
             borderRadius: BorderRadius.circular(15),
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.4),
-              width: 1,
-            ),
+            border: Border.all(color: Colors.white.withValues(alpha: 0.4)),
           ),
           child: Column(
             children: [
-              // Header
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Row(
@@ -289,10 +412,7 @@ class _TeamManagementCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               const Divider(height: 1, color: Colors.white24),
-
-              // Invite Code Section
               Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -349,7 +469,6 @@ class _TeamManagementCard extends StatelessWidget {
                               Icons.copy_rounded,
                               color: AppTheme.primaryColor,
                             ),
-                            tooltip: 'Copy Code',
                           ),
                         ],
                       ),
@@ -362,10 +481,7 @@ class _TeamManagementCard extends StatelessWidget {
                   ],
                 ),
               ),
-
               const Divider(height: 1, color: Colors.white24),
-
-              // Leave Team
               ListTile(
                 onTap: () => _confirmLeaveTeam(context, firebaseService),
                 leading: const Icon(
@@ -430,6 +546,7 @@ class _TeamManagementCard extends StatelessWidget {
   }
 }
 
+// ── Seed Data Button ──────────────────────────────────────────────────────────
 class _SeedDataButton extends StatefulWidget {
   final UserModel userProfile;
   const _SeedDataButton({required this.userProfile});
@@ -449,10 +566,7 @@ class _SeedDataButtonState extends State<_SeedDataButton> {
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.6),
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(
-          color: Colors.amber.withValues(alpha: 0.3),
-          width: 1,
-        ),
+        border: Border.all(color: Colors.amber.withValues(alpha: 0.3)),
       ),
       child: ListTile(
         leading: Container(
@@ -493,7 +607,6 @@ class _SeedDataButtonState extends State<_SeedDataButton> {
   Future<void> _seed() async {
     final teamId = widget.userProfile.currentTeamId;
     if (teamId == null) return;
-
     setState(() => _loading = true);
     try {
       await SeedDataService().seed(
@@ -502,11 +615,10 @@ class _SeedDataButtonState extends State<_SeedDataButton> {
       );
       if (mounted) setState(() => _done = true);
     } catch (e) {
-      if (mounted) {
+      if (mounted)
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Seed error: $e')));
-      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

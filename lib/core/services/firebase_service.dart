@@ -10,7 +10,8 @@ import '../../models/handoff_checklist_model.dart';
 
 class FirebaseService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
-  final BehaviorSubject<UserModel?> _userSubject = BehaviorSubject<UserModel?>.seeded(null);
+  final BehaviorSubject<UserModel?> _userSubject =
+      BehaviorSubject<UserModel?>.seeded(null);
   String? _localUid;
 
   Stream<UserModel?> get userProfileStream => _userSubject.stream;
@@ -35,7 +36,8 @@ class FirebaseService {
           uid: _localUid!,
           email: 'local_device@predictable_todo.local',
           displayName: 'Local Guest',
-          photoUrl: 'https://ui-avatars.com/api/?name=Guest+User&background=random',
+          photoUrl:
+              'https://ui-avatars.com/api/?name=Guest+User&background=random',
           teams: [],
         );
         await _db.collection('users').doc(_localUid).set(newUser.toMap());
@@ -48,7 +50,7 @@ class FirebaseService {
 
   Future<void> signOut() async {
     // In a local-only setup, sign out might just mean clearing local storage.
-    // However, since we rely on it as persistent identity, we won't implement a 
+    // However, since we rely on it as persistent identity, we won't implement a
     // destructive sign out here. We just leave it as a no-op to support UI elements
     // that might still call it.
   }
@@ -107,7 +109,10 @@ class FirebaseService {
 
   // Task Methods
   Future<void> createTask(TaskDefinitionModel task) async {
-    _db.collection('task_definitions').add(task.toMap()).catchError((e) => print('Error creating task: $e'));
+    _db
+        .collection('task_definitions')
+        .add(task.toMap())
+        .catchError((e) => print('Error creating task: $e'));
   }
 
   Stream<List<TaskDefinitionModel>> getTasksForTeam(String teamId) {
@@ -149,7 +154,8 @@ class FirebaseService {
     _db
         .collection('completions')
         .doc(completionId)
-        .set(completion.toMap()).catchError((e) => print('Error completing task: $e'));
+        .set(completion.toMap())
+        .catchError((e) => print('Error completing task: $e'));
 
     // Potentially update streak logic here
   }
@@ -218,7 +224,11 @@ class FirebaseService {
 
   // Pipeline Methods
   Future<void> savePipelineMetric(PipelineMetricModel metric) async {
-    _db.collection('pipeline_metrics').doc(metric.id).set(metric.toMap()).catchError((e) => print('Error saving metric: $e'));
+    _db
+        .collection('pipeline_metrics')
+        .doc(metric.id)
+        .set(metric.toMap())
+        .catchError((e) => print('Error saving metric: $e'));
   }
 
   Stream<List<PipelineMetricModel>> getPipelineMetrics(
@@ -253,14 +263,16 @@ class FirebaseService {
     _db
         .collection('checklist_templates')
         .doc(template.teamId)
-        .set(template.toMap()).catchError((e) => print('Error saving template: $e'));
+        .set(template.toMap())
+        .catchError((e) => print('Error saving template: $e'));
   }
 
   Future<void> saveHandoffChecklist(HandoffChecklistModel checklist) async {
     _db
         .collection('handoff_checklists')
         .doc(checklist.id)
-        .set(checklist.toMap()).catchError((e) => print('Error saving checklist: $e'));
+        .set(checklist.toMap())
+        .catchError((e) => print('Error saving checklist: $e'));
   }
 
   Stream<List<HandoffChecklistModel>> getTeamHandoffs(String teamId) {
@@ -276,6 +288,7 @@ class FirebaseService {
               .toList();
         });
   }
+
   Future<UserModel?> getUserData(String uid) async {
     final doc = await _db.collection('users').doc(uid).get();
     if (doc.exists) {
@@ -298,6 +311,27 @@ class FirebaseService {
         {'teamId': teamId, 'role': 'owner'},
         {'teamId': teamId, 'role': 'member'},
       ]),
+    });
+  }
+
+  /// Adds or replaces the [emoji] reaction from [userId] on [completionId].
+  Future<void> addReaction({
+    required String completionId,
+    required String userId,
+    required String emoji,
+  }) async {
+    await _db.collection('completions').doc(completionId).update({
+      'reactions.$userId': emoji,
+    });
+  }
+
+  /// Removes the reaction from [userId] on [completionId].
+  Future<void> removeReaction({
+    required String completionId,
+    required String userId,
+  }) async {
+    await _db.collection('completions').doc(completionId).update({
+      'reactions.$userId': FieldValue.delete(),
     });
   }
 }

@@ -1,8 +1,8 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'core/services/firebase_service.dart';
+import 'core/services/notification_service.dart';
 import 'core/theme/app_theme.dart';
 import 'features/dashboard/dashboard_screen.dart';
 import 'features/team/team_selection_screen.dart';
@@ -21,8 +21,10 @@ void main() async {
   }
 
   final firebaseService = FirebaseService();
-  await firebaseService
-      .initLocalUser(); // Await local identity initialization before starting the app
+  await firebaseService.initLocalUser();
+
+  // Initialize notification service (sets up channels, no permissions yet)
+  await NotificationService().initialize();
 
   runApp(MyApp(firebaseService: firebaseService));
 }
