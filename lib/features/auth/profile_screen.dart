@@ -213,13 +213,16 @@ class _NotificationTileState extends State<_NotificationTile> {
     if (value) {
       // Ask for permission first on iOS
       final granted = await NotificationService().requestPermission();
-      if (!granted && mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notification permission denied.')),
-        );
+      if (!granted) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(content: Text('Notification permission denied.')),
+          );
+        }
         return;
       }
-      // Pick a time
+      // Pick a time — guard with mounted check after async gap
+      if (!mounted) return;
       final time = await showTimePicker(
         context: context,
         initialTime: TimeOfDay(hour: _hour, minute: _minute),
@@ -615,10 +618,11 @@ class _SeedDataButtonState extends State<_SeedDataButton> {
       );
       if (mounted) setState(() => _done = true);
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         ScaffoldMessenger.of(
           context,
         ).showSnackBar(SnackBar(content: Text('Seed error: $e')));
+      }
     } finally {
       if (mounted) setState(() => _loading = false);
     }

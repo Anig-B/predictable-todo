@@ -19,63 +19,57 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Stack(
-        children: [
-          SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.all(24.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const SizedBox(height: 40),
-                  Text(
-                    'Almost there!',
-                    style: Theme.of(context).textTheme.displaySmall,
-                  ),
-                  const SizedBox(height: 8),
-                  const Text(
-                    'To get started, create a new team or join an existing one.',
-                    style: TextStyle(color: AppTheme.greyColor, fontSize: 16),
-                  ),
-                  const SizedBox(height: 60),
-                  _buildOptionCard(
-                    context,
-                    title: 'Create a Team',
-                    subtitle: 'Start a new workspace for your pod.',
-                    icon: Icons.group_add_rounded,
-                    color: AppTheme.primaryColor,
-                    onTap: _showCreateTeamDialog,
-                  ),
-                  const SizedBox(height: 20),
-                  _buildOptionCard(
-                    context,
-                    title: 'Join a Team',
-                    subtitle: 'Enter an invite code from your manager.',
-                    icon: Icons.door_front_door_rounded,
-                    color: AppTheme.successColor,
-                    onTap: _showJoinTeamDialog,
-                  ),
-                  const Spacer(),
-                  Center(
-                    child: TextButton(
-                      onPressed: () =>
-                          context.read<FirebaseService>().signOut(),
-                      child: const Text(
-                        'Sign out',
-                        style: TextStyle(color: AppTheme.errorColor),
-                      ),
+      backgroundColor: Colors.transparent,
+      body: SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const SizedBox(height: 40),
+              Text(
+                'Almost there!',
+                style: Theme.of(context).textTheme.displaySmall,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'To get started, create a new team or join an existing one.',
+                style: TextStyle(color: AppTheme.greyColor, fontSize: 16),
+              ),
+              const SizedBox(height: 60),
+              _buildOptionCard(
+                context,
+                title: 'Create a Team',
+                subtitle: 'Start a new workspace for your pod.',
+                icon: Icons.group_add_rounded,
+                color: AppTheme.primaryColor,
+                onTap: _showCreateTeamDialog,
+              ),
+              const SizedBox(height: 20),
+              _buildOptionCard(
+                context,
+                title: 'Join a Team',
+                subtitle: 'Enter an invite code from your manager.',
+                icon: Icons.door_front_door_rounded,
+                color: AppTheme.successColor,
+                onTap: _showJoinTeamDialog,
+              ),
+              const Spacer(),
+              if (_isLoading)
+                const Center(child: CircularProgressIndicator())
+              else
+                Center(
+                  child: TextButton(
+                    onPressed: () => context.read<FirebaseService>().signOut(),
+                    child: const Text(
+                      'Sign out',
+                      style: TextStyle(color: AppTheme.errorColor),
                     ),
                   ),
-                ],
-              ),
-            ),
+                ),
+            ],
           ),
-          if (_isLoading)
-            Container(
-              color: Colors.black.withValues(alpha: 0.5),
-              child: const Center(child: CircularProgressIndicator()),
-            ),
-        ],
+        ),
       ),
     );
   }
@@ -192,25 +186,19 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
     if (_teamNameController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    Navigator.pop(context); // Close dialog
+    final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final service = context.read<FirebaseService>();
+    final user = context.read<UserModel?>();
+    nav.pop(); // Close dialog
 
     try {
-      final user = context.read<UserModel?>();
-      if (user == null) throw Exception('User not logged in');
+      if (user == null) throw Exception('User not loaded yet');
 
-      await context.read<FirebaseService>().createTeam(
-        user.uid,
-        _teamNameController.text.trim(),
-      );
-
-      if (!mounted) return;
-      // Success is handled by auth state change -> dashboard redirect
+      await service.createTeam(user.uid, _teamNameController.text.trim());
+      await service.refreshLocalUser();
     } catch (e) {
-      if (!mounted) return;
-      debugPrint('CREATE_TEAM_ERROR_DUMP: $e');
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -220,23 +208,19 @@ class _TeamSelectionScreenState extends State<TeamSelectionScreen> {
     if (_inviteCodeController.text.isEmpty) return;
 
     setState(() => _isLoading = true);
-    Navigator.pop(context); // Close dialog
+    final nav = Navigator.of(context);
+    final messenger = ScaffoldMessenger.of(context);
+    final service = context.read<FirebaseService>();
+    final user = context.read<UserModel?>();
+    nav.pop(); // Close dialog
 
     try {
-      final user = context.read<UserModel?>();
       if (user == null) throw Exception('User not logged in');
 
-      await context.read<FirebaseService>().joinTeam(
-        _inviteCodeController.text.trim(),
-        user.uid,
-      );
-
-      // Success is handled by auth state change -> dashboard redirect
+      await service.joinTeam(_inviteCodeController.text.trim(), user.uid);
+      await service.refreshLocalUser();
     } catch (e) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Error: $e')));
+      messenger.showSnackBar(SnackBar(content: Text('Error: $e')));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }

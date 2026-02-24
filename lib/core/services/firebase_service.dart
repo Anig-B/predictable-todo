@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter/foundation.dart';
 import 'package:rxdart/rxdart.dart';
 import 'package:intl/intl.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -30,6 +31,7 @@ class FirebaseService {
 
     // Subscribe to the un-authenticated local user document
     _db.collection('users').doc(_localUid).snapshots().listen((doc) async {
+      debugPrint('USER_DOC_UPDATE: uid=$_localUid, exists=${doc.exists}');
       if (!doc.exists) {
         // Create the user profile on first launch since there's no auth trigger
         final newUser = UserModel(
@@ -43,7 +45,9 @@ class FirebaseService {
         await _db.collection('users').doc(_localUid).set(newUser.toMap());
         _userSubject.add(newUser);
       } else {
-        _userSubject.add(UserModel.fromMap(doc.data()!));
+        final user = UserModel.fromMap(doc.data()!);
+        debugPrint('USER_MODEL_EMIT: currentTeamId=${user.currentTeamId}');
+        _userSubject.add(user);
       }
     });
   }
@@ -55,14 +59,36 @@ class FirebaseService {
     // that might still call it.
   }
 
+  /// Force-refreshes the local user from Firestore server, bypassing any cache.
+  /// Call this after team creation/join to guarantee WelcomeWrapper rebuilds.
+  Future<void> refreshLocalUser() async {
+    if (_localUid == null) return;
+    try {
+      final doc = await _db
+          .collection('users')
+          .doc(_localUid)
+          .get(const GetOptions(source: Source.server))
+          .timeout(const Duration(seconds: 5));
+
+      if (doc.exists) {
+        _userSubject.add(UserModel.fromMap(doc.data()!));
+      }
+    } catch (_) {
+      // Silent fail is acceptable here as snapshots listener is the primary driver
+    }
+  }
+
   // Team Methods
   Future<String> createTeam(String userId, String teamName) async {
     final inviteCode = DateTime.now().millisecondsSinceEpoch
         .toString()
         .substring(7);
     final teamRef = _db.collection('teams').doc();
+    final userRef = _db.collection('users').doc(userId);
 
-    await teamRef.set({
+    final batch = _db.batch();
+
+    batch.set(teamRef, {
       'name': teamName,
       'inviteCode': inviteCode,
       'ownerId': userId,
@@ -70,13 +96,14 @@ class FirebaseService {
       'createdAt': FieldValue.serverTimestamp(),
     });
 
-    await _db.collection('users').doc(userId).update({
+    batch.update(userRef, {
       'currentTeamId': teamRef.id,
       'teams': FieldValue.arrayUnion([
         {'teamId': teamRef.id, 'role': 'owner'},
       ]),
     });
 
+    await batch.commit();
     return teamRef.id;
   }
 
@@ -109,10 +136,21 @@ class FirebaseService {
 
   // Task Methods
   Future<void> createTask(TaskDefinitionModel task) async {
-    _db
-        .collection('task_definitions')
-        .add(task.toMap())
-        .catchError((e) => print('Error creating task: $e'));
+    try {
+      await _db.collection('task_definitions').add(task.toMap());
+    } catch (e) {
+      debugPrint('Error creating task: $e');
+    }
+  }
+
+  Future<void> updateTask(TaskDefinitionModel task) async {
+    await _db.collection('task_definitions').doc(task.id).update(task.toMap());
+  }
+
+  Future<void> updateTaskActiveStatus(String taskId, bool isActive) async {
+    await _db.collection('task_definitions').doc(taskId).update({
+      'isActive': isActive,
+    });
   }
 
   Stream<List<TaskDefinitionModel>> getTasksForTeam(String teamId) {
@@ -151,13 +189,14 @@ class FirebaseService {
       timestamp: DateTime.now(),
     );
 
-    _db
-        .collection('completions')
-        .doc(completionId)
-        .set(completion.toMap())
-        .catchError((e) => print('Error completing task: $e'));
-
-    // Potentially update streak logic here
+    try {
+      await _db
+          .collection('completions')
+          .doc(completionId)
+          .set(completion.toMap());
+    } catch (e) {
+      debugPrint('Error completing task: $e');
+    }
   }
 
   Stream<List<TaskCompletionModel>> getCompletionsForUser(
@@ -224,11 +263,14 @@ class FirebaseService {
 
   // Pipeline Methods
   Future<void> savePipelineMetric(PipelineMetricModel metric) async {
-    _db
-        .collection('pipeline_metrics')
-        .doc(metric.id)
-        .set(metric.toMap())
-        .catchError((e) => print('Error saving metric: $e'));
+    try {
+      await _db
+          .collection('pipeline_metrics')
+          .doc(metric.id)
+          .set(metric.toMap());
+    } catch (e) {
+      debugPrint('Error saving metric: $e');
+    }
   }
 
   Stream<List<PipelineMetricModel>> getPipelineMetrics(
@@ -260,19 +302,25 @@ class FirebaseService {
   }
 
   Future<void> saveChecklistTemplate(ChecklistTemplateModel template) async {
-    _db
-        .collection('checklist_templates')
-        .doc(template.teamId)
-        .set(template.toMap())
-        .catchError((e) => print('Error saving template: $e'));
+    try {
+      await _db
+          .collection('checklist_templates')
+          .doc(template.teamId)
+          .set(template.toMap());
+    } catch (e) {
+      debugPrint('Error saving template: $e');
+    }
   }
 
   Future<void> saveHandoffChecklist(HandoffChecklistModel checklist) async {
-    _db
-        .collection('handoff_checklists')
-        .doc(checklist.id)
-        .set(checklist.toMap())
-        .catchError((e) => print('Error saving checklist: $e'));
+    try {
+      await _db
+          .collection('handoff_checklists')
+          .doc(checklist.id)
+          .set(checklist.toMap());
+    } catch (e) {
+      debugPrint('Error saving checklist: $e');
+    }
   }
 
   Stream<List<HandoffChecklistModel>> getTeamHandoffs(String teamId) {
@@ -333,5 +381,49 @@ class FirebaseService {
     await _db.collection('completions').doc(completionId).update({
       'reactions.$userId': FieldValue.delete(),
     });
+  }
+
+  /// Fetches leaderboard data for export.
+  Future<List<Map<String, dynamic>>> getLeaderboardData(String teamId) async {
+    final now = DateTime.now();
+    final startOfWeek = now.subtract(Duration(days: now.weekday - 1));
+    final startString = DateFormat('yyyy-MM-dd').format(startOfWeek);
+
+    final completionsQuery = await _db
+        .collection('completions')
+        .where('teamId', isEqualTo: teamId)
+        .where('date', isGreaterThanOrEqualTo: startString)
+        .get();
+
+    final completions = completionsQuery.docs
+        .map((doc) => TaskCompletionModel.fromMap(doc.id, doc.data()))
+        .toList();
+
+    final membersQuery = await _db
+        .collection('users')
+        .where('currentTeamId', isEqualTo: teamId)
+        .get();
+
+    final members = membersQuery.docs
+        .map((doc) => UserModel.fromMap(doc.data()))
+        .toList();
+
+    final Map<String, int> scores = {};
+    for (var completion in completions) {
+      if (completion.status == 'completed') {
+        scores[completion.userId] = (scores[completion.userId] ?? 0) + 1;
+      }
+    }
+
+    final List<Map<String, dynamic>> items = members.map((member) {
+      return {
+        'displayName': member.displayName,
+        'count': scores[member.uid] ?? 0,
+        'uid': member.uid,
+      };
+    }).toList();
+
+    items.sort((a, b) => (b['count'] as int).compareTo(a['count'] as int));
+    return items.take(10).toList();
   }
 }

@@ -136,8 +136,9 @@ class _HandoffScreenState extends State<HandoffScreen>
   }
 
   Widget _buildNewHandoffTab() {
-    if (_isLoadingTemplate)
+    if (_isLoadingTemplate) {
       return const Center(child: CircularProgressIndicator());
+    }
 
     return SingleChildScrollView(
       padding: const EdgeInsets.all(20),
@@ -178,7 +179,7 @@ class _HandoffScreenState extends State<HandoffScreen>
                 });
               },
             );
-          }).toList(),
+          }),
           const SizedBox(height: 30),
           SizedBox(
             width: double.infinity,
@@ -204,8 +205,9 @@ class _HandoffScreenState extends State<HandoffScreen>
 
   Widget _buildHistoryTab() {
     final user = context.watch<UserModel?>();
-    if (user?.currentTeamId == null)
+    if (user?.currentTeamId == null) {
       return const Center(child: Text('No team selected'));
+    }
 
     final service = context.read<FirebaseService>();
     return StreamBuilder<List<HandoffChecklistModel>>(
@@ -237,7 +239,7 @@ class _HandoffScreenState extends State<HandoffScreen>
                   style: const TextStyle(fontWeight: FontWeight.bold),
                 ),
                 subtitle: Text(
-                  'SDR: ${user.uid == handoff.sdrId ? "Me" : "Unknown"} • ${completedCount}/${totalCount} items',
+                  'SDR: ${user.uid == handoff.sdrId ? "Me" : "Unknown"} • $completedCount/$totalCount items',
                 ),
                 trailing: Text(
                   '${percent.toInt()}%',

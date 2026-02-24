@@ -1,7 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
-import '../../models/task_model.dart';
 
 /// Call [SeedDataService.seed] once to populate the current user/team
 /// with realistic Predictable Revenue sales team demo data.
@@ -9,10 +8,7 @@ class SeedDataService {
   final FirebaseFirestore _db = FirebaseFirestore.instance;
   final _uuid = const Uuid();
 
-  Future<void> seed({
-    required String userId,
-    required String teamId,
-  }) async {
+  Future<void> seed({required String userId, required String teamId}) async {
     final batch = _db.batch();
 
     // ── 1. Recurring Sales Tasks ─────────────────────────────────────────────
@@ -196,9 +192,7 @@ class SeedDataService {
           'status': 'completed',
           'notes': _demoNote(task['title'] as String, daysAgo),
           'result': '',
-          'timestamp': Timestamp.fromDate(
-            date.copyWith(hour: 17, minute: 30),
-          ),
+          'timestamp': Timestamp.fromDate(date.copyWith(hour: 17, minute: 30)),
         });
       }
     }
@@ -273,12 +267,6 @@ class SeedDataService {
 
 extension on DateTime {
   DateTime copyWith({int? hour, int? minute}) {
-    return DateTime(
-      year,
-      month,
-      day,
-      hour ?? this.hour,
-      minute ?? this.minute,
-    );
+    return DateTime(year, month, day, hour ?? this.hour, minute ?? this.minute);
   }
 }

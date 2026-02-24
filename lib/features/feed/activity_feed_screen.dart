@@ -271,7 +271,7 @@ class _ActivityItem extends StatelessWidget {
                         },
                       ),
                     );
-                  }).toList(),
+                  }),
                 ],
               ),
             ],

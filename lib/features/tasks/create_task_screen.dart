@@ -21,7 +21,7 @@ class _CreateTaskScreenState extends State<CreateTaskScreen> {
   RecurrenceType _recurrenceType = RecurrenceType.daily;
   TaskCategory _category = TaskCategory.other;
   TaskPriority _priority = TaskPriority.medium;
-  List<int> _selectedDays = [];
+  final List<int> _selectedDays = [];
   int? _dayOfMonth;
 
   final List<String> _weekDays = [

@@ -5,9 +5,9 @@ import '../../core/services/firebase_service.dart';
 import '../../core/theme/app_theme.dart';
 import '../../models/user_model.dart';
 import '../../models/pipeline_metric_model.dart';
-import '../pipeline/pipeline_tracker_screen.dart';
 import '../handoff/handoff_screen.dart';
 import 'package:intl/intl.dart';
+import '../../core/services/export_service.dart';
 import 'leaderboard_widget.dart';
 
 class StatsDashboard extends StatelessWidget {
@@ -54,13 +54,21 @@ class StatsDashboard extends StatelessWidget {
                           ),
                           const SizedBox(width: 8),
                           _AnimatedActionButton(
-                            icon: Icons.add_chart_rounded,
-                            isPrimary: true,
-                            onTap: () => Navigator.push(
+                            icon: Icons.table_chart_rounded,
+                            onTap: () => _exportCsv(
                               context,
-                              MaterialPageRoute(
-                                builder: (_) => const PipelineTrackerScreen(),
-                              ),
+                              firebaseService,
+                              userProfile.uid,
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          _AnimatedActionButton(
+                            icon: Icons.picture_as_pdf_rounded,
+                            isPrimary: true,
+                            onTap: () => _exportPdf(
+                              context,
+                              firebaseService,
+                              userProfile,
                             ),
                           ),
                         ],
@@ -205,6 +213,68 @@ class StatsDashboard extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  Future<void> _exportCsv(
+    BuildContext context,
+    FirebaseService service,
+    String userId,
+  ) async {
+    try {
+      final metricsQuery = await service
+          .getPipelineMetrics(
+            userId,
+            DateTime.now().subtract(const Duration(days: 30)),
+          )
+          .first;
+
+      await ExportService().exportPipelineCsv(metricsQuery);
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
+  }
+
+  Future<void> _exportPdf(
+    BuildContext context,
+    FirebaseService service,
+    UserModel user,
+  ) async {
+    try {
+      final metricsQuery = await service
+          .getPipelineMetrics(
+            user.uid,
+            DateTime.now().subtract(const Duration(days: 30)),
+          )
+          .first;
+
+      List<Map<String, dynamic>> leaderboard = [];
+      if (user.currentTeamId != null) {
+        leaderboard = await service.getLeaderboardData(user.currentTeamId!);
+      }
+
+      String? teamName;
+      if (user.currentTeamId != null) {
+        final teamData = await service.getTeamStream(user.currentTeamId!).first;
+        teamName = teamData?['name'];
+      }
+
+      await ExportService().exportPerformancePdf(
+        user: user,
+        metrics: metricsQuery,
+        leaderboard: leaderboard,
+        teamName: teamName,
+      );
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text('Export failed: $e')));
+      }
+    }
   }
 
   Widget _buildQuickStats() {

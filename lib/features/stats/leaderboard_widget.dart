@@ -87,7 +87,7 @@ class LeaderboardWidget extends StatelessWidget {
                     final index = entry.key;
                     final data = entry.value;
                     return _buildLeaderboardRow(index + 1, data);
-                  }).toList(),
+                  }),
                 ],
               ),
             );
