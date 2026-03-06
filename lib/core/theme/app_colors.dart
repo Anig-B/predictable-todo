@@ -33,4 +33,12 @@ class AppColors {
   static const List<Color> confettiColors = [
     accent, purple, gold, orange, red, blue,
   ];
+
+  /// Reusable greyscale colour filter (boss defeated, locked badges).
+  static const ColorFilter grayscaleFilter = ColorFilter.matrix([
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0.2126, 0.7152, 0.0722, 0, 0,
+    0,      0,      0,      1, 0,
+  ]);
 }

@@ -111,4 +111,30 @@ class AppTheme {
           BoxShadow(color: color.withValues(alpha: 0.12), blurRadius: 18),
         ],
       );
+
+  // ── Shared widget constants ─────────────────────────
+
+  /// Standard bottom-sheet container decoration (bg + rounded top).
+  static const BoxDecoration sheetBox = BoxDecoration(
+    color: AppColors.bg,
+    borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+  );
+
+  /// Standard gradient primary-action button decoration.
+  static const BoxDecoration primaryBtnBox = BoxDecoration(
+    gradient: AppColors.primaryGradient,
+    borderRadius: BorderRadius.all(Radius.circular(12)),
+  );
+
+  /// Draggable handle shown at the top of bottom sheets.
+  static const Widget handleBar = SizedBox(
+    width: 36,
+    height: 4,
+    child: DecoratedBox(
+      decoration: BoxDecoration(
+        color: AppColors.border,
+        borderRadius: BorderRadius.all(Radius.circular(4)),
+      ),
+    ),
+  );
 }

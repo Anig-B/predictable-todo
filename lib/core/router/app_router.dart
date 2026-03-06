@@ -1,9 +1,9 @@
 import 'package:go_router/go_router.dart';
-import '../../pages/shell/main_shell.dart';
-import '../../pages/tasks/tasks_page.dart';
-import '../../pages/stats/stats_page.dart';
-import '../../pages/leaderboard/leaderboard_page.dart';
-import '../../pages/profile/profile_page.dart';
+import '../../features/shell/pages/main_shell.dart';
+import '../../features/tasks/pages/tasks_page.dart';
+import '../../features/stats/pages/stats_page.dart';
+import '../../features/leaderboard/pages/leaderboard_page.dart';
+import '../../features/profile/pages/profile_page.dart';
 
 final appRouter = GoRouter(
   initialLocation: '/tasks',

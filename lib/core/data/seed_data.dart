@@ -1,12 +1,31 @@
-import '../../models/task_model.dart';
-import '../../models/boss_model.dart';
-import '../../models/challenge_model.dart';
-import '../../models/notification_model.dart';
-import '../../models/skill_node_model.dart';
-import '../../models/leaderboard_entry_model.dart';
-import '../../models/activity_log_model.dart';
-import '../../models/loot_item_model.dart';
+import 'package:flutter/material.dart';
+import '../../features/tasks/models/task_model.dart';
+import '../../features/gamification/models/boss_model.dart';
+import '../../features/gamification/models/challenge_model.dart';
+import '../../features/notifications/models/notification_model.dart';
+import '../../features/gamification/models/skill_node_model.dart';
+import '../../features/leaderboard/models/leaderboard_entry_model.dart';
+import '../../features/tasks/models/activity_log_model.dart';
+import '../../features/gamification/models/loot_item_model.dart';
 import '../theme/app_colors.dart';
+
+class DemoSet {
+  final String id;
+  final String name;
+  final String icon;
+  final String desc;
+  final Color color;
+  final List<TaskModel> tasks;
+
+  const DemoSet({
+    required this.id,
+    required this.name,
+    required this.icon,
+    required this.desc,
+    required this.color,
+    required this.tasks,
+  });
+}
 
 class SeedData {
   SeedData._();
@@ -39,10 +58,28 @@ class SeedData {
   ];
 
   static const List<NotificationModel> notifications = [
-    NotificationModel(id: 1, text: '🔥 12-day streak for Meditation!',    time: '2m ago',  read: false),
-    NotificationModel(id: 2, text: '🏆 Priya passed your weekly score!',  time: '15m ago', read: false),
-    NotificationModel(id: 3, text: "⭐ 'Consistency King' badge earned!", time: '1h ago',  read: false),
-    NotificationModel(id: 4, text: '📈 Productivity up 23% this week.',   time: '3h ago',  read: true),
+    // Today — unread
+    NotificationModel(id: 1,  text: '🔥 12-day streak — keep it going!',           time: '2m ago',   read: false),
+    NotificationModel(id: 2,  text: '🏆 Priya just passed your weekly XP score!',   time: '15m ago',  read: false),
+    NotificationModel(id: 3,  text: "⭐ New badge unlocked: 'Consistency King'",    time: '1h ago',   read: false),
+    NotificationModel(id: 4,  text: '⚡ Combo ×4 active — complete a task now!',   time: '1h ago',   read: false),
+    NotificationModel(id: 5,  text: '🎁 Loot box ready — you earned 5 tasks!',      time: '2h ago',   read: false),
+    NotificationModel(id: 6,  text: '🐉 Boss DEFEATED! You dealt the final blow.',  time: '3h ago',   read: false),
+    NotificationModel(id: 7,  text: '↻ Daily quest "Morning Run" has reset.',       time: '4h ago',   read: false),
+    // Today — read
+    NotificationModel(id: 8,  text: '📈 Productivity up 23% vs last week.',         time: '5h ago',   read: true),
+    NotificationModel(id: 9,  text: '🎯 Challenge complete: Triple Threat ×3 done!',time: '6h ago',   read: true),
+    NotificationModel(id: 10, text: '🌀 Spin wheel reward: +150 XP bonus added.',   time: '8h ago',   read: true),
+    // Yesterday
+    NotificationModel(id: 11, text: '🥇 You reached Rank S for the first time!',    time: 'Yesterday', read: true),
+    NotificationModel(id: 12, text: "🐾 Pet evolved to 'Dragon'! Keep grinding.",   time: 'Yesterday', read: true),
+    NotificationModel(id: 13, text: '💼 Work category streak: 7 days straight.',    time: 'Yesterday', read: true),
+    NotificationModel(id: 14, text: '🛡️ Streak shield used — streak protected!',   time: 'Yesterday', read: true),
+    // Older
+    NotificationModel(id: 15, text: '📚 Wisdom II skill unlocked in skill tree.',   time: '2 days ago', read: true),
+    NotificationModel(id: 16, text: '🏅 Weekly leaderboard: you moved to #2!',      time: '3 days ago', read: true),
+    NotificationModel(id: 17, text: '↻ Weekly quest "Read 30 min" has reset.',      time: '3 days ago', read: true),
+    NotificationModel(id: 18, text: '🎉 Level 12 reached — new title unlocked!',    time: '4 days ago', read: true),
   ];
 
   static const List<SkillNodeModel> skillTree = [
@@ -142,5 +179,29 @@ class SeedData {
     {'icon': '🌙', 'name': 'Night Owl',      'unlocked': false},
     {'icon': '🌅', 'name': 'Early Bird',     'unlocked': true},
     {'icon': '🤝', 'name': 'Team Player',    'unlocked': false},
+  ];
+
+  // ── Demo Sets ─────────────────────────────────────────
+
+  static const List<DemoSet> demoSets = [
+    DemoSet(
+      id: 'rebuzz',
+      name: 'Rebuzz POS Demo',
+      icon: '🏪',
+      desc: '10 marketing tasks to build a predictable sales pipeline',
+      color: AppColors.purple,
+      tasks: [
+        TaskModel(id: 0, title: 'Map Primary & Secondary ICPs',      desc: 'Identify exact criteria for best Rebuzz POS customers.',                       time: '9:00 AM',  points: 80, project: 'Strategy', streak: 0, done: false, priority: TaskPriority.high,   category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Segment Database by Niche',          desc: 'Break TAM into sub-niches: cafes automating loyalty vs. retailers.',           time: '10:00 AM', points: 60, project: 'Strategy', streak: 0, done: false, priority: TaskPriority.high,   category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Build Targeted Outbound Lists',      desc: 'Scrape or build 100–200 high-quality ICP-matched contacts per week.',          time: '11:00 AM', points: 80, project: 'Outbound', streak: 0, done: false, priority: TaskPriority.high,   category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Draft Referral Email Sequences',     desc: 'Write 3-step plain-text sequences aimed at getting POS referrals.',            time: '2:00 PM',  points: 60, project: 'Outbound', streak: 0, done: false, priority: TaskPriority.medium, category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Create Sales Enablement 1-Pagers',  desc: 'Develop collateral highlighting cost-saving benefits for SDRs.',               time: '3:00 PM',  points: 50, project: 'Outbound', streak: 0, done: false, priority: TaskPriority.medium, category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Develop Gated Lead Magnets',        desc: 'Create the 2026 Guide eBook and a POS ROI Calculator.',                        time: '9:00 AM',  points: 80, project: 'Inbound',  streak: 0, done: false, priority: TaskPriority.high,   category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Setup Inbound Qualification Funnel', desc: 'Build automated email workflows to nurture content downloaders.',              time: '11:00 AM', points: 80, project: 'Inbound',  streak: 0, done: false, priority: TaskPriority.high,   category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Launch Educational Webinar',        desc: 'Host a 20-min monthly webinar on integrated POS ops.',                         time: '1:00 PM',  points: 50, project: 'Inbound',  streak: 0, done: false, priority: TaskPriority.medium, category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Build Case Study Library',          desc: 'Interview top 5 Rebuzz POS clients. Publish with hard metrics.',               time: '10:00 AM', points: 60, project: 'Customer', streak: 0, done: false, priority: TaskPriority.medium, category: TaskCategory.work),
+        TaskModel(id: 0, title: 'Launch Client Referral Program',    desc: 'Create formalized affiliate/referral campaign incentivizing POS users.',       time: '2:00 PM',  points: 50, project: 'Customer', streak: 0, done: false, priority: TaskPriority.low,    category: TaskCategory.work),
+      ],
+    ),
   ];
 }
