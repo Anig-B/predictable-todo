@@ -35,29 +35,32 @@ class XpCalculator {
   static const int xpPerLevel = 200;
 
   static const List<RankTier> rankTiers = [
-    RankTier(name: 'Bronze',  minXp: 0,    icon: '🥉', color: Color(0xFFCD7F32)),
-    RankTier(name: 'Silver',  minXp: 500,  icon: '🥈', color: Color(0xFFC0C0C0)),
-    RankTier(name: 'Gold',    minXp: 1500, icon: '🥇', color: Color(0xFFFFD700)),
-    RankTier(name: 'Diamond', minXp: 3000, icon: '💎', color: Color(0xFF00D4FF)),
-    RankTier(name: 'Legend',  minXp: 5000, icon: '👑', color: AppColors.red),
+    RankTier(name: 'Bronze', minXp: 0, icon: '🥉', color: Color(0xFFCD7F32)),
+    RankTier(name: 'Silver', minXp: 500, icon: '🥈', color: Color(0xFFC0C0C0)),
+    RankTier(name: 'Gold', minXp: 1500, icon: '🥇', color: Color(0xFFFFD700)),
+    RankTier(
+        name: 'Diamond', minXp: 3000, icon: '💎', color: Color(0xFF00D4FF)),
+    RankTier(name: 'Legend', minXp: 5000, icon: '👑', color: AppColors.red),
   ];
 
   static const List<PetStage> petStages = [
-    PetStage(name: 'Egg',        emoji: '🥚', minTasks: 0,  size: 28),
-    PetStage(name: 'Baby Slime', emoji: '🫧', minTasks: 3,  size: 32),
-    PetStage(name: 'Fox Cub',    emoji: '🦊', minTasks: 10, size: 36),
-    PetStage(name: 'Phoenix',    emoji: '🦅', minTasks: 25, size: 40),
-    PetStage(name: 'Dragon',     emoji: '🐲', minTasks: 50, size: 44),
+    PetStage(name: 'Egg', emoji: '🥚', minTasks: 0, size: 28),
+    PetStage(name: 'Baby Slime', emoji: '🫧', minTasks: 3, size: 32),
+    PetStage(name: 'Fox Cub', emoji: '🦊', minTasks: 10, size: 36),
+    PetStage(name: 'Phoenix', emoji: '🦅', minTasks: 25, size: 40),
+    PetStage(name: 'Dragon', emoji: '🐲', minTasks: 50, size: 44),
   ];
 
   static int level(int totalXp) => (totalXp / xpPerLevel).floor() + 1;
 
   static int xpInLevel(int totalXp) => totalXp % xpPerLevel;
 
-  static double levelProgress(int totalXp) => (xpInLevel(totalXp) / xpPerLevel).clamp(0.0, 1.0);
+  static double levelProgress(int totalXp) =>
+      (xpInLevel(totalXp) / xpPerLevel).clamp(0.0, 1.0);
 
   static RankTier currentRank(int totalXp) {
-    return rankTiers.lastWhere((r) => totalXp >= r.minXp, orElse: () => rankTiers.first);
+    return rankTiers.lastWhere((r) => totalXp >= r.minXp,
+        orElse: () => rankTiers.first);
   }
 
   static RankTier? nextRank(int totalXp) {
@@ -74,7 +77,8 @@ class XpCalculator {
   }
 
   static PetStage currentPet(int totalLifetimeTasks) {
-    return petStages.lastWhere((p) => totalLifetimeTasks >= p.minTasks, orElse: () => petStages.first);
+    return petStages.lastWhere((p) => totalLifetimeTasks >= p.minTasks,
+        orElse: () => petStages.first);
   }
 
   static PetStage? nextPet(int totalLifetimeTasks) {
@@ -88,13 +92,14 @@ class XpCalculator {
     final cur = currentPet(totalLifetimeTasks);
     final nxt = nextPet(totalLifetimeTasks);
     if (nxt == null || nxt == cur) return 1.0;
-    return ((totalLifetimeTasks - cur.minTasks) / (nxt.minTasks - cur.minTasks)).clamp(0.0, 1.0);
+    return ((totalLifetimeTasks - cur.minTasks) / (nxt.minTasks - cur.minTasks))
+        .clamp(0.0, 1.0);
   }
 
-  static int comboMultiplier(int combo) {
-    if (combo >= 5) return 4;
-    if (combo >= 3) return 3;
-    if (combo >= 2) return 2;
+  static int comboMultiplier(int comboPoints) {
+    if (comboPoints >= 500) return 4;
+    if (comboPoints >= 250) return 3;
+    if (comboPoints >= 100) return 2;
     return 1;
   }
 }

@@ -8,6 +8,8 @@ import '../../gamification/providers/gamification_provider.dart';
 import '../../gamification/models/skill_node_model.dart';
 import '../../../core/utils/xp_calculator.dart';
 import '../../../core/data/seed_data.dart';
+import '../providers/profile_provider.dart';
+import 'edit_profile_page.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
   const ProfilePage({super.key});
@@ -36,47 +38,106 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget build(BuildContext context) {
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
-    final totalXp = tState.doneXp + gState.bonusXp;
+    final totalXp = (tState.doneXp + gState.bonusXp).toInt();
     final level = XpCalculator.level(totalXp);
     final lvlProgress = XpCalculator.levelProgress(totalXp);
     final rank = XpCalculator.currentRank(totalXp);
 
-    // XP within current level (not cumulative total)
     final xpInLevel = XpCalculator.xpInLevel(totalXp);
-
-    final hasTasks = tState.totalCount > 0;
+    final profile = ref.watch(profileProvider);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 14, 16, 130),
+          padding: const EdgeInsets.fromLTRB(16, 6, 16, 130),
           children: [
+            Align(
+              alignment: Alignment.topRight,
+              child: Container(
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: AppColors.red.withValues(alpha: 0.12),
+                      blurRadius: 16,
+                      spreadRadius: 4,
+                    ),
+                  ],
+                ),
+                child: IconButton(
+                  onPressed: () async {
+                    final messenger = ScaffoldMessenger.of(context);
+                    final confirmed = await _confirmClear(
+                        context, tState.totalCount, totalXp);
+                    if (!confirmed || !mounted) return;
+                    ref.read(taskProvider.notifier).clearAll();
+                    ref.read(gamificationProvider.notifier).reset();
+                    ref.read(profileProvider.notifier).reset();
+                    messenger.showSnackBar(
+                      SnackBar(
+                        content: Text('All data cleared',
+                            style: AppTheme.sans(size: 12)),
+                        backgroundColor: AppColors.red.withValues(alpha: 0.2),
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.delete_sweep_rounded,
+                      size: 20, color: AppColors.red),
+                  tooltip: 'Clear All Data',
+                ),
+              ),
+            ),
             // ── Avatar & Name ───────────────────────────
             Column(
               children: [
-                Container(
-                  width: 72,
-                  height: 72,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
+                GestureDetector(
+                  onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (_) => const EditProfilePage()),
                   ),
-                  padding: const EdgeInsets.all(3),
                   child: Container(
+                    width: 72,
+                    height: 72,
                     decoration: const BoxDecoration(
-                      color: AppColors.surface,
+                      gradient: AppColors.primaryGradient,
                       shape: BoxShape.circle,
                     ),
-                    alignment: Alignment.center,
-                    child: const Text('🧑‍💻', style: TextStyle(fontSize: 30)),
+                    padding: const EdgeInsets.all(3),
+                    child: Container(
+                      decoration: const BoxDecoration(
+                        color: AppColors.surface,
+                        shape: BoxShape.circle,
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(profile.avatar,
+                          style: const TextStyle(fontSize: 30)),
+                    ),
                   ),
                 ),
                 const SizedBox(height: 10),
-                Text('Quest Master',
-                    style: AppTheme.sans(size: 17, weight: FontWeight.w800)),
-                Text('#QUESTLOG',
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    const SizedBox(width: 32), // Spacer for balance
+                    Text(profile.name,
+                        style:
+                            AppTheme.sans(size: 17, weight: FontWeight.w800)),
+                    const SizedBox(width: 4),
+                    IconButton(
+                      visualDensity: VisualDensity.compact,
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                            builder: (_) => const EditProfilePage()),
+                      ),
+                      icon: const Icon(Icons.edit_note_rounded,
+                          size: 18, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+                Text(profile.tagline,
                     style: AppTheme.mono(size: 9, color: AppColors.accent)),
               ],
             ),
@@ -130,7 +191,8 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               childAspectRatio: 2,
               children: [
                 _StatBox(value: '${tState.doneCount}', label: 'Tasks Done'),
-                _StatBox(value: '${gState.currentStreak}d', label: 'Day Streak'),
+                _StatBox(
+                    value: '${gState.currentStreak}d', label: 'Day Streak'),
                 _StatBox(value: rank.name, label: 'Rank'),
                 _StatBox(
                     value:
@@ -238,105 +300,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ],
               ),
             ),
-
-            // ── Danger Zone ─────────────────────────────
-            Container(
-              margin: const EdgeInsets.only(top: 14),
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(
-                color: AppColors.red.withValues(alpha: 0.04),
-                borderRadius: BorderRadius.circular(13),
-                border:
-                    Border.all(color: AppColors.red.withValues(alpha: 0.18)),
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    children: [
-                      const Icon(Icons.warning_amber_rounded,
-                          size: 14, color: AppColors.red),
-                      const SizedBox(width: 5),
-                      Text('DANGER ZONE',
-                          style: AppTheme.mono(
-                                  size: 9,
-                                  color: AppColors.red,
-                                  weight: FontWeight.w700)
-                              .copyWith(letterSpacing: 1.8)),
-                    ],
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('Clear All Data',
-                                style: TextStyle(
-                                    fontWeight: FontWeight.w800, fontSize: 12)),
-                            SizedBox(height: 2),
-                            Text('Reset all tasks and progress',
-                                style: TextStyle(
-                                    fontSize: 10, color: AppColors.muted)),
-                          ],
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: hasTasks
-                            ? () async {
-                                final messenger = ScaffoldMessenger.of(context);
-                                final confirmed = await _confirmClear(
-                                    context, tState.totalCount);
-                                if (!confirmed || !mounted) return;
-                                ref.read(taskProvider.notifier).clearAll();
-                                ref.read(gamificationProvider.notifier).reset();
-                                messenger.showSnackBar(
-                                  SnackBar(
-                                    content: Text('All data cleared',
-                                        style: AppTheme.sans(size: 12)),
-                                    backgroundColor:
-                                        AppColors.red.withValues(alpha: 0.2),
-                                  ),
-                                );
-                              }
-                            : null,
-                        style: TextButton.styleFrom(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          backgroundColor: hasTasks
-                              ? AppColors.red.withValues(alpha: 0.1)
-                              : AppColors.surface3,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(9),
-                            side: BorderSide(
-                              color: hasTasks
-                                  ? AppColors.red.withValues(alpha: 0.3)
-                                  : AppColors.border,
-                            ),
-                          ),
-                        ),
-                        child: Text('Clear All',
-                            style: AppTheme.sans(
-                                size: 11,
-                                weight: FontWeight.w800,
-                                color: hasTasks
-                                    ? AppColors.red
-                                    : AppColors.muted)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
           ],
         ),
       ),
     );
   }
 
-  Future<bool> _confirmClear(BuildContext context, int taskCount) async {
-    if (taskCount == 0) return false;
+  Future<bool> _confirmClear(
+      BuildContext context, int taskCount, int totalXp) async {
+    if (taskCount == 0 && totalXp == 0) return false;
     final result = await showDialog<bool>(
       context: context,
       barrierDismissible: false,
@@ -362,12 +334,19 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   style: AppTheme.sans(size: 12, color: AppColors.muted),
                   children: [
                     const TextSpan(text: 'This will permanently delete '),
-                    TextSpan(
-                      text: '$taskCount tasks',
-                      style: AppTheme.mono(size: 12, color: AppColors.red),
-                    ),
-                    const TextSpan(
-                        text: ' and all your progress. This cannot be undone.'),
+                    if (taskCount > 0)
+                      TextSpan(
+                        text: '$taskCount tasks ',
+                        style: AppTheme.mono(size: 12, color: AppColors.red),
+                      ),
+                    if (taskCount > 0 && totalXp > 0)
+                      const TextSpan(text: 'and '),
+                    if (totalXp > 0)
+                      TextSpan(
+                        text: 'all progress ',
+                        style: AppTheme.mono(size: 12, color: AppColors.red),
+                      ),
+                    const TextSpan(text: '. This cannot be undone.'),
                   ],
                 ),
               ),

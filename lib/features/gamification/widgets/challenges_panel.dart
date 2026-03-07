@@ -40,14 +40,14 @@ class ChallengesPanel extends ConsumerWidget {
                 Row(
                   children: [
                     Text('$doneCount/${challenges.length} done',
-                        style: AppTheme.mono(
-                            size: 10, color: AppColors.accent)),
+                        style:
+                            AppTheme.mono(size: 10, color: AppColors.accent)),
                     const SizedBox(width: 12),
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
                       child: Text('✕',
-                          style: AppTheme.sans(
-                              size: 14, color: AppColors.muted)),
+                          style:
+                              AppTheme.sans(size: 14, color: AppColors.muted)),
                     ),
                   ],
                 ),
@@ -84,7 +84,8 @@ class ChallengesPanel extends ConsumerWidget {
                   child: Row(
                     children: [
                       SizedBox(
-                        width: 52, height: 52,
+                        width: 52,
+                        height: 52,
                         child: CustomPaint(
                           painter: _ChallengeRingPainter(
                               progress: doneCount / challenges.length),
@@ -96,21 +97,23 @@ class ChallengesPanel extends ConsumerWidget {
                         ),
                       ),
                       const SizedBox(width: 16),
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Daily Challenges',
-                              style: AppTheme.sans(
-                                  size: 13, weight: FontWeight.w800)),
-                          const SizedBox(height: 2),
-                          Text('Resets in 08:14:32',
-                              style: AppTheme.sans(
-                                  size: 10, color: AppColors.subtle)),
-                          const SizedBox(height: 4),
-                          Text('Complete all 3 for a bonus 🎁',
-                              style: AppTheme.sans(
-                                  size: 9, color: AppColors.subtle)),
-                        ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('Daily Challenges',
+                                style: AppTheme.sans(
+                                    size: 13, weight: FontWeight.w800)),
+                            const SizedBox(height: 2),
+                            Text('Resets in 08:14:32',
+                                style: AppTheme.sans(
+                                    size: 10, color: AppColors.subtle)),
+                            const SizedBox(height: 4),
+                            Text('Complete all 3 for a bonus 🎁',
+                                style: AppTheme.sans(
+                                    size: 9, color: AppColors.subtle)),
+                          ],
+                        ),
                       ),
                     ],
                   ),
@@ -138,10 +141,12 @@ class ChallengesPanel extends ConsumerWidget {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('Complete All Challenges',
-                                style: AppTheme.sans(size: 11, weight: FontWeight.w800)),
+                                style: AppTheme.sans(
+                                    size: 11, weight: FontWeight.w800)),
                             const SizedBox(height: 1),
                             Text('Earn a mystery loot box',
-                                style: AppTheme.sans(size: 9, color: AppColors.subtle)),
+                                style: AppTheme.sans(
+                                    size: 9, color: AppColors.subtle)),
                           ],
                         ),
                       ),
@@ -158,9 +163,8 @@ class ChallengesPanel extends ConsumerWidget {
                           allDone ? '✓ Claim' : '🔒 Locked',
                           style: AppTheme.mono(
                               size: 10,
-                              color: allDone
-                                  ? AppColors.accent
-                                  : AppColors.gold),
+                              color:
+                                  allDone ? AppColors.accent : AppColors.gold),
                         ),
                       ),
                     ],

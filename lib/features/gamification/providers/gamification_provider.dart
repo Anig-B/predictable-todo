@@ -9,7 +9,8 @@ import '../../../core/services/storage_service.dart';
 
 class GamificationState {
   final int bonusXp;
-  final int combo;
+  final int comboPoints;
+  final int comboCount;
   final int multiplier;
   final BossModel boss;
   final int totalLifetimeTasks;
@@ -25,7 +26,8 @@ class GamificationState {
 
   const GamificationState({
     this.bonusXp = 0,
-    this.combo = 0,
+    this.comboPoints = 0,
+    this.comboCount = 0,
     this.multiplier = 1,
     required this.boss,
     this.totalLifetimeTasks = 0,
@@ -40,7 +42,7 @@ class GamificationState {
     this.lastBossResetDate,
   });
 
-  int get comboMulti => XpCalculator.comboMultiplier(combo);
+  int get comboMulti => XpCalculator.comboMultiplier(comboPoints);
   int get effectiveMulti => max(multiplier, comboMulti);
 
   /// Spin resets daily — available if never spun or spun on a previous day.
@@ -48,13 +50,15 @@ class GamificationState {
     if (lastSpunDate == null) return true;
     final today = DateTime.now();
     final todayDate = DateTime(today.year, today.month, today.day);
-    final spunDate = DateTime(lastSpunDate!.year, lastSpunDate!.month, lastSpunDate!.day);
+    final spunDate =
+        DateTime(lastSpunDate!.year, lastSpunDate!.month, lastSpunDate!.day);
     return todayDate.isAfter(spunDate);
   }
 
   GamificationState copyWith({
     int? bonusXp,
-    int? combo,
+    int? comboPoints,
+    int? comboCount,
     int? multiplier,
     BossModel? boss,
     int? totalLifetimeTasks,
@@ -71,7 +75,8 @@ class GamificationState {
   }) =>
       GamificationState(
         bonusXp: bonusXp ?? this.bonusXp,
-        combo: combo ?? this.combo,
+        comboPoints: comboPoints ?? this.comboPoints,
+        comboCount: comboCount ?? this.comboCount,
         multiplier: multiplier ?? this.multiplier,
         boss: boss ?? this.boss,
         totalLifetimeTasks: totalLifetimeTasks ?? this.totalLifetimeTasks,
@@ -82,25 +87,30 @@ class GamificationState {
         spinUsed: spinUsed ?? this.spinUsed,
         lastSpunDate: lastSpunDate ?? this.lastSpunDate,
         currentStreak: currentStreak ?? this.currentStreak,
-        lastActiveDate: clearLastActiveDate ? null : (lastActiveDate ?? this.lastActiveDate),
+        lastActiveDate: clearLastActiveDate
+            ? null
+            : (lastActiveDate ?? this.lastActiveDate),
         lastBossResetDate: lastBossResetDate ?? this.lastBossResetDate,
       );
 
   Map<String, dynamic> toJson() => {
-    'bonusXp': bonusXp,
-    'totalLifetimeTasks': totalLifetimeTasks,
-    'shields': shields,
-    'lootCount': lootCount,
-    'skillPoints': skillPoints,
-    'spinUsed': spinUsed,
-    'lastSpunDate': lastSpunDate?.toIso8601String(),
-    'bossHp': boss.hp,
-    'bossDone': boss.tasksDone,
-    'unlockedSkills': skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
-    'currentStreak': currentStreak,
-    'lastActiveDate': lastActiveDate?.toIso8601String(),
-    'lastBossResetDate': lastBossResetDate?.toIso8601String(),
-  };
+        'bonusXp': bonusXp,
+        'comboPoints': comboPoints,
+        'comboCount': comboCount,
+        'totalLifetimeTasks': totalLifetimeTasks,
+        'shields': shields,
+        'lootCount': lootCount,
+        'skillPoints': skillPoints,
+        'spinUsed': spinUsed,
+        'lastSpunDate': lastSpunDate?.toIso8601String(),
+        'bossHp': boss.hp,
+        'bossDone': boss.tasksDone,
+        'unlockedSkills':
+            skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
+        'currentStreak': currentStreak,
+        'lastActiveDate': lastActiveDate?.toIso8601String(),
+        'lastBossResetDate': lastBossResetDate?.toIso8601String(),
+      };
 }
 
 const _initialState = GamificationState(
@@ -131,6 +141,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
     state = GamificationState(
       bonusXp: saved['bonusXp'] as int? ?? 0,
+      comboPoints: saved['comboPoints'] as int? ?? 0,
+      comboCount: saved['comboCount'] as int? ?? 0,
       totalLifetimeTasks: saved['totalLifetimeTasks'] as int? ?? 0,
       shields: saved['shields'] as int? ?? 1,
       lootCount: saved['lootCount'] as int? ?? 0,
@@ -145,7 +157,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         tasksDone: saved['bossDone'] as int? ?? 0,
       ),
       skillTree: SeedData.skillTree
-          .map((s) => s.copyWith(unlocked: unlockedIds.contains(s.id) || s.unlocked))
+          .map((s) =>
+              s.copyWith(unlocked: unlockedIds.contains(s.id) || s.unlocked))
           .toList(),
     );
 
@@ -198,12 +211,13 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   int onTaskCompleted(int basePoints) {
     final multi = state.effectiveMulti;
     final bonus = multi > 1 ? basePoints * (multi - 1) : 0;
-    final newCombo = state.combo + 1;
+    final newComboPoints = state.comboPoints + basePoints;
+    final newComboCount = state.comboCount + 1;
 
     _comboTimer?.cancel();
     _comboTimer = Timer(const Duration(seconds: 60), () {
       if (mounted) {
-        state = state.copyWith(combo: 0);
+        state = state.copyWith(comboPoints: 0, comboCount: 0);
         _persist();
       }
     });
@@ -219,7 +233,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final spGained = earnedXp ~/ 10; // 1 SP per 10 XP
 
     state = state.copyWith(
-      combo: newCombo,
+      comboPoints: newComboPoints,
+      comboCount: newComboCount,
       multiplier: multi > 1 ? 1 : state.multiplier,
       bonusXp: state.bonusXp + bonus,
       boss: newBoss,
@@ -260,18 +275,25 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   }
 
   void applyLootItem(String itemName) {
-    if (itemName.contains('XP')) state = state.copyWith(bonusXp: state.bonusXp + 150);
-    if (itemName.contains('Shield')) state = state.copyWith(shields: state.shields + 1);
+    if (itemName.contains('XP')) {
+      state = state.copyWith(bonusXp: state.bonusXp + 150);
+    }
+    if (itemName.contains('Shield')) {
+      state = state.copyWith(shields: state.shields + 1);
+    }
     if (itemName.contains('Multiplier')) state = state.copyWith(multiplier: 3);
     _persist();
   }
 
   bool unlockSkill(String id) {
-    final node = state.skillTree.firstWhere((s) => s.id == id, orElse: () => state.skillTree.first);
+    final node = state.skillTree
+        .firstWhere((s) => s.id == id, orElse: () => state.skillTree.first);
     if (node.unlocked || state.skillPoints < node.cost) return false;
     state = state.copyWith(
       skillPoints: state.skillPoints - node.cost,
-      skillTree: state.skillTree.map((s) => s.id == id ? s.copyWith(unlocked: true) : s).toList(),
+      skillTree: state.skillTree
+          .map((s) => s.id == id ? s.copyWith(unlocked: true) : s)
+          .toList(),
     );
     _persist();
     return true;

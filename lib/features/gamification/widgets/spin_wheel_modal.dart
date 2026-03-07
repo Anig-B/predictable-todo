@@ -40,7 +40,7 @@ class _SpinWheelModalState extends State<SpinWheelModal>
       _result = null;
     });
 
-    final segs = SeedData.wheelSegments;
+    const segs = SeedData.wheelSegments;
     final winIdx = Random().nextInt(segs.length);
     final segAngle = 2 * pi / segs.length;
     final currentAngle = _rotation.value;
@@ -82,7 +82,7 @@ class _SpinWheelModalState extends State<SpinWheelModal>
             animation: _rotation,
             builder: (_, __) => Transform.rotate(
               angle: _rotation.value,
-              child: SizedBox(
+              child: const SizedBox(
                 width: 220, height: 220,
                 child: CustomPaint(
                   painter: _WheelPainter(segs: SeedData.wheelSegments),

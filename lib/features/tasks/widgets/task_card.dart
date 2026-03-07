@@ -7,19 +7,22 @@ class TaskCard extends StatefulWidget {
   final TaskModel task;
   final int effectiveMulti;
   final VoidCallback onToggle;
+  final VoidCallback onQuickToggle;
 
   const TaskCard({
     super.key,
     required this.task,
     required this.effectiveMulti,
     required this.onToggle,
+    required this.onQuickToggle,
   });
 
   @override
   State<TaskCard> createState() => _TaskCardState();
 }
 
-class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin {
+class _TaskCardState extends State<TaskCard>
+    with SingleTickerProviderStateMixin {
   bool _expanded = false;
   late final AnimationController _checkCtrl;
   late final Animation<double> _checkScale;
@@ -27,7 +30,8 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
   @override
   void initState() {
     super.initState();
-    _checkCtrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 320));
+    _checkCtrl = AnimationController(
+        vsync: this, duration: const Duration(milliseconds: 320));
     _checkScale = TweenSequence([
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 0.4), weight: 20),
       TweenSequenceItem(tween: Tween(begin: 0.4, end: 1.22), weight: 40),
@@ -41,9 +45,9 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
     super.dispose();
   }
 
-  void _handleToggle() {
+  void _handleQuickToggle() {
     if (!widget.task.done) _checkCtrl.forward(from: 0);
-    widget.onToggle();
+    widget.onQuickToggle();
   }
 
   @override
@@ -67,7 +71,9 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
           children: [
             // Priority stripe
             Positioned(
-              left: 0, top: 6, bottom: 6,
+              left: 0,
+              top: 6,
+              bottom: 6,
               child: Container(
                 width: 3,
                 decoration: BoxDecoration(
@@ -88,17 +94,23 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                       ScaleTransition(
                         scale: _checkScale,
                         child: GestureDetector(
-                          onTap: _handleToggle,
+                          onTap: _handleQuickToggle,
                           child: AnimatedContainer(
                             duration: const Duration(milliseconds: 200),
-                            width: 22, height: 22,
+                            width: 22,
+                            height: 22,
                             decoration: BoxDecoration(
-                              gradient: t.done ? AppColors.primaryGradient : null,
-                              border: t.done ? null : Border.all(color: AppColors.border, width: 2),
+                              gradient:
+                                  t.done ? AppColors.primaryGradient : null,
+                              border: t.done
+                                  ? null
+                                  : Border.all(
+                                      color: AppColors.border, width: 2),
                               borderRadius: BorderRadius.circular(6),
                             ),
                             child: t.done
-                                ? const Icon(Icons.check, size: 13, color: Colors.white)
+                                ? const Icon(Icons.check,
+                                    size: 13, color: Colors.white)
                                 : null,
                           ),
                         ),
@@ -106,49 +118,77 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                       const SizedBox(width: 9),
                       // Title + chips
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              t.title,
-                              style: AppTheme.sans(
-                                size: 12,
-                                weight: FontWeight.w700,
-                                color: t.done ? AppColors.muted : AppColors.text,
-                              ).copyWith(
-                                decoration: t.done ? TextDecoration.lineThrough : null,
-                                decorationColor: AppColors.muted,
+                        child: GestureDetector(
+                          onTap: widget.onToggle,
+                          behavior: HitTestBehavior.opaque,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                t.title,
+                                style: AppTheme.sans(
+                                  size: 12,
+                                  weight: FontWeight.w700,
+                                  color:
+                                      t.done ? AppColors.muted : AppColors.text,
+                                ).copyWith(
+                                  decoration: t.done
+                                      ? TextDecoration.lineThrough
+                                      : null,
+                                  decorationColor: AppColors.muted,
+                                ),
                               ),
-                            ),
-                            const SizedBox(height: 5),
-                            Wrap(
-                              spacing: 4,
-                              runSpacing: 4,
-                              children: [
-                                _Chip(label: '🕐 ${t.time}', color: AppColors.subtle, bg: AppColors.surface2),
-                                _Chip(label: xpLabel, color: AppColors.accent, bg: AppColors.accent.withValues(alpha: 0.1), mono: true),
-                                _Chip(label: '📁 ${t.project}', color: AppColors.purple, bg: AppColors.purple.withValues(alpha: 0.1)),
-                                _Chip(label: '🔥 ${t.streak}d', color: AppColors.gold, bg: AppColors.gold.withValues(alpha: 0.1)),
-                                if (t.recurring != TaskRecurring.none)
+                              const SizedBox(height: 5),
+                              Wrap(
+                                spacing: 4,
+                                runSpacing: 4,
+                                children: [
                                   _Chip(
-                                    label: '↻ ${t.recurring.label}',
-                                    color: AppColors.blue,
-                                    bg: AppColors.blue.withValues(alpha: 0.1),
-                                  ),
-                              ],
-                            ),
-                          ],
+                                      label: '🕐 ${t.time}',
+                                      color: AppColors.subtle,
+                                      bg: AppColors.surface2),
+                                  _Chip(
+                                      label: xpLabel,
+                                      color: AppColors.accent,
+                                      bg: AppColors.accent
+                                          .withValues(alpha: 0.1),
+                                      mono: true),
+                                  _Chip(
+                                      label: '📁 ${t.project}',
+                                      color: AppColors.purple,
+                                      bg: AppColors.purple
+                                          .withValues(alpha: 0.1)),
+                                  _Chip(
+                                      label: '🔥 ${t.streak}d',
+                                      color: AppColors.gold,
+                                      bg: AppColors.gold
+                                          .withValues(alpha: 0.1)),
+                                  if (t.recurring != TaskRecurring.none)
+                                    _Chip(
+                                      label: '↻ ${t.recurring.label}',
+                                      color: AppColors.blue,
+                                      bg: AppColors.blue.withValues(alpha: 0.1),
+                                    ),
+                                ],
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                       // Expand button
                       GestureDetector(
                         onTap: () => setState(() => _expanded = !_expanded),
                         child: Container(
-                          width: 28, height: 28,
-                          decoration: AppTheme.surfaceBox(color: AppColors.surface2, radius: 7),
+                          width: 28,
+                          height: 28,
+                          decoration: AppTheme.surfaceBox(
+                              color: AppColors.surface2, radius: 7),
                           child: Icon(
-                            _expanded ? Icons.expand_less : Icons.description_outlined,
-                            size: 14, color: AppColors.subtle,
+                            _expanded
+                                ? Icons.expand_less
+                                : Icons.description_outlined,
+                            size: 14,
+                            color: AppColors.subtle,
                           ),
                         ),
                       ),
@@ -160,8 +200,11 @@ class _TaskCardState extends State<TaskCard> with SingleTickerProviderStateMixin
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(10),
-                      decoration: AppTheme.surfaceBox(color: AppColors.surface2, radius: 8),
-                      child: Text(t.desc, style: AppTheme.sans(size: 11, color: AppColors.muted)),
+                      decoration: AppTheme.surfaceBox(
+                          color: AppColors.surface2, radius: 8),
+                      child: Text(t.desc,
+                          style:
+                              AppTheme.sans(size: 11, color: AppColors.muted)),
                     ),
                   ],
                 ],
@@ -180,13 +223,18 @@ class _Chip extends StatelessWidget {
   final Color bg;
   final bool mono;
 
-  const _Chip({required this.label, required this.color, required this.bg, this.mono = false});
+  const _Chip(
+      {required this.label,
+      required this.color,
+      required this.bg,
+      this.mono = false});
 
   @override
   Widget build(BuildContext context) {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
-      decoration: BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
+      decoration:
+          BoxDecoration(color: bg, borderRadius: BorderRadius.circular(5)),
       child: Text(
         label,
         style: mono

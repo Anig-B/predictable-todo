@@ -7,6 +7,8 @@ import '../../../core/utils/xp_calculator.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
 import '../models/leaderboard_entry_model.dart';
+import '../widgets/podium.dart';
+import '../widgets/invite_button.dart';
 
 class LeaderboardPage extends ConsumerStatefulWidget {
   const LeaderboardPage({super.key});
@@ -40,8 +42,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
 
     // Replace seed "You" with live entry, sort by the relevant XP field
     final others = SeedData.leaderboard.where((e) => !e.isYou).toList();
-    final entries = [youEntry, ...others]
-      ..sort((a, b) => b.xp.compareTo(a.xp));
+    final entries = [youEntry, ...others]..sort((a, b) => b.xp.compareTo(a.xp));
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -72,9 +73,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                 : AppColors.surface,
                             borderRadius: BorderRadius.circular(8),
                             border: Border.all(
-                              color: active
-                                  ? AppColors.accent
-                                  : AppColors.border,
+                              color:
+                                  active ? AppColors.accent : AppColors.border,
                             ),
                           ),
                           child: Text(
@@ -82,7 +82,8 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                             style: AppTheme.sans(
                               size: 10,
                               weight: FontWeight.w700,
-                              color: active ? AppColors.accent : AppColors.muted,
+                              color:
+                                  active ? AppColors.accent : AppColors.muted,
                             ),
                           ),
                         ),
@@ -95,19 +96,24 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
             Expanded(
               child: ListView.builder(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
-                itemCount: entries.length + 1,
+                itemCount: entries.length + 2,
                 itemBuilder: (_, i) {
-                  if (i == entries.length) {
+                  if (i == 0) {
+                    return Podium(top3: entries.take(3).toList());
+                  }
+                  if (i == entries.length + 1) {
                     return Padding(
                       padding: const EdgeInsets.only(top: 8),
-                      child: _InviteButton(
+                      child: InviteButton(
                         sent: _inviteSent,
                         onTap: () => setState(() => _inviteSent = !_inviteSent),
                       ),
                     );
                   }
-                  final entry = entries[i];
-                  final rank = i + 1;
+
+                  final entryIndex = i - 1;
+                  final entry = entries[entryIndex];
+                  final rank = entryIndex + 1;
                   return _LeaderboardCard(
                     entry: entry,
                     rank: rank,
@@ -194,22 +200,18 @@ class _LeaderboardCard extends StatelessWidget {
                     style: AppTheme.sans(
                         size: 11,
                         weight: FontWeight.w700,
-                        color: entry.isYou
-                            ? AppColors.accent
-                            : AppColors.text)),
+                        color:
+                            entry.isYou ? AppColors.accent : AppColors.text)),
                 const SizedBox(height: 2),
                 Text('${entry.xp} XP',
-                    style: AppTheme.mono(
-                        size: 9, color: AppColors.accent)),
+                    style: AppTheme.mono(size: 9, color: AppColors.accent)),
                 Row(
                   children: [
                     Text('LVL ${entry.level}',
-                        style: AppTheme.mono(
-                            size: 8, color: AppColors.purple)),
+                        style: AppTheme.mono(size: 8, color: AppColors.purple)),
                     const SizedBox(width: 6),
                     Text(statLabel,
-                        style: AppTheme.sans(
-                            size: 8, color: AppColors.subtle)),
+                        style: AppTheme.sans(size: 8, color: AppColors.subtle)),
                   ],
                 ),
               ],
@@ -220,8 +222,7 @@ class _LeaderboardCard extends StatelessWidget {
               onTap: onChallenge,
               child: AnimatedContainer(
                 duration: const Duration(milliseconds: 200),
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
                   color: challengeSent
                       ? AppColors.accent.withValues(alpha: 0.1)
@@ -244,52 +245,6 @@ class _LeaderboardCard extends StatelessWidget {
               ),
             ),
         ],
-      ),
-    );
-  }
-}
-
-class _InviteButton extends StatelessWidget {
-  final bool sent;
-  final VoidCallback onTap;
-
-  const _InviteButton({required this.sent, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        width: double.infinity,
-        padding: const EdgeInsets.symmetric(vertical: 13),
-        decoration: BoxDecoration(
-          gradient: sent ? null : AppColors.primaryGradient,
-          color: sent ? AppColors.surface2 : null,
-          borderRadius: BorderRadius.circular(12),
-          border: sent
-              ? Border.all(color: AppColors.accent.withValues(alpha: 0.28))
-              : null,
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              sent ? Icons.check : Icons.person_add_outlined,
-              size: 16,
-              color: sent ? AppColors.accent : AppColors.bg,
-            ),
-            const SizedBox(width: 8),
-            Text(
-              sent ? 'Invite Sent!' : 'Invite a Friend',
-              style: AppTheme.sans(
-                size: 12,
-                weight: FontWeight.w800,
-                color: sent ? AppColors.accent : AppColors.bg,
-              ),
-            ),
-          ],
-        ),
       ),
     );
   }

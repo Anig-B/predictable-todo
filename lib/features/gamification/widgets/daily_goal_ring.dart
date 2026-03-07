@@ -23,7 +23,8 @@ class DailyGoalRing extends StatelessWidget {
         child: Row(
           children: [
             SizedBox(
-              width: 32, height: 32,
+              width: 32,
+              height: 32,
               child: CustomPaint(
                 painter: _RingPainter(progress: progress),
                 child: Center(
@@ -33,17 +34,23 @@ class DailyGoalRing extends StatelessWidget {
               ),
             ),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('Daily Goal',
-                    style: AppTheme.sans(size: 10, weight: FontWeight.w800)),
-                Text(done >= goal ? 'Done! 🎉' : '${goal - done} left',
-                    style: AppTheme.sans(
-                        size: 8,
-                        color: AppColors.subtle,
-                        weight: FontWeight.w600)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Daily Goal',
+                      style: AppTheme.sans(size: 10, weight: FontWeight.w800),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  Text(done >= goal ? 'Done! 🎉' : '${goal - done} left',
+                      style: AppTheme.sans(
+                          size: 8,
+                          color: AppColors.subtle,
+                          weight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ],
         ),
@@ -102,23 +109,29 @@ class StreakCard extends StatelessWidget {
           children: [
             const Text('🔥', style: TextStyle(fontSize: 18)),
             const SizedBox(width: 8),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text('$streak Days',
-                    style: AppTheme.sans(
-                        size: 10,
-                        weight: FontWeight.w800,
-                        color: AppColors.gold)),
-                Text(
-                    shields > 0
-                        ? '🛡️ $shields shield${shields > 1 ? 's' : ''}'
-                        : 'Streak',
-                    style: AppTheme.sans(
-                        size: 8,
-                        color: AppColors.subtle,
-                        weight: FontWeight.w600)),
-              ],
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('$streak Days',
+                      style: AppTheme.sans(
+                          size: 10,
+                          weight: FontWeight.w800,
+                          color: AppColors.gold),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                  Text(
+                      shields > 0
+                          ? '🛡️ $shields shield${shields > 1 ? 's' : ''}'
+                          : 'Streak',
+                      style: AppTheme.sans(
+                          size: 8,
+                          color: AppColors.subtle,
+                          weight: FontWeight.w600),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis),
+                ],
+              ),
             ),
           ],
         ),

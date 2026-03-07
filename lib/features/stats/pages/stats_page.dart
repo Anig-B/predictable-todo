@@ -22,7 +22,6 @@ class StatsPage extends ConsumerStatefulWidget {
 class _StatsPageState extends ConsumerState<StatsPage>
     with SingleTickerProviderStateMixin {
   late final TabController _tabCtrl;
-  final _heatmap = HeatmapGrid.generate();
 
   @override
   void initState() {
@@ -41,6 +40,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
     final totalXp = tState.doneXp + gState.bonusXp;
+    final heatmap = HeatmapGrid.fromLogs(tState.activityLog);
 
     return Scaffold(
       backgroundColor: AppColors.bg,
@@ -54,12 +54,10 @@ class _StatsPageState extends ConsumerState<StatsPage>
               child: Row(
                 children: [
                   Text('Stats',
-                      style: AppTheme.mono(
-                          size: 20, weight: FontWeight.w800)),
+                      style: AppTheme.mono(size: 20, weight: FontWeight.w800)),
                   const Spacer(),
                   Text('$totalXp XP total',
-                      style: AppTheme.mono(
-                          size: 10, color: AppColors.accent)),
+                      style: AppTheme.mono(size: 10, color: AppColors.accent)),
                 ],
               ),
             ),
@@ -77,8 +75,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
                   ),
                   indicatorSize: TabBarIndicatorSize.tab,
                   dividerColor: Colors.transparent,
-                  labelStyle:
-                      AppTheme.sans(size: 11, weight: FontWeight.w700),
+                  labelStyle: AppTheme.sans(size: 11, weight: FontWeight.w700),
                   unselectedLabelStyle:
                       AppTheme.sans(size: 11, color: AppColors.muted),
                   labelColor: AppColors.bg,
@@ -98,7 +95,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
                 children: [
                   _OverviewTab(tState: tState, gState: gState),
                   _ProjectsTab(tState: tState),
-                  _TimeTab(heatmap: _heatmap),
+                  _TimeTab(heatmap: heatmap),
                 ],
               ),
             ),
@@ -131,13 +128,16 @@ class _OverviewTab extends StatelessWidget {
       TaskCategory.personal: AppColors.red,
     };
 
-    return TaskCategory.values.map((cat) {
-      final xp = doneTasks
-          .where((t) => t.category == cat)
-          .fold(0, (s, t) => s + t.points);
-      final pct = (xp / totalXp * 100).round();
-      return {'name': cat.label, 'value': pct, 'color': colors[cat]!};
-    }).where((d) => (d['value'] as int) > 0).toList();
+    return TaskCategory.values
+        .map((cat) {
+          final xp = doneTasks
+              .where((t) => t.category == cat)
+              .fold(0, (s, t) => s + t.points);
+          final pct = (xp / totalXp * 100).round();
+          return {'name': cat.label, 'value': pct, 'color': colors[cat]!};
+        })
+        .where((d) => (d['value'] as int) > 0)
+        .toList();
   }
 
   List<Map<String, dynamic>> _weeklyXpData() {
@@ -166,7 +166,9 @@ class _OverviewTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        _SectionLabel('CATEGORY BREAKDOWN'),
+        _MomentumCard(tState: tState),
+        const SizedBox(height: 16),
+        const _SectionLabel('CATEGORY BREAKDOWN'),
         const SizedBox(height: 8),
         Row(
           crossAxisAlignment: CrossAxisAlignment.center,
@@ -176,33 +178,38 @@ class _OverviewTab extends StatelessWidget {
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: categoryData.map((d) => Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: Row(
-                    children: [
-                      Container(
-                        width: 8, height: 8,
-                        decoration: BoxDecoration(
-                          color: d['color'] as Color,
-                          shape: BoxShape.circle,
-                        ),
-                      ),
-                      const SizedBox(width: 6),
-                      Expanded(
-                        child: Text(d['name'] as String,
-                            style: AppTheme.sans(size: 11, weight: FontWeight.w600)),
-                      ),
-                      Text('${d['value']}%',
-                          style: AppTheme.mono(size: 9, color: AppColors.muted)),
-                    ],
-                  ),
-                )).toList(),
+                children: categoryData
+                    .map((d) => Padding(
+                          padding: const EdgeInsets.only(bottom: 8),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 8,
+                                height: 8,
+                                decoration: BoxDecoration(
+                                  color: d['color'] as Color,
+                                  shape: BoxShape.circle,
+                                ),
+                              ),
+                              const SizedBox(width: 6),
+                              Expanded(
+                                child: Text(d['name'] as String,
+                                    style: AppTheme.sans(
+                                        size: 11, weight: FontWeight.w600)),
+                              ),
+                              Text('${d['value']}%',
+                                  style: AppTheme.mono(
+                                      size: 9, color: AppColors.muted)),
+                            ],
+                          ),
+                        ))
+                    .toList(),
               ),
             ),
           ],
         ),
         const SizedBox(height: 16),
-        _SectionLabel('WEEKLY XP'),
+        const _SectionLabel('WEEKLY XP'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -214,16 +221,19 @@ class _OverviewTab extends StatelessWidget {
               const SizedBox(height: 8),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: weeklyXp.map((d) => Text(
-                  d['day'] as String,
-                  style: AppTheme.mono(size: 8, color: AppColors.subtle),
-                )).toList(),
+                children: weeklyXp
+                    .map((d) => Text(
+                          d['day'] as String,
+                          style:
+                              AppTheme.mono(size: 8, color: AppColors.subtle),
+                        ))
+                    .toList(),
               ),
             ],
           ),
         ),
         const SizedBox(height: 16),
-        _SectionLabel('KEY STATS'),
+        const _SectionLabel('KEY STATS'),
         const SizedBox(height: 8),
         Row(
           children: [
@@ -245,9 +255,9 @@ class _OverviewTab extends StatelessWidget {
             ),
             Expanded(
               child: GaugeChart(
-                value: gState.combo.toDouble(),
-                max: 10,
-                label: 'COMBO',
+                value: gState.comboPoints.toDouble(),
+                max: 500,
+                label: 'COMBO XP',
                 color: AppColors.gold,
               ),
             ),
@@ -268,8 +278,11 @@ class _ProjectsTab extends StatelessWidget {
     if (tState.tasks.isEmpty) return SeedData.projectStats;
 
     const colors = [
-      AppColors.accent, AppColors.purple, AppColors.gold,
-      AppColors.orange, AppColors.red,
+      AppColors.accent,
+      AppColors.purple,
+      AppColors.gold,
+      AppColors.orange,
+      AppColors.red,
     ];
 
     final projects = <String, Map<String, dynamic>>{};
@@ -300,7 +313,7 @@ class _ProjectsTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        _SectionLabel('PROJECT PROGRESS'),
+        const _SectionLabel('PROJECT PROGRESS'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -308,7 +321,7 @@ class _ProjectsTab extends StatelessWidget {
           child: HorizontalBarChart(data: projectStats),
         ),
         const SizedBox(height: 16),
-        _SectionLabel('PROJECT DETAILS'),
+        const _SectionLabel('PROJECT DETAILS'),
         const SizedBox(height: 8),
         ...projectStats.map((p) {
           final pct = (p['completed'] as int) / (p['total'] as int);
@@ -319,7 +332,8 @@ class _ProjectsTab extends StatelessWidget {
             child: Row(
               children: [
                 Container(
-                  width: 10, height: 10,
+                  width: 10,
+                  height: 10,
                   decoration: BoxDecoration(
                     color: p['color'] as Color,
                     shape: BoxShape.circle,
@@ -331,7 +345,8 @@ class _ProjectsTab extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(p['name'] as String,
-                          style: AppTheme.sans(size: 12, weight: FontWeight.w700)),
+                          style:
+                              AppTheme.sans(size: 12, weight: FontWeight.w700)),
                       const SizedBox(height: 4),
                       ClipRRect(
                         borderRadius: BorderRadius.circular(3),
@@ -373,7 +388,7 @@ class _TimeTab extends StatelessWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        _SectionLabel('HOURLY ACTIVITY'),
+        const _SectionLabel('HOURLY ACTIVITY'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -389,8 +404,8 @@ class _TimeTab extends StatelessWidget {
                       width: 28,
                       child: Text(d['h'] as String,
                           textAlign: TextAlign.right,
-                          style: AppTheme.mono(
-                              size: 9, color: AppColors.muted)),
+                          style:
+                              AppTheme.mono(size: 9, color: AppColors.muted)),
                     ),
                     const SizedBox(width: 8),
                     Expanded(
@@ -412,7 +427,7 @@ class _TimeTab extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        _SectionLabel('12-WEEK HEATMAP'),
+        const _SectionLabel('12-WEEK HEATMAP'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -426,6 +441,141 @@ class _TimeTab extends StatelessWidget {
 
 // ── Shared ───────────────────────────────────────────────
 
+class _MomentumCard extends StatelessWidget {
+  final TaskState tState;
+  const _MomentumCard({required this.tState});
+
+  @override
+  Widget build(BuildContext context) {
+    final now = DateTime.now();
+    final todayStart = DateTime(now.year, now.month, now.day);
+    final weekAgo = todayStart.subtract(const Duration(days: 7));
+
+    final todayXp = tState.activityLog
+        .where((l) => l.createdAt.isAfter(todayStart))
+        .fold(0, (s, l) => s + l.points);
+
+    final weekXp = tState.activityLog
+        .where((l) =>
+            l.createdAt.isAfter(weekAgo) && l.createdAt.isBefore(todayStart))
+        .fold(0, (s, l) => s + l.points);
+
+    final avgDailyXp = weekXp / 7;
+    final momentum =
+        avgDailyXp > 0 ? todayXp / avgDailyXp : (todayXp > 0 ? 2.0 : 1.0);
+    final isUp = momentum >= 1.0;
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            AppColors.surface,
+            AppColors.surface.withValues(alpha: 0.8),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: AppColors.border),
+        boxShadow: [
+          BoxShadow(
+            color: (isUp ? AppColors.accent : AppColors.red)
+                .withValues(alpha: 0.05),
+            blurRadius: 20,
+            spreadRadius: 0,
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: (isUp ? AppColors.accent : AppColors.red)
+                      .withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Icon(
+                  isUp ? Icons.bolt : Icons.trending_flat,
+                  color: isUp ? AppColors.accent : AppColors.red,
+                  size: 16,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Productivity Pulse',
+                      style: AppTheme.sans(size: 13, weight: FontWeight.w800)),
+                  Text(isUp ? 'Generating momentum' : 'Gaining traction',
+                      style: AppTheme.sans(size: 9, color: AppColors.subtle)),
+                ],
+              ),
+              const Spacer(),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Text('${momentum.toStringAsFixed(1)}x',
+                      style: AppTheme.mono(
+                          size: 18,
+                          weight: FontWeight.w900,
+                          color: isUp ? AppColors.accent : AppColors.red)),
+                  Text('Velocity',
+                      style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _MomentumStat(
+                  label: 'Today',
+                  value: '$todayXp XP',
+                  color: AppColors.accent),
+              _MomentumStat(
+                  label: '7D Avg',
+                  value: '${avgDailyXp.round()} XP',
+                  color: AppColors.purple),
+              _MomentumStat(
+                  label: 'Status',
+                  value: isUp ? 'CRUSHING' : 'CHILLING',
+                  color: isUp ? AppColors.gold : AppColors.blue),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _MomentumStat extends StatelessWidget {
+  final String label;
+  final String value;
+  final Color color;
+  const _MomentumStat(
+      {required this.label, required this.value, required this.color});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+        const SizedBox(height: 2),
+        Text(value,
+            style:
+                AppTheme.sans(size: 11, weight: FontWeight.w700, color: color)),
+      ],
+    );
+  }
+}
+
 class _SectionLabel extends StatelessWidget {
   final String text;
   const _SectionLabel(this.text);
@@ -433,7 +583,8 @@ class _SectionLabel extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Text(text,
-        style: AppTheme.mono(size: 9, color: AppColors.subtle, weight: FontWeight.w700)
+        style: AppTheme.mono(
+                size: 9, color: AppColors.subtle, weight: FontWeight.w700)
             .copyWith(letterSpacing: 2));
   }
 }

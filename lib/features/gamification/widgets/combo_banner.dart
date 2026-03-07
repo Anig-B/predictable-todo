@@ -3,10 +3,11 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 
 class ComboBanner extends StatelessWidget {
-  final int combo;
+  final int comboPoints;
   final int comboMulti;
 
-  const ComboBanner({super.key, required this.combo, required this.comboMulti});
+  const ComboBanner(
+      {super.key, required this.comboPoints, required this.comboMulti});
 
   @override
   Widget build(BuildContext context) {
@@ -28,14 +29,19 @@ class ComboBanner extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text('$combo× COMBO!',
-                    style: AppTheme.mono(size: 11, weight: FontWeight.w800, color: AppColors.red)),
-                Text('Keep going!', style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+                Text('COMBO ACTIVE!',
+                    style: AppTheme.mono(
+                        size: 11,
+                        weight: FontWeight.w800,
+                        color: AppColors.red)),
+                Text('Keep going!',
+                    style: AppTheme.sans(size: 8, color: AppColors.subtle)),
               ],
             ),
           ),
           Text('$comboMulti×',
-              style: AppTheme.mono(size: 15, weight: FontWeight.w800, color: AppColors.gold)),
+              style: AppTheme.mono(
+                  size: 15, weight: FontWeight.w800, color: AppColors.gold)),
         ],
       ),
     );
@@ -62,9 +68,13 @@ class MultiplierBanner extends StatelessWidget {
           const SizedBox(width: 8),
           Expanded(
             child: Text('$multiplier× Multiplier Active',
-                style: AppTheme.sans(size: 10, weight: FontWeight.w700, color: AppColors.purple)),
+                style: AppTheme.sans(
+                    size: 10,
+                    weight: FontWeight.w700,
+                    color: AppColors.purple)),
           ),
-          Text('Next task', style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+          Text('Next task',
+              style: AppTheme.sans(size: 8, color: AppColors.subtle)),
         ],
       ),
     );

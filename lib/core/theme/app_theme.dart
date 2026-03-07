@@ -137,4 +137,26 @@ class AppTheme {
       ),
     ),
   );
+
+  static InputDecoration inputDecoration({required String hint}) =>
+      InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: AppColors.surface,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: AppColors.border),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(13),
+          borderSide: const BorderSide(color: AppColors.accent, width: 1.5),
+        ),
+        hintStyle: sans(size: 14, color: AppColors.muted),
+        contentPadding:
+            const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      );
 }

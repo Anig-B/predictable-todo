@@ -31,7 +31,8 @@ class ChallengeCard extends StatelessWidget {
         child: Row(
           children: [
             Container(
-              width: 42, height: 42,
+              width: 42,
+              height: 42,
               decoration: BoxDecoration(
                 color: done
                     ? AppColors.accent.withValues(alpha: 0.08)
@@ -54,9 +55,13 @@ class ChallengeCard extends StatelessWidget {
                 children: [
                   Row(
                     children: [
-                      Text(challenge.title,
-                          style:
-                              AppTheme.sans(size: 12, weight: FontWeight.w800)),
+                      Flexible(
+                        child: Text(challenge.title,
+                            style: AppTheme.sans(
+                                size: 12, weight: FontWeight.w800),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis),
+                      ),
                       if (done) ...[
                         const SizedBox(width: 5),
                         Container(

@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../models/activity_log_model.dart';
-import '../../../core/data/seed_data.dart';
 import '../../../core/services/storage_service.dart';
 
 class TaskState {
@@ -32,20 +31,20 @@ class TaskState {
 class TaskNotifier extends StateNotifier<TaskState> {
   Timer? _recurTimer;
 
-  TaskNotifier()
-      : super(const TaskState(tasks: [], activityLog: [])) {
+  TaskNotifier() : super(const TaskState(tasks: [], activityLog: [])) {
     _init();
   }
 
   Future<void> _init() async {
-    final savedTasks = await StorageService.loadTasks();
-    final savedLog = await StorageService.loadLog();
-    state = TaskState(
-      tasks: savedTasks ?? SeedData.tasks,
-      activityLog: savedLog ?? SeedData.activityLog,
+    // Starting with a truly fresh state as requested
+    state = const TaskState(
+      tasks: [],
+      activityLog: [],
     );
+    _persist();
     _resetDueTasks();
-    _recurTimer = Timer.periodic(const Duration(minutes: 1), (_) => _resetDueTasks());
+    _recurTimer =
+        Timer.periodic(const Duration(minutes: 1), (_) => _resetDueTasks());
   }
 
   @override
@@ -62,12 +61,15 @@ class TaskNotifier extends StateNotifier<TaskState> {
   void _resetDueTasks() {
     final updated = state.tasks.map((t) {
       if (t.recurring == TaskRecurring.none || !t.done) return t;
-      if (t.recurring.isDue(t.lastCompletedAt, weeklyDay: t.weeklyDay, monthlyDay: t.monthlyDay)) {
-        return t.copyWith(done: false, bonusEarned: 0, clearLastCompleted: true);
+      if (t.recurring.isDue(t.lastCompletedAt,
+          weeklyDay: t.weeklyDay, monthlyDay: t.monthlyDay)) {
+        return t.copyWith(
+            done: false, bonusEarned: 0, clearLastCompleted: true);
       }
       return t;
     }).toList();
-    if (updated.any((t) => state.tasks.any((o) => o.id == t.id && o.done != t.done))) {
+    if (updated
+        .any((t) => state.tasks.any((o) => o.id == t.id && o.done != t.done))) {
       state = state.copyWith(tasks: updated);
       _persist();
     }
@@ -82,14 +84,15 @@ class TaskNotifier extends StateNotifier<TaskState> {
         return t.copyWith(
           done: true,
           bonusEarned: bonusEarned,
-          lastCompletedAt: t.recurring != TaskRecurring.none ? DateTime.now() : null,
+          lastCompletedAt: DateTime.now(),
         );
       }).toList(),
     );
     if (found != null) {
       final now = DateTime.now();
       final tod = TimeOfDay.fromDateTime(now);
-      final timeStr = '${tod.hourOfPeriod}:${tod.minute.toString().padLeft(2, '0')} ${tod.period == DayPeriod.am ? 'AM' : 'PM'}';
+      final timeStr =
+          '${tod.hourOfPeriod}:${tod.minute.toString().padLeft(2, '0')} ${tod.period == DayPeriod.am ? 'AM' : 'PM'}';
       final log = ActivityLogModel(
         taskId: found!.id,
         task: found!.title,
@@ -115,7 +118,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
     );
     if (found != null) {
       state = state.copyWith(
-        activityLog: state.activityLog.where((a) => a.taskId != found!.id).toList(),
+        activityLog:
+            state.activityLog.where((a) => a.taskId != found!.id).toList(),
       );
     }
     _persist();
