@@ -10,10 +10,14 @@ enum TaskRecurring { none, daily, weekly, monthly }
 extension TaskRecurringExt on TaskRecurring {
   String get label {
     switch (this) {
-      case TaskRecurring.none:    return 'None';
-      case TaskRecurring.daily:   return 'Daily';
-      case TaskRecurring.weekly:  return 'Weekly';
-      case TaskRecurring.monthly: return 'Monthly';
+      case TaskRecurring.none:
+        return 'None';
+      case TaskRecurring.daily:
+        return 'Daily';
+      case TaskRecurring.weekly:
+        return 'Weekly';
+      case TaskRecurring.monthly:
+        return 'Monthly';
     }
   }
 
@@ -23,7 +27,8 @@ extension TaskRecurringExt on TaskRecurring {
     if (this == TaskRecurring.none || lastCompleted == null) return false;
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    final lastDay = DateTime(lastCompleted.year, lastCompleted.month, lastCompleted.day);
+    final lastDay =
+        DateTime(lastCompleted.year, lastCompleted.month, lastCompleted.day);
     switch (this) {
       case TaskRecurring.daily:
         return today.isAfter(lastDay);
@@ -37,7 +42,8 @@ extension TaskRecurringExt on TaskRecurring {
         final targetDay = (monthlyDay == 0 ? lastDayOfMonth : (monthlyDay ?? 1))
             .clamp(1, lastDayOfMonth);
         final thisOccurrence = DateTime(now.year, now.month, targetDay);
-        return !today.isBefore(thisOccurrence) && lastDay.isBefore(thisOccurrence);
+        return !today.isBefore(thisOccurrence) &&
+            lastDay.isBefore(thisOccurrence);
       case TaskRecurring.none:
         return false;
     }
@@ -48,9 +54,12 @@ extension TaskPriorityExt on TaskPriority {
   String get label => name;
   Color get color {
     switch (this) {
-      case TaskPriority.high:   return AppColors.red;
-      case TaskPriority.medium: return AppColors.gold;
-      case TaskPriority.low:    return AppColors.accent;
+      case TaskPriority.high:
+        return AppColors.red;
+      case TaskPriority.medium:
+        return AppColors.gold;
+      case TaskPriority.low:
+        return AppColors.accent;
     }
   }
 }
@@ -58,18 +67,27 @@ extension TaskPriorityExt on TaskPriority {
 extension TaskCategoryExt on TaskCategory {
   String get label {
     switch (this) {
-      case TaskCategory.work:     return 'Work';
-      case TaskCategory.health:   return 'Health';
-      case TaskCategory.learning: return 'Learning';
-      case TaskCategory.personal: return 'Personal';
+      case TaskCategory.work:
+        return 'Work';
+      case TaskCategory.health:
+        return 'Health';
+      case TaskCategory.learning:
+        return 'Learning';
+      case TaskCategory.personal:
+        return 'Personal';
     }
   }
+
   String get icon {
     switch (this) {
-      case TaskCategory.work:     return '💼';
-      case TaskCategory.health:   return '💪';
-      case TaskCategory.learning: return '📚';
-      case TaskCategory.personal: return '🏠';
+      case TaskCategory.work:
+        return '💼';
+      case TaskCategory.health:
+        return '💪';
+      case TaskCategory.learning:
+        return '📚';
+      case TaskCategory.personal:
+        return '🏠';
     }
   }
 }
@@ -88,10 +106,41 @@ class TaskModel {
   final int bonusEarned;
   final TaskRecurring recurring;
   final DateTime? lastCompletedAt;
+
   /// 1=Mon…7=Sun, null = any day
   final int? weeklyDay;
+
   /// 1-28 = specific date, 0 = last day of month, null = any day
   final int? monthlyDay;
+
+  String get recurringLabel {
+    if (recurring == TaskRecurring.none) return '';
+    if (recurring == TaskRecurring.daily) return 'Daily';
+
+    if (recurring == TaskRecurring.weekly) {
+      if (weeklyDay == null) return 'Weekly';
+      const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      return days[(weeklyDay! - 1).clamp(0, 6)];
+    }
+
+    if (recurring == TaskRecurring.monthly) {
+      if (monthlyDay == null) return 'Monthly';
+      if (monthlyDay == 0) return 'Last Day';
+      final d = monthlyDay!;
+      if (d >= 11 && d <= 13) return '${d}th';
+      switch (d % 10) {
+        case 1:
+          return '${d}st';
+        case 2:
+          return '${d}nd';
+        case 3:
+          return '${d}rd';
+        default:
+          return '${d}th';
+      }
+    }
+    return recurring.label;
+  }
 
   const TaskModel({
     required this.id,
@@ -142,47 +191,48 @@ class TaskModel {
         category: category ?? this.category,
         bonusEarned: bonusEarned ?? this.bonusEarned,
         recurring: recurring ?? this.recurring,
-        lastCompletedAt:
-            clearLastCompleted ? null : (lastCompletedAt ?? this.lastCompletedAt),
+        lastCompletedAt: clearLastCompleted
+            ? null
+            : (lastCompletedAt ?? this.lastCompletedAt),
         weeklyDay: weeklyDay ?? this.weeklyDay,
         monthlyDay: monthlyDay ?? this.monthlyDay,
       );
 
   Map<String, dynamic> toJson() => {
-    'id': id,
-    'title': title,
-    'desc': desc,
-    'time': time,
-    'points': points,
-    'project': project,
-    'streak': streak,
-    'done': done,
-    'priority': priority.index,
-    'category': category.index,
-    'bonusEarned': bonusEarned,
-    'recurring': recurring.index,
-    'lastCompletedAt': lastCompletedAt?.toIso8601String(),
-    'weeklyDay': weeklyDay,
-    'monthlyDay': monthlyDay,
-  };
+        'id': id,
+        'title': title,
+        'desc': desc,
+        'time': time,
+        'points': points,
+        'project': project,
+        'streak': streak,
+        'done': done,
+        'priority': priority.index,
+        'category': category.index,
+        'bonusEarned': bonusEarned,
+        'recurring': recurring.index,
+        'lastCompletedAt': lastCompletedAt?.toIso8601String(),
+        'weeklyDay': weeklyDay,
+        'monthlyDay': monthlyDay,
+      };
 
   factory TaskModel.fromJson(Map<String, dynamic> j) => TaskModel(
-    id: j['id'] as int,
-    title: j['title'] as String,
-    desc: j['desc'] as String,
-    time: j['time'] as String,
-    points: j['points'] as int,
-    project: j['project'] as String,
-    streak: j['streak'] as int,
-    done: j['done'] as bool,
-    priority: TaskPriority.values[j['priority'] as int],
-    category: TaskCategory.values[j['category'] as int],
-    bonusEarned: j['bonusEarned'] as int? ?? 0,
-    recurring: TaskRecurring.values[j['recurring'] as int? ?? 0],
-    lastCompletedAt: j['lastCompletedAt'] != null
-        ? DateTime.parse(j['lastCompletedAt'] as String)
-        : null,
-    weeklyDay: j['weeklyDay'] as int?,
-    monthlyDay: j['monthlyDay'] as int?,
-  );
+        id: j['id'] as int,
+        title: j['title'] as String,
+        desc: j['desc'] as String,
+        time: j['time'] as String,
+        points: j['points'] as int,
+        project: j['project'] as String,
+        streak: j['streak'] as int,
+        done: j['done'] as bool,
+        priority: TaskPriority.values[j['priority'] as int],
+        category: TaskCategory.values[j['category'] as int],
+        bonusEarned: j['bonusEarned'] as int? ?? 0,
+        recurring: TaskRecurring.values[j['recurring'] as int? ?? 0],
+        lastCompletedAt: j['lastCompletedAt'] != null
+            ? DateTime.parse(j['lastCompletedAt'] as String)
+            : null,
+        weeklyDay: j['weeklyDay'] as int?,
+        monthlyDay: j['monthlyDay'] as int?,
+      );
 }

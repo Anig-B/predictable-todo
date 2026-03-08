@@ -79,5 +79,60 @@ final productivityData = DemoSet(
           '📅 Rule of 3: Accomplishing 3 meaningful tasks is better than finishing 20 trivial ones.',
       createdAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
+    NoteModel(
+      id: 'prod-n3',
+      content:
+          '🎯 The Pareto Principle: Identify the 20% of tasks creating 80% of your results. Systematize or delegate the rest.',
+      createdAt: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    NoteModel(
+      id: 'prod-n4',
+      content:
+          '🕯️ Evening Ritual: Clearing your physical and digital workspace before finishing the day reduces "cognitive leakage" into the night.',
+      createdAt: DateTime.now().subtract(const Duration(days: 7)),
+    ),
+    NoteModel(
+      id: 'prod-n5',
+      content:
+          '💻 Tech win: Automated my workspace setup with git hooks! Now, if only we had a magic button to create a short note instantly. 🤔',
+      createdAt: DateTime.now().subtract(const Duration(minutes: 10)),
+    ),
+    NoteModel(
+      id: 'prod-n6',
+      content:
+          '🌙 I saw a dream today: A world where distractions literally dont exist. Every minute was 100% focused.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 3)),
+    ),
+    NoteModel(
+      id: 'prod-n7',
+      content:
+          '✨ Something good happened today: Finished the main task 2 hours ahead of schedule. Deep work is magic.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 18)),
+    ),
+  ],
+  projectStats: [
+    {
+      'name': 'Deep Work',
+      'total': 30,
+      'completed': 22,
+      'color': AppColors.purple
+    },
+    {'name': 'Planning', 'total': 25, 'completed': 20, 'color': AppColors.gold},
+    {
+      'name': 'Execution',
+      'total': 50,
+      'completed': 38,
+      'color': AppColors.accent
+    },
+    {'name': 'Review', 'total': 10, 'completed': 8, 'color': AppColors.blue},
+  ],
+  hourlyData: [
+    {'h': '8a', 'v': 400},
+    {'h': '9a', 'v': 1200},
+    {'h': '10a', 'v': 1500},
+    {'h': '11a', 'v': 900},
+    {'h': '2p', 'v': 700},
+    {'h': '4p', 'v': 1100},
+    {'h': '5p', 'v': 500},
   ],
 );

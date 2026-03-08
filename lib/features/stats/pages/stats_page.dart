@@ -8,9 +8,9 @@ import '../../gamification/providers/gamification_provider.dart';
 import '../../../core/data/seed_data.dart';
 import '../widgets/charts/donut_chart.dart';
 import '../widgets/charts/sparkline_chart.dart';
-import '../widgets/charts/bar_chart_widget.dart';
 import '../widgets/charts/gauge_chart.dart';
 import '../widgets/charts/heatmap_grid.dart';
+import '../widgets/charts/bar_chart_widget.dart';
 
 class StatsPage extends ConsumerStatefulWidget {
   const StatsPage({super.key});
@@ -95,7 +95,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
                 children: [
                   _OverviewTab(tState: tState, gState: gState),
                   _ProjectsTab(tState: tState),
-                  _TimeTab(heatmap: heatmap),
+                  _TimeTab(heatmap: heatmap, tState: tState),
                 ],
               ),
             ),
@@ -377,12 +377,16 @@ class _ProjectsTab extends StatelessWidget {
 
 class _TimeTab extends StatelessWidget {
   final List<List<int>> heatmap;
-  const _TimeTab({required this.heatmap});
+  final TaskState tState;
+  const _TimeTab({required this.heatmap, required this.tState});
 
   @override
   Widget build(BuildContext context) {
-    final maxV = SeedData.hourlyData
-        .map((d) => d['v'] as int)
+    final activityData =
+        tState.hourlyData.isNotEmpty ? tState.hourlyData : SeedData.hourlyData;
+
+    final maxV = activityData
+        .map((d) => (d['v'] as num).toInt())
         .reduce((a, b) => a > b ? a : b);
 
     return ListView(
@@ -394,8 +398,8 @@ class _TimeTab extends StatelessWidget {
           padding: const EdgeInsets.all(12),
           decoration: AppTheme.surfaceBox(),
           child: Column(
-            children: SeedData.hourlyData.map((d) {
-              final pct = (d['v'] as int) / maxV;
+            children: activityData.map((d) {
+              final pct = (d['v'] as num).toInt() / maxV;
               return Padding(
                 padding: const EdgeInsets.only(bottom: 6),
                 child: Row(

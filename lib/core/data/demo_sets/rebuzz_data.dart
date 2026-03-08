@@ -130,5 +130,87 @@ final rebuzzData = DemoSet(
           '📝 Sales Script Refinement: Always ask "How long does it take for your inventory to sync across devices?" early in the call. It highlights the lag in their current system.',
       createdAt: DateTime.now().subtract(const Duration(days: 5)),
     ),
+    NoteModel(
+      id: 'reb-n6',
+      content:
+          '📊 Lead Scoring Model: Businesses with >2 locations should be marked high-priority. They are more likely to require the Multi-Store management dashboard.',
+      createdAt: DateTime.now().subtract(const Duration(days: 6)),
+    ),
+    NoteModel(
+      id: 'reb-n7',
+      content:
+          '🧠 Obviating Objections: For Hardware concerns, lead with our "24h Swap" guarantee. It negates the risk of downtime which is the merchant\'s #1 fear.',
+      createdAt: DateTime.now().subtract(const Duration(days: 8)),
+    ),
+    NoteModel(
+      id: 'reb-n8',
+      content:
+          '📈 Scaling Tactics: Use the "City-Slam" approach for the Denver rollout. Saturate one 5-block radius to build organic referral loops between owners.',
+      createdAt: DateTime.now().subtract(const Duration(days: 10)),
+    ),
+    NoteModel(
+      id: 'reb-n9',
+      content:
+          '🤝 Partner Program: Reach out to local credit card processors. Offering them a small split for referring "distressed" LegacyPOS clients is high-leverage.',
+      createdAt: DateTime.now().subtract(const Duration(days: 12)),
+    ),
+    NoteModel(
+      id: 'reb-n10',
+      content:
+          '🔮 Future Roadmap: The "Inventory Forecasting" AI module is the most requested feature from our Platinum users. Beta starts in September.',
+      createdAt: DateTime.now().subtract(const Duration(days: 14)),
+    ),
+    NoteModel(
+      id: 'reb-n11',
+      content:
+          '💻 Tech win: Learned using git commands today! Still suggest a magic button to create a short note though. 😉',
+      createdAt: DateTime.now().subtract(const Duration(minutes: 5)),
+    ),
+    NoteModel(
+      id: 'reb-n12',
+      content:
+          '🌙 I saw a dream today: The POS system was so intuitive it practically sold itself. One day it will be reality.',
+      createdAt: DateTime.now().subtract(const Duration(minutes: 30)),
+    ),
+    NoteModel(
+      id: 'reb-n13',
+      content:
+          '✨ Something good happened today: Closing that boutique lead felt effortless. This is why we build.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 1)),
+    ),
+  ],
+  projectStats: [
+    {
+      'name': 'Strategy',
+      'total': 20,
+      'completed': 14,
+      'color': AppColors.purple
+    },
+    {
+      'name': 'Outbound',
+      'total': 50,
+      'completed': 32,
+      'color': AppColors.accent
+    },
+    {'name': 'Inbound', 'total': 15, 'completed': 4, 'color': AppColors.gold},
+    {'name': 'Growth', 'total': 10, 'completed': 7, 'color': AppColors.red},
+    {
+      'name': 'Sales Ops',
+      'total': 25,
+      'completed': 18,
+      'color': AppColors.purple
+    },
+  ],
+  hourlyData: [
+    {'h': '8a', 'v': 150},
+    {'h': '9a', 'v': 450},
+    {'h': '10a', 'v': 850},
+    {'h': '11a', 'v': 1200},
+    {'h': '12p', 'v': 900},
+    {'h': '1p', 'v': 600},
+    {'h': '2p', 'v': 800},
+    {'h': '3p', 'v': 1100},
+    {'h': '4p', 'v': 750},
+    {'h': '5p', 'v': 400},
   ],
 );

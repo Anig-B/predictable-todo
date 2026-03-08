@@ -79,5 +79,57 @@ final dietData = DemoSet(
           '🥗 Fiber First: Starting your meal with a giant salad reduces the glucose spike of the subsequent dishes.',
       createdAt: DateTime.now().subtract(const Duration(days: 4)),
     ),
+    NoteModel(
+      id: 'diet-n3',
+      content:
+          '🥗 Meal Timing: Consuming your largest meal earlier in the day often leads to higher satiety and better metabolic flexibility.',
+      createdAt: DateTime.now().subtract(const Duration(days: 6)),
+    ),
+    NoteModel(
+      id: 'diet-n4',
+      content:
+          '💻 Tech win: Finally using git to version control my meal prep recipes! Still hoping for that magic button for instant logging though. 🍎',
+      createdAt: DateTime.now().subtract(const Duration(minutes: 15)),
+    ),
+    NoteModel(
+      id: 'diet-n5',
+      content:
+          '🌙 I saw a dream today: A buffet where everything was 0 calories but tasted like a 5-star restaurant. Pure bliss.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 5)),
+    ),
+    NoteModel(
+      id: 'diet-n6',
+      content:
+          '✨ Something good happened today: Found a sugar-free snack that actually tastes good. The search is over.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 20)),
+    ),
+  ],
+  projectStats: [
+    {'name': 'Meal Prep', 'total': 20, 'completed': 16, 'color': AppColors.red},
+    {
+      'name': 'Tracking',
+      'total': 50,
+      'completed': 48,
+      'color': AppColors.accent
+    },
+    {
+      'name': 'Fat Loss',
+      'total': 10,
+      'completed': 9,
+      'color': AppColors.purple
+    },
+    {
+      'name': 'Hydration',
+      'total': 100,
+      'completed': 85,
+      'color': AppColors.blue
+    },
+  ],
+  hourlyData: [
+    {'h': '7a', 'v': 800},
+    {'h': '12p', 'v': 1200},
+    {'h': '3p', 'v': 400},
+    {'h': '6p', 'v': 1400},
+    {'h': '8p', 'v': 600},
   ],
 );

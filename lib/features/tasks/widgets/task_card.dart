@@ -165,7 +165,7 @@ class _TaskCardState extends State<TaskCard>
                                           .withValues(alpha: 0.1)),
                                   if (t.recurring != TaskRecurring.none)
                                     _Chip(
-                                      label: '↻ ${t.recurring.label}',
+                                      label: '↻ ${t.recurringLabel}',
                                       color: AppColors.blue,
                                       bg: AppColors.blue.withValues(alpha: 0.1),
                                     ),

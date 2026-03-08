@@ -11,6 +11,8 @@ class StorageService {
   static const _keyGami = 'gamification_v1';
   static const _keyProfile = 'profile_v1';
   static const _keyNotes = 'notes_v1';
+  static const _keyProjectStats = 'project_stats_v1';
+  static const _keyHourlyData = 'hourly_data_v1';
 
   // ── Tasks ────────────────────────────────────────────
 
@@ -93,5 +95,33 @@ class StorageService {
     final raw = prefs.getString(_keyNotes);
     if (raw == null) return null;
     return jsonDecode(raw) as List<dynamic>;
+  }
+
+  // ── Stats ─────────────────────────────────────────────
+
+  static Future<void> saveProjectStats(List<Map<String, dynamic>> stats) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyProjectStats, jsonEncode(stats));
+  }
+
+  static Future<List<Map<String, dynamic>>?> loadProjectStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyProjectStats);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.map((e) => e as Map<String, dynamic>).toList();
+  }
+
+  static Future<void> saveHourlyData(List<Map<String, dynamic>> data) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_keyHourlyData, jsonEncode(data));
+  }
+
+  static Future<List<Map<String, dynamic>>?> loadHourlyData() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_keyHourlyData);
+    if (raw == null) return null;
+    final list = jsonDecode(raw) as List<dynamic>;
+    return list.map((e) => e as Map<String, dynamic>).toList();
   }
 }

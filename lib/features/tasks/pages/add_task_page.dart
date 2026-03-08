@@ -5,6 +5,7 @@ import '../../../core/theme/app_theme.dart';
 import '../../../core/data/seed_data.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
+import '../providers/note_provider.dart';
 
 class AddTaskPage extends ConsumerStatefulWidget {
   const AddTaskPage({super.key});
@@ -33,6 +34,8 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
 
   void _importDemo(DemoSet demo) {
     final base = DateTime.now().millisecondsSinceEpoch;
+
+    // Import Tasks
     final tasks = demo.tasks.asMap().entries.map((e) {
       return e.value.copyWith(
           id: base + e.key,
@@ -41,7 +44,22 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
           bonusEarned: 0,
           clearLastCompleted: true);
     }).toList();
-    ref.read(taskProvider.notifier).loadDemo(tasks);
+
+    // Import Notes with unique IDs
+    final notes = demo.notes.asMap().entries.map((e) {
+      return e.value.copyWith(
+        id: 'demo-${base + e.key}',
+        createdAt: DateTime.now().subtract(Duration(minutes: e.key * 5)),
+      );
+    }).toList();
+
+    ref.read(taskProvider.notifier).loadDemo(
+          tasks,
+          projectStats: demo.projectStats,
+          hourlyData: demo.hourlyData,
+        );
+    ref.read(noteProvider.notifier).loadDemo(notes);
+
     Navigator.of(context).pop();
   }
 
@@ -221,9 +239,10 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                                     color: demo.color.withValues(alpha: 0.1),
                                     borderRadius: BorderRadius.circular(8),
                                   ),
-                                  child: Text('${demo.tasks.length} tasks',
+                                  child: Text(
+                                      '${demo.tasks.length} tasks · ${demo.notes.length} scrolls',
                                       style: AppTheme.mono(
-                                          size: 10,
+                                          size: 9,
                                           weight: FontWeight.w700,
                                           color: demo.color)),
                                 ),

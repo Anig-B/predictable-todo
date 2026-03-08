@@ -7,13 +7,21 @@ class NoteNotifier extends StateNotifier<List<NoteModel>> {
     _init();
   }
 
+  bool _initialized = false;
+
   Future<void> _init() async {
+    if (_initialized) return;
     final saved = await StorageService.loadNotes();
     if (saved != null) {
-      state = saved
+      final loaded = saved
           .map((e) => NoteModel.fromJson(e as Map<String, dynamic>))
           .toList();
+      state = [
+        ...loaded,
+        ...state.where((n) => !loaded.any((l) => l.id == n.id))
+      ];
     }
+    _initialized = true;
   }
 
   Future<void> addNote(String content) async {
@@ -23,6 +31,12 @@ class NoteNotifier extends StateNotifier<List<NoteModel>> {
       createdAt: DateTime.now(),
     );
     state = [note, ...state];
+    await _persist();
+  }
+
+  Future<void> loadDemo(List<NoteModel> notes) async {
+    await _init(); // Ensure we don't overwrite
+    state = [...notes, ...state];
     await _persist();
   }
 

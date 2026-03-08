@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/data/seed_data.dart';
 import '../providers/note_provider.dart';
 import '../models/note_model.dart';
 
@@ -48,6 +49,76 @@ class _NotePageState extends ConsumerState<NotePage> {
     FocusScope.of(context).unfocus();
   }
 
+  void _showImportPicker() {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      builder: (context) => Container(
+        padding: const EdgeInsets.only(top: 20, bottom: 40),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+          border: Border.all(color: AppColors.border),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 40,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('CHOOSE MISSION PACK',
+                style: AppTheme.mono(size: 12, weight: FontWeight.w900)
+                    .copyWith(letterSpacing: 2)),
+            const SizedBox(height: 10),
+            Text('Import strategic scrolls into your wisdom wall',
+                style: AppTheme.sans(size: 11, color: AppColors.subtle)),
+            const SizedBox(height: 24),
+            ...SeedData.demoSets.map((demo) => ListTile(
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+                  leading:
+                      Text(demo.icon, style: const TextStyle(fontSize: 24)),
+                  title: Text(demo.name,
+                      style: AppTheme.sans(size: 14, weight: FontWeight.w700)),
+                  subtitle: Text('${demo.notes.length} scrolls available',
+                      style: AppTheme.sans(size: 11, color: AppColors.muted)),
+                  trailing: const Icon(Icons.download_rounded,
+                      size: 20, color: AppColors.muted),
+                  onTap: () {
+                    final base = DateTime.now().millisecondsSinceEpoch;
+                    final notes = demo.notes.asMap().entries.map((e) {
+                      return e.value.copyWith(
+                        id: 'demo-${base + e.key}',
+                        createdAt: DateTime.now()
+                            .subtract(Duration(minutes: e.key * 5)),
+                      );
+                    }).toList();
+                    ref.read(noteProvider.notifier).loadDemo(notes);
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text('IMPORTED ${notes.length} SCROLLS',
+                            style:
+                                AppTheme.mono(size: 10, color: AppColors.bg)),
+                        backgroundColor: AppColors.purple,
+                        duration: const Duration(seconds: 2),
+                        behavior: SnackBarBehavior.floating,
+                      ),
+                    );
+                  },
+                )),
+          ],
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final notes = ref.watch(noteProvider);
@@ -65,6 +136,15 @@ class _NotePageState extends ConsumerState<NotePage> {
           icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
           onPressed: () => Navigator.pop(context),
         ),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.auto_awesome_rounded,
+                size: 20, color: AppColors.purple),
+            tooltip: 'Import Wisdom',
+            onPressed: _showImportPicker,
+          ),
+          const SizedBox(width: 8),
+        ],
       ),
       body: Column(
         children: [

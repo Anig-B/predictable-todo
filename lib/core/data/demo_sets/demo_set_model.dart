@@ -10,6 +10,8 @@ class DemoSet {
   final Color color;
   final List<TaskModel> tasks;
   final List<NoteModel> notes;
+  final List<Map<String, dynamic>> projectStats;
+  final List<Map<String, dynamic>> hourlyData;
 
   const DemoSet({
     required this.id,
@@ -19,5 +21,7 @@ class DemoSet {
     required this.color,
     required this.tasks,
     this.notes = const [],
+    this.projectStats = const [],
+    this.hourlyData = const [],
   });
 }

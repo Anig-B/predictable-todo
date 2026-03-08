@@ -56,7 +56,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               pendingChallenges: pendingChallenges,
               onNotif: () => context.push('/notifications'),
               onChallenges: () => context.push('/challenges'),
-              onNotes: () => context.push('/notes'),
               onSpin: gState.isSpinAvailable
                   ? () => showModalBottomSheet(
                         context: context,
@@ -422,7 +421,6 @@ class _Header extends StatelessWidget {
   final int pendingChallenges;
   final VoidCallback onNotif;
   final VoidCallback onChallenges;
-  final VoidCallback onNotes;
   final VoidCallback? onSpin;
 
   const _Header({
@@ -432,7 +430,6 @@ class _Header extends StatelessWidget {
     required this.pendingChallenges,
     required this.onNotif,
     required this.onChallenges,
-    required this.onNotes,
     this.onSpin,
   });
 
@@ -491,20 +488,14 @@ class _Header extends StatelessWidget {
           // Action buttons
           Row(
             children: [
-              if (onSpin != null)
+              if (onSpin != null) ...[
                 _IconBtn(
                   onTap: onSpin!,
                   borderColor: AppColors.gold.withValues(alpha: 0.35),
                   child: const Text('🎰', style: TextStyle(fontSize: 15)),
                 ),
-              const SizedBox(width: 7),
-              _IconBtn(
-                onTap: onNotes,
-                borderColor: AppColors.accent.withValues(alpha: 0.35),
-                child: const Icon(Icons.history_edu_rounded,
-                    size: 16, color: AppColors.muted),
-              ),
-              const SizedBox(width: 7),
+                const SizedBox(width: 7),
+              ],
               _IconBtn(
                 onTap: onChallenges,
                 borderColor: AppColors.purple.withValues(alpha: 0.35),

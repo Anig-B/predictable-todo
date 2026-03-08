@@ -85,10 +85,64 @@ final gymData = DemoSet(
       createdAt: DateTime.now().subtract(const Duration(days: 1)),
     ),
     NoteModel(
-      id: 'gym-n2',
+      id: 'gym-n3',
       content:
-          '🥗 Nutrition: Post-workout window is optimal for fast-absorbing carbs + protein to kickstart glycogen replenishment.',
-      createdAt: DateTime.now().subtract(const Duration(days: 2)),
+          '💧 Hydration: Losing even 2% of body weight in water can significantly decrease strength performance.',
+      createdAt: DateTime.now().subtract(const Duration(days: 3)),
     ),
+    NoteModel(
+      id: 'gym-n4',
+      content:
+          '💤 Recovery: Growth happens during sleep, not in the gym. Aim for 8 hours for hormonal balance.',
+      createdAt: DateTime.now().subtract(const Duration(days: 5)),
+    ),
+    NoteModel(
+      id: 'gym-n5',
+      content:
+          '💻 Tech win: Mastered git branch management! Still waiting on that magic note button for my gym logs. 🏋️',
+      createdAt: DateTime.now().subtract(const Duration(hours: 4)),
+    ),
+    NoteModel(
+      id: 'gym-n6',
+      content:
+          '🌙 I saw a dream today: Deadlifted a literal truck. Form was perfect. Woke up feeling dangerous.',
+      createdAt: DateTime.now().subtract(const Duration(hours: 12)),
+    ),
+    NoteModel(
+      id: 'gym-n7',
+      content:
+          '✨ Something good happened today: Found a pre-workout that actually tastes like candy. PR incoming.',
+      createdAt: DateTime.now().subtract(const Duration(days: 1)),
+    ),
+  ],
+  projectStats: [
+    {
+      'name': 'Strength',
+      'total': 40,
+      'completed': 25,
+      'color': AppColors.accent
+    },
+    {
+      'name': 'Hypertrophy',
+      'total': 30,
+      'completed': 18,
+      'color': AppColors.purple
+    },
+    {
+      'name': 'Endurance',
+      'total': 20,
+      'completed': 12,
+      'color': AppColors.blue
+    },
+    {'name': 'Mobility', 'total': 15, 'completed': 5, 'color': AppColors.gold},
+  ],
+  hourlyData: [
+    {'h': '6a', 'v': 900},
+    {'h': '7a', 'v': 750},
+    {'h': '8a', 'v': 300},
+    {'h': '4p', 'v': 400},
+    {'h': '5p', 'v': 1100},
+    {'h': '6p', 'v': 1400},
+    {'h': '7p', 'v': 800},
   ],
 );
