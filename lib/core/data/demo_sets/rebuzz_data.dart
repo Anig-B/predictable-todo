@@ -12,7 +12,7 @@ final rebuzzData = DemoSet(
   color: AppColors.purple,
   tasks: [
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Map Primary & Secondary ICPs',
         desc:
             'Identify exact criteria for best Rebuzz POS customers based on high-velocity turnover and low tech-debt.',
@@ -24,7 +24,7 @@ final rebuzzData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Segment Database by Niche',
         desc:
             'Break TAM into sub-niches (craft cafes, boutique retailers, high-end bistros) for personalized messaging.',
@@ -36,7 +36,7 @@ final rebuzzData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Launch SDR Outbound Sequence',
         desc:
             'Trigger custom LinkedIn + Email flows for 50 leads in the "Boutique Retail" segment.',
@@ -48,7 +48,7 @@ final rebuzzData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Weekly SDR Scorecard Review',
         desc:
             'Analyze reply rates and meeting booked metrics from the previous week.',
@@ -62,7 +62,7 @@ final rebuzzData = DemoSet(
         weeklyDay: 1, // Monday
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Monthly TAM Expansion Audit',
         desc:
             'Scour local business registries for new shop openings and potential Rebuzz converts.',
@@ -76,7 +76,7 @@ final rebuzzData = DemoSet(
         monthlyDay: 1,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'POS ROI Calculator Whitepaper',
         desc:
             'Publish gated lead magnet for top-of-funnel traffic focusing on cost-reduction vs legacy systems.',
@@ -88,7 +88,7 @@ final rebuzzData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Draft SDR One-pagers',
         desc:
             'Create visual scripts for common objections (Price, Hardware, Onboarding).',

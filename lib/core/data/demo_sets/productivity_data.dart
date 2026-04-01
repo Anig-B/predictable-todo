@@ -12,7 +12,7 @@ final productivityData = DemoSet(
   color: AppColors.gold,
   tasks: [
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Deep Work Block (90min)',
         desc: 'Zero distractions, phone in other room.',
         time: '9:00 AM',
@@ -23,7 +23,7 @@ final productivityData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Daily Highlight Setup',
         desc: 'Pick the ONE thing that must get done today.',
         time: '8:30 AM',
@@ -34,7 +34,7 @@ final productivityData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Inbox Zero Sprint',
         desc: 'Clear and archive all pending emails.',
         time: '11:00 AM',
@@ -45,7 +45,7 @@ final productivityData = DemoSet(
         priority: TaskPriority.medium,
         category: TaskCategory.work),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Weekly Review (60min)',
         desc: 'Review goals, blockers, and next week plan.',
         time: '4:00 PM',
@@ -56,7 +56,7 @@ final productivityData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.learning),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Shutdown Ritual',
         desc: 'Clear tab list and write tomorrow top 3.',
         time: '6:00 PM',

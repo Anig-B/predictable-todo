@@ -38,7 +38,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
     // Import Tasks
     final tasks = demo.tasks.asMap().entries.map((e) {
       return e.value.copyWith(
-          id: base + e.key,
+          id: (base + e.key).toString(),
           streak: 0,
           done: false,
           bonusEarned: 0,
@@ -110,7 +110,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
             ? 50
             : 25;
     final task = TaskModel(
-      id: DateTime.now().millisecondsSinceEpoch,
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: _titleCtrl.text.trim(),
       desc: _descCtrl.text.trim(),
       time: _time.format(context),

@@ -12,7 +12,7 @@ final dietData = DemoSet(
   color: AppColors.red,
   tasks: [
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Morning Macro Check',
         desc: 'Track all meals for the day in advance.',
         time: '7:00 AM',
@@ -23,7 +23,7 @@ final dietData = DemoSet(
         priority: TaskPriority.medium,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Bulk Prep: Lean Protein',
         desc: 'Cook 2kg of chicken/tofu for the week.',
         time: '10:00 AM',
@@ -34,7 +34,7 @@ final dietData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Gallon of Water',
         desc: 'Steady intake throughout the day.',
         time: 'All day',
@@ -45,7 +45,7 @@ final dietData = DemoSet(
         priority: TaskPriority.medium,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Zero Processed Sugar Day',
         desc: 'No sweets, sodas, or hidden sugars.',
         time: 'End of Day',
@@ -56,7 +56,7 @@ final dietData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Grocery Haul (Clean)',
         desc: 'Veggies, complex carbs, and healthy fats.',
         time: '5:00 PM',

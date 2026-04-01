@@ -346,7 +346,7 @@ class _EmptyState extends StatelessWidget {
                   final base = DateTime.now().millisecondsSinceEpoch;
                   final tasks = demo.tasks.asMap().entries.map((e) {
                     return e.value.copyWith(
-                        id: base + e.key,
+                        id: (base + e.key).toString(),
                         streak: 0,
                         done: false,
                         bonusEarned: 0,

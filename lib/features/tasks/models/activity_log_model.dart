@@ -1,5 +1,5 @@
 class ActivityLogModel {
-  final int taskId;
+  final String taskId;
   final String task;
   final int points;
   final String time;
@@ -30,7 +30,7 @@ class ActivityLogModel {
       };
 
   factory ActivityLogModel.fromJson(Map<String, dynamic> j) => ActivityLogModel(
-        taskId: j['taskId'] as int,
+        taskId: j['taskId'] as String,
         task: j['task'] as String,
         points: j['points'] as int,
         time: j['time'] as String,

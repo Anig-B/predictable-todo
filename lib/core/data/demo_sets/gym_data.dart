@@ -12,7 +12,7 @@ final gymData = DemoSet(
   color: AppColors.accent,
   tasks: [
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Heavy Bench Press (5×5)',
         desc: 'Focus on form and progressive overload.',
         time: '5:00 PM',
@@ -23,7 +23,7 @@ final gymData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Weighted Pull-ups (3×8)',
         desc: 'Add 10lb and focus on full extension.',
         time: '5:30 PM',
@@ -34,7 +34,7 @@ final gymData = DemoSet(
         priority: TaskPriority.high,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Overhead Press (3×10)',
         desc: 'Strict military press standing.',
         time: '6:00 PM',
@@ -45,7 +45,7 @@ final gymData = DemoSet(
         priority: TaskPriority.medium,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Lateral Raises (3×15)',
         desc: 'Burn out the side delts.',
         time: '6:30 PM',
@@ -56,7 +56,7 @@ final gymData = DemoSet(
         priority: TaskPriority.low,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: '15-Min Incline Walk',
         desc: 'Active recovery and heart health.',
         time: '7:00 PM',
@@ -67,7 +67,7 @@ final gymData = DemoSet(
         priority: TaskPriority.low,
         category: TaskCategory.health),
     const TaskModel(
-        id: 0,
+        id: '0',
         title: 'Post-Workout Protein',
         desc: '50g protein intake within 90 mins.',
         time: '7:30 PM',

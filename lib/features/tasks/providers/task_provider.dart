@@ -7,6 +7,9 @@ import '../../../core/services/storage_service.dart';
 import '../../../core/data/seed_data.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
 
+import '../../auth/providers/auth_provider.dart';
+import '../data/task_repository.dart';
+
 class TaskState {
   final List<TaskModel> tasks;
   final List<ActivityLogModel> activityLog;
@@ -43,10 +46,34 @@ class TaskState {
 }
 
 class TaskNotifier extends StateNotifier<TaskState> {
+  final Ref ref;
   Timer? _recurTimer;
+  StreamSubscription<List<TaskModel>>? _taskSub;
 
-  TaskNotifier() : super(const TaskState(tasks: [], activityLog: [])) {
+  TaskNotifier(this.ref) : super(const TaskState(tasks: [], activityLog: [])) {
     _init();
+    
+    ref.listen(currentUserProvider, (previous, next) {
+      if (next != null) {
+        _subscribeToTasks(next.id);
+      } else {
+        _taskSub?.cancel();
+        // Clear tasks when logged out
+        state = state.copyWith(tasks: []);
+      }
+    });
+
+    final initUser = ref.read(currentUserProvider);
+    if (initUser != null) {
+      _subscribeToTasks(initUser.id);
+    }
+  }
+
+  void _subscribeToTasks(String userId) {
+    _taskSub?.cancel();
+    _taskSub = ref.read(taskRepositoryProvider).watchTasks(userId).listen((tasks) {
+      state = state.copyWith(tasks: tasks);
+    });
   }
 
   bool _initialized = false;
@@ -99,10 +126,21 @@ class TaskNotifier extends StateNotifier<TaskState> {
         .any((t) => state.tasks.any((o) => o.id == t.id && o.done != t.done))) {
       state = state.copyWith(tasks: updated);
       _persist();
+
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        final repo = ref.read(taskRepositoryProvider);
+        for (final u in updated) {
+          final old = state.tasks.firstWhere((o) => o.id == u.id);
+          if (old.done && !u.done) {
+            repo.setTaskCompletion(u.id, false);
+          }
+        }
+      }
     }
   }
 
-  TaskModel? completeTask(int id, int bonusEarned, {int rating = 0}) {
+  TaskModel? completeTask(String id, int bonusEarned, {int rating = 0}) {
     TaskModel? found;
     state = state.copyWith(
       tasks: state.tasks.map((t) {
@@ -130,6 +168,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
       );
       state = state.copyWith(activityLog: [log, ...state.activityLog]);
       _updateHourlyStats(now);
+      
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, true, bonusEarned: bonusEarned);
+      }
     }
     _persist();
     return found;
@@ -154,7 +197,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     state = state.copyWith(hourlyData: updated);
   }
 
-  void uncompleteTask(int id) {
+  void uncompleteTask(String id) {
     TaskModel? found;
     state = state.copyWith(
       tasks: state.tasks.map((t) {
@@ -168,13 +211,22 @@ class TaskNotifier extends StateNotifier<TaskState> {
         activityLog:
             state.activityLog.where((a) => a.taskId != found!.id).toList(),
       );
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, false);
+      }
     }
     _persist();
   }
 
-  void addTask(TaskModel task) {
-    state = state.copyWith(tasks: [...state.tasks, task]);
-    _persist();
+  Future<void> addTask(TaskModel task) async {
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(taskRepositoryProvider).addTask(user.id, task);
+    } else {
+      state = state.copyWith(tasks: [...state.tasks, task]);
+      _persist();
+    }
   }
 
   Future<void> loadDemo(
@@ -209,5 +261,5 @@ class TaskNotifier extends StateNotifier<TaskState> {
 }
 
 final taskProvider = StateNotifierProvider<TaskNotifier, TaskState>(
-  (ref) => TaskNotifier(),
+  (ref) => TaskNotifier(ref),
 );

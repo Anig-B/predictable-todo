@@ -93,7 +93,7 @@ extension TaskCategoryExt on TaskCategory {
 }
 
 class TaskModel {
-  final int id;
+  final String id;
   final String title;
   final String desc;
   final String time;
@@ -179,7 +179,7 @@ class TaskModel {
   });
 
   TaskModel copyWith({
-    int? id,
+    String? id,
     String? title,
     String? desc,
     String? time,
@@ -235,7 +235,7 @@ class TaskModel {
       };
 
   factory TaskModel.fromJson(Map<String, dynamic> j) => TaskModel(
-        id: j['id'] as int,
+        id: j['id'] as String,
         title: j['title'] as String,
         desc: j['desc'] as String,
         time: j['time'] as String,
