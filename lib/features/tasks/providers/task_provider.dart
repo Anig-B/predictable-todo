@@ -140,7 +140,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
-  TaskModel? completeTask(String id, int bonusEarned, {int rating = 0}) {
+  TaskModel? completeTask(String id, int bonusEarned, {int rating = 0, String? notes, String? imageUrl}) {
     TaskModel? found;
     state = state.copyWith(
       tasks: state.tasks.map((t) {
@@ -150,6 +150,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
           done: true,
           bonusEarned: bonusEarned,
           lastCompletedAt: DateTime.now(),
+          proofNotes: notes,
+          proofImage: imageUrl,
         );
       }).toList(),
     );
@@ -165,13 +167,16 @@ class TaskNotifier extends StateNotifier<TaskState> {
         time: 'Today, $timeStr',
         icon: found!.category.icon,
         rating: rating,
+        notes: notes,
+        imageUrl: imageUrl,
       );
       state = state.copyWith(activityLog: [log, ...state.activityLog]);
       _updateHourlyStats(now);
       
       final user = ref.read(currentUserProvider);
       if (user != null) {
-        ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, true, bonusEarned: bonusEarned);
+        ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, true,
+            bonusEarned: bonusEarned, notes: notes, imageUrl: imageUrl);
       }
     }
     _persist();

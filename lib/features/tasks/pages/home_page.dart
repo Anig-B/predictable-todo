@@ -15,7 +15,10 @@ import '../widgets/task_filter_bar.dart';
 import '../widgets/task_card.dart';
 import '../../gamification/widgets/boss_card.dart';
 import '../../gamification/widgets/combo_banner.dart';
+import 'package:image_picker/image_picker.dart';
 import '../widgets/proof_modal.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../data/task_repository.dart';
 import '../../gamification/widgets/spin_wheel_modal.dart';
 import '../../gamification/widgets/loot_box_modal.dart';
 import '../models/task_model.dart';
@@ -182,8 +185,35 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         ));
   }
 
-  void _handleQuickToggle(BuildContext context, WidgetRef ref, TaskModel task) {
+  Future<void> _handleQuickToggle(
+      BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
+      // If task has proofs, ask for confirmation
+      if (task.proofNotes != null || task.proofImage != null) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (ctx) => AlertDialog(
+            backgroundColor: AppColors.surface,
+            title: Text('Undo Completion?', style: AppTheme.mono(size: 14)),
+            content: Text(
+                'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.',
+                style: AppTheme.sans(size: 13, color: AppColors.muted)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, false),
+                child: Text('Cancel', style: AppTheme.sans(size: 13)),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(ctx, true),
+                child: Text('Uncheck',
+                    style: AppTheme.sans(size: 13, color: AppColors.red)),
+              ),
+            ],
+          ),
+        );
+        if (confirmed != true) return;
+      }
+
       ref.read(taskProvider.notifier).uncompleteTask(task.id);
       ref
           .read(gamificationProvider.notifier)
@@ -211,8 +241,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         backgroundColor: Colors.transparent,
         builder: (_) => ProofModal(
           task: task,
-          onSubmit: (bonusXp, rating) =>
-              _completeTask(context, ref, task, bonusXp, rating),
+          onSubmit: (bonusXp, rating, notes, imageFile) async {
+            String? imageUrl;
+            if (imageFile != null) {
+              final user = ref.read(currentUserProvider);
+              if (user != null) {
+                final bytes = await imageFile.readAsBytes();
+                final ext = imageFile.name.split('.').last;
+                imageUrl = await ref
+                    .read(taskRepositoryProvider)
+                    .uploadProofImage(user.id, bytes, ext);
+              }
+            }
+            _completeTask(context, ref, task, bonusXp, rating,
+                notes: notes, imageUrl: imageUrl);
+          },
         ),
       );
     }
@@ -220,7 +263,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
   void _completeTask(BuildContext context, WidgetRef ref, TaskModel task,
       int proofBonus, int rating,
-      {bool isQuick = false}) {
+      {bool isQuick = false, String? notes, String? imageUrl}) {
     final gNotifier = ref.read(gamificationProvider.notifier);
     final tNotifier = ref.read(taskProvider.notifier);
     final effects = ref.read(effectsProvider.notifier);
@@ -231,7 +274,8 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
     final multiBonus = gNotifier.onTaskCompleted(task.points);
     final totalBonus = multiBonus + proofBonus;
-    tNotifier.completeTask(task.id, totalBonus, rating: rating);
+    tNotifier.completeTask(task.id, totalBonus,
+        rating: rating, notes: notes, imageUrl: imageUrl);
     challenges.onTaskCompleted(task, ref.read(gamificationProvider).comboCount);
 
     // Effects

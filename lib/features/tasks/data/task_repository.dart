@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task_model.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -33,20 +34,31 @@ class TaskRepository {
   Future<void> deleteTask(String id) async {
     await _supabase.from('tasks').delete().eq('id', id);
   }
+
+  // Upload proof image
+  Future<String?> uploadProofImage(String userId, Uint8List bytes, String ext) async {
+    final name = '${DateTime.now().millisecondsSinceEpoch}.$ext';
+    final fullPath = '$userId/$name';
+    
+    await _supabase.storage.from('task-proofs').uploadBinary(fullPath, bytes);
+    return _supabase.storage.from('task-proofs').getPublicUrl(fullPath);
+  }
   
   // Mark task as completed/uncompleted
-  Future<void> setTaskCompletion(String id, bool done, {int? bonusEarned}) async {
+  Future<void> setTaskCompletion(String id, bool done, {int? bonusEarned, String? notes, String? imageUrl}) async {
     final updates = <String, dynamic>{
       'done': done,
     };
     if (done) {
       updates['lastCompletedAt'] = DateTime.now().toIso8601String();
-      if (bonusEarned != null) {
-        updates['bonusEarned'] = bonusEarned;
-      }
+      if (bonusEarned != null) updates['bonusEarned'] = bonusEarned;
+      if (notes != null) updates['proof_notes'] = notes;
+      if (imageUrl != null) updates['proof_image'] = imageUrl;
     } else {
       updates['lastCompletedAt'] = null;
       updates['bonusEarned'] = 0;
+      updates['proof_notes'] = null;
+      updates['proof_image'] = null;
     }
     
     await _supabase.from('tasks').update(updates).eq('id', id);

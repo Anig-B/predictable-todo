@@ -215,7 +215,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final newComboCount = state.comboCount + 1;
 
     _comboTimer?.cancel();
-    _comboTimer = Timer(const Duration(seconds: 60), () {
+    _comboTimer = Timer(const Duration(hours: 24), () {
       if (mounted) {
         state = state.copyWith(comboPoints: 0, comboCount: 0);
         _persist();
@@ -255,12 +255,19 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
     state = state.copyWith(
       bonusXp: (state.bonusXp - bonusEarned).clamp(0, 999999),
+      comboPoints: (state.comboPoints - basePoints).clamp(0, 999999),
+      comboCount: (state.comboCount - 1).clamp(0, 999),
       boss: state.boss.copyWith(
         hp: newHp,
         tasksDone: (state.boss.tasksDone - 1).clamp(0, 999),
       ),
       totalLifetimeTasks: (state.totalLifetimeTasks - 1).clamp(0, 999999),
     );
+
+    if (state.comboCount == 0) {
+      _comboTimer?.cancel();
+      state = state.copyWith(comboPoints: 0);
+    }
     _persist();
   }
 

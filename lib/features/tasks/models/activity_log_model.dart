@@ -7,6 +7,8 @@ class ActivityLogModel {
 
   /// 0 = no rating, 1–5 = mood rating from proof modal
   final int rating;
+  final String? notes;
+  final String? imageUrl;
   final DateTime createdAt;
 
   ActivityLogModel({
@@ -16,6 +18,8 @@ class ActivityLogModel {
     required this.time,
     required this.icon,
     this.rating = 0,
+    this.notes,
+    this.imageUrl,
     DateTime? createdAt,
   }) : createdAt = createdAt ?? DateTime.now();
 
@@ -26,6 +30,8 @@ class ActivityLogModel {
         'time': time,
         'icon': icon,
         'rating': rating,
+        'notes': notes,
+        'imageUrl': imageUrl,
         'createdAt': createdAt.toIso8601String(),
       };
 
@@ -36,6 +42,8 @@ class ActivityLogModel {
         time: j['time'] as String,
         icon: j['icon'] as String,
         rating: j['rating'] as int? ?? 0,
+        notes: j['notes'] as String?,
+        imageUrl: j['imageUrl'] as String?,
         createdAt: j['createdAt'] != null
             ? DateTime.parse(j['createdAt'] as String)
             : null,

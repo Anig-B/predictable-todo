@@ -1,11 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/task_model.dart';
 
 class ProofModal extends StatefulWidget {
   final TaskModel task;
-  final void Function(int bonusXp, int rating) onSubmit;
+  final void Function(int bonusXp, int rating, String? notes, XFile? imageFile) onSubmit;
 
   const ProofModal({super.key, required this.task, required this.onSubmit});
 
@@ -16,11 +17,11 @@ class ProofModal extends StatefulWidget {
 class _ProofModalState extends State<ProofModal> {
   final _noteCtrl = TextEditingController();
   int _rating = 0;
-  bool _hasPhoto = false;
+  XFile? _imageFile;
 
   static const _ratingEmojis = ['🥱', '😌', '🙂', '😊', '🔥'];
 
-  int get _bonusXp => (_hasPhoto ? 15 : 0) + (_noteCtrl.text.isNotEmpty ? 10 : 0);
+  int get _bonusXp => (_imageFile != null ? 15 : 0) + (_noteCtrl.text.isNotEmpty ? 10 : 0);
 
   @override
   void dispose() {
@@ -105,16 +106,21 @@ class _ProofModalState extends State<ProofModal> {
 
             // Photo button
             GestureDetector(
-              onTap: () => setState(() => _hasPhoto = !_hasPhoto),
+              onTap: () async {
+                final picker = ImagePicker();
+                final file = await picker.pickImage(
+                    source: ImageSource.gallery, imageQuality: 70);
+                if (file != null) setState(() => _imageFile = file);
+              },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: _hasPhoto
+                  color: _imageFile != null
                       ? AppColors.accent.withValues(alpha: 0.07)
                       : AppColors.surface,
                   borderRadius: BorderRadius.circular(9),
                   border: Border.all(
-                    color: _hasPhoto
+                    color: _imageFile != null
                         ? AppColors.accent.withValues(alpha: 0.25)
                         : AppColors.border,
                   ),
@@ -124,14 +130,14 @@ class _ProofModalState extends State<ProofModal> {
                   children: [
                     Icon(Icons.camera_alt_outlined,
                         size: 16,
-                        color: _hasPhoto ? AppColors.accent : AppColors.muted),
+                        color: _imageFile != null ? AppColors.accent : AppColors.muted),
                     const SizedBox(width: 6),
                     Text(
-                        _hasPhoto ? 'Photo attached (+15 XP)' : 'Add photo (+15 XP)',
+                        _imageFile != null ? 'Photo attached (+15 XP)' : 'Add photo (+15 XP)',
                         style: AppTheme.sans(
                             size: 11,
                             weight: FontWeight.w600,
-                            color: _hasPhoto ? AppColors.accent : AppColors.muted)),
+                            color: _imageFile != null ? AppColors.accent : AppColors.muted)),
                   ],
                 ),
               ),
@@ -155,7 +161,7 @@ class _ProofModalState extends State<ProofModal> {
             GestureDetector(
               onTap: () {
                 Navigator.of(context).pop();
-                widget.onSubmit(_bonusXp, _rating);
+                widget.onSubmit(_bonusXp, _rating, _noteCtrl.text, _imageFile);
               },
               child: Container(
                 width: double.infinity,

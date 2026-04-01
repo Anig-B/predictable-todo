@@ -106,6 +106,8 @@ class TaskModel {
   final int bonusEarned;
   final TaskRecurring recurring;
   final DateTime? lastCompletedAt;
+  final String? proofNotes;
+  final String? proofImage;
 
   /// 1=Mon…7=Sun, null = any day
   final int? weeklyDay;
@@ -176,6 +178,8 @@ class TaskModel {
     this.lastCompletedAt,
     this.weeklyDay,
     this.monthlyDay,
+    this.proofNotes,
+    this.proofImage,
   });
 
   TaskModel copyWith({
@@ -195,6 +199,8 @@ class TaskModel {
     bool clearLastCompleted = false,
     int? weeklyDay,
     int? monthlyDay,
+    String? proofNotes,
+    String? proofImage,
   }) =>
       TaskModel(
         id: id ?? this.id,
@@ -214,6 +220,8 @@ class TaskModel {
             : (lastCompletedAt ?? this.lastCompletedAt),
         weeklyDay: weeklyDay ?? this.weeklyDay,
         monthlyDay: monthlyDay ?? this.monthlyDay,
+        proofNotes: proofNotes ?? this.proofNotes,
+        proofImage: proofImage ?? this.proofImage,
       );
 
   Map<String, dynamic> toJson() => {
@@ -232,6 +240,8 @@ class TaskModel {
         'lastCompletedAt': lastCompletedAt?.toIso8601String(),
         'weeklyDay': weeklyDay,
         'monthlyDay': monthlyDay,
+        'proof_notes': proofNotes,
+        'proof_image': proofImage,
       };
 
   factory TaskModel.fromJson(Map<String, dynamic> j) => TaskModel(
@@ -252,5 +262,7 @@ class TaskModel {
             : null,
         weeklyDay: j['weeklyDay'] as int?,
         monthlyDay: j['monthlyDay'] as int?,
+        proofNotes: j['proof_notes'] as String?,
+        proofImage: j['proof_image'] as String?,
       );
 }
