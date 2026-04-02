@@ -24,6 +24,16 @@ class NoteRepository {
     await _supabase.from('notes').insert(data);
   }
 
+  /// Add multiple notes (batch)
+  Future<void> addNotes(String userId, List<NoteModel> notes) async {
+    final list = notes.map((n) {
+      final data = n.toJson();
+      data['user_id'] = userId;
+      return data;
+    }).toList();
+    await _supabase.from('notes').insert(list);
+  }
+
   /// Update an existing note
   Future<void> updateNote(NoteModel note) async {
     final data = note.toJson();

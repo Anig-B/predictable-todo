@@ -87,11 +87,9 @@ class NoteNotifier extends StateNotifier<List<NoteModel>> {
       state = [...notes, ...state];
       
       try {
-        final repo = ref.read(noteRepositoryProvider);
-        for (final n in notes) {
-          await repo.addNote(user.id, n);
-        }
+        await ref.read(noteRepositoryProvider).addNotes(user.id, notes);
       } catch (e) {
+        debugPrint('DEBUG: Failed to load demo notes: $e');
         state = previousState;
       }
     } else {

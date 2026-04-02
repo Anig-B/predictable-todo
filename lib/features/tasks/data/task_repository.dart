@@ -25,6 +25,16 @@ class TaskRepository {
     await _supabase.from('tasks').insert(data);
   }
 
+  // Add multiple tasks (batch)
+  Future<void> addTasks(String userId, List<TaskModel> tasks) async {
+    final list = tasks.map((t) {
+      final data = t.toJson();
+      data['user_id'] = userId;
+      return data;
+    }).toList();
+    await _supabase.from('tasks').insert(list);
+  }
+
   // Update a task
   Future<void> updateTask(TaskModel task) async {
     await _supabase.from('tasks').update(task.toJson()).eq('id', task.id);
@@ -81,6 +91,8 @@ class TaskRepository {
     await _supabase.from('activity_logs').delete().eq('user_id', userId);
     // Delete tasks
     await _supabase.from('tasks').delete().eq('user_id', userId);
+    // Delete notes
+    await _supabase.from('notes').delete().eq('user_id', userId);
     // Reset user stats
     await _supabase.from('user_stats').update({
       'xp': 0,

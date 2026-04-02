@@ -250,14 +250,28 @@ class TaskNotifier extends StateNotifier<TaskState> {
     List<LeaderboardEntry>? leaderboard,
   }) async {
     await _init();
-    state = state.copyWith(
-      tasks: [...state.tasks, ...tasks],
-      projectStats: projectStats,
-      hourlyData: hourlyData,
-      leaderboardOthers: leaderboard != null
-          ? List<LeaderboardEntry>.from(leaderboard.where((e) => !e.isYou))
-          : state.leaderboardOthers,
-    );
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(taskRepositoryProvider).addTasks(user.id, tasks);
+      // Our StreamSubscription handles the addition to state from the Supabase stream.
+      // However, we still want to update non-synchronized fields like projectStats/hourlyData.
+      state = state.copyWith(
+        projectStats: projectStats,
+        hourlyData: hourlyData,
+        leaderboardOthers: leaderboard != null
+            ? List<LeaderboardEntry>.from(leaderboard.where((e) => !e.isYou))
+            : state.leaderboardOthers,
+      );
+    } else {
+      state = state.copyWith(
+        tasks: [...state.tasks, ...tasks],
+        projectStats: projectStats,
+        hourlyData: hourlyData,
+        leaderboardOthers: leaderboard != null
+            ? List<LeaderboardEntry>.from(leaderboard.where((e) => !e.isYou))
+            : state.leaderboardOthers,
+      );
+    }
     _persist();
   }
 
