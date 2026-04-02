@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../../profile/data/profile_repository.dart';
 import '../models/boss_model.dart';
 import '../models/skill_node_model.dart';
 import '../../../core/data/seed_data.dart';
@@ -8,7 +10,8 @@ import '../../../core/utils/xp_calculator.dart';
 import '../../../core/services/storage_service.dart';
 
 class GamificationState {
-  final int bonusXp;
+  final int totalXp;
+  final int bonusXp; // Local session bonus for UI feedback
   final int comboPoints;
   final int comboCount;
   final int multiplier;
@@ -25,6 +28,7 @@ class GamificationState {
   final DateTime? lastBossResetDate;
 
   const GamificationState({
+    this.totalXp = 0,
     this.bonusXp = 0,
     this.comboPoints = 0,
     this.comboCount = 0,
@@ -45,7 +49,6 @@ class GamificationState {
   int get comboMulti => XpCalculator.comboMultiplier(comboPoints);
   int get effectiveMulti => max(multiplier, comboMulti);
 
-  /// Spin resets daily — available if never spun or spun on a previous day.
   bool get isSpinAvailable {
     if (lastSpunDate == null) return true;
     final today = DateTime.now();
@@ -56,6 +59,7 @@ class GamificationState {
   }
 
   GamificationState copyWith({
+    int? totalXp,
     int? bonusXp,
     int? comboPoints,
     int? comboCount,
@@ -74,6 +78,7 @@ class GamificationState {
     DateTime? lastBossResetDate,
   }) =>
       GamificationState(
+        totalXp: totalXp ?? this.totalXp,
         bonusXp: bonusXp ?? this.bonusXp,
         comboPoints: comboPoints ?? this.comboPoints,
         comboCount: comboCount ?? this.comboCount,
@@ -94,6 +99,7 @@ class GamificationState {
       );
 
   Map<String, dynamic> toJson() => {
+        'totalXp': totalXp,
         'bonusXp': bonusXp,
         'comboPoints': comboPoints,
         'comboCount': comboCount,
@@ -119,8 +125,23 @@ const _initialState = GamificationState(
 );
 
 class GamificationNotifier extends StateNotifier<GamificationState> {
-  GamificationNotifier() : super(_initialState) {
+  final Ref ref;
+
+  GamificationNotifier(this.ref) : super(_initialState) {
     _init();
+
+    ref.listen(currentUserProvider, (previous, next) {
+      if (next != null) {
+        _fetchRemoteStats(next.id);
+      } else {
+        state = _initialState;
+      }
+    });
+
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      _fetchRemoteStats(user.id);
+    }
   }
 
   Timer? _comboTimer;
@@ -140,6 +161,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     }
 
     state = GamificationState(
+      totalXp: saved['totalXp'] as int? ?? 0,
       bonusXp: saved['bonusXp'] as int? ?? 0,
       comboPoints: saved['comboPoints'] as int? ?? 0,
       comboCount: saved['comboCount'] as int? ?? 0,
@@ -165,6 +187,17 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _checkWeeklyBossReset();
   }
 
+  Future<void> _fetchRemoteStats(String userId) async {
+    final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
+    if (stats != null) {
+      state = state.copyWith(
+        currentStreak: stats['current_streak'] as int? ?? 0,
+        totalXp: stats['xp'] as int? ?? state.totalXp,
+      );
+      _persist();
+    }
+  }
+
   void _persist() {
     StorageService.saveGamification(state.toJson());
   }
@@ -181,14 +214,12 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
     if (diff == 0) return state.currentStreak;
     if (diff == 1) return state.currentStreak + 1;
-    return 1; // streak broken
+    return 1;
   }
 
-  /// Resets the boss if a new Monday has passed since the last reset.
   void _checkWeeklyBossReset() {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
-    // Find the most recent Monday
     final daysSinceMonday = (today.weekday - 1) % 7;
     final lastMonday = today.subtract(Duration(days: daysSinceMonday));
 
@@ -207,7 +238,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     }
   }
 
-  /// Called when a task is completed. Returns the earned bonus XP (from multiplier).
   int onTaskCompleted(int basePoints) {
     final multi = state.effectiveMulti;
     final bonus = multi > 1 ? basePoints * (multi - 1) : 0;
@@ -230,9 +260,10 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     );
 
     final earnedXp = basePoints + bonus;
-    final spGained = earnedXp ~/ 10; // 1 SP per 10 XP
+    final spGained = earnedXp ~/ 10;
 
     state = state.copyWith(
+      totalXp: state.totalXp + earnedXp,
       comboPoints: newComboPoints,
       comboCount: newComboCount,
       multiplier: multi > 1 ? 1 : state.multiplier,
@@ -249,11 +280,13 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     return bonus;
   }
 
-  /// Called when a task is unchecked.
   void onTaskUncompleted(int basePoints, int bonusEarned) {
     final dmg = state.boss.damagePerTask;
     final newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
+    final lostXp = basePoints + bonusEarned;
+
     state = state.copyWith(
+      totalXp: (state.totalXp - lostXp).clamp(0, 9999999),
       bonusXp: (state.bonusXp - bonusEarned).clamp(0, 999999),
       comboPoints: (state.comboPoints - basePoints).clamp(0, 999999),
       comboCount: (state.comboCount - 1).clamp(0, 999),
@@ -306,7 +339,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     return true;
   }
 
-  void reset() {
+  Future<void> reset() async {
     _comboTimer?.cancel();
     state = _initialState;
     _persist();
@@ -323,5 +356,5 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
 final gamificationProvider =
     StateNotifierProvider<GamificationNotifier, GamificationState>(
-  (ref) => GamificationNotifier(),
+  (ref) => GamificationNotifier(ref),
 );

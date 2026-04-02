@@ -63,6 +63,34 @@ class TaskRepository {
     
     await _supabase.from('tasks').update(updates).eq('id', id);
   }
+
+  // Fetch activity logs
+  Future<List<Map<String, dynamic>>> fetchActivityLogs(String userId) async {
+    final response = await _supabase
+        .from('activity_logs')
+        .select()
+        .eq('user_id', userId)
+        .order('time', ascending: false)
+        .limit(50);
+    return response;
+  }
+
+  // Delete all user data
+  Future<void> deleteAllData(String userId) async {
+    // Delete activity logs
+    await _supabase.from('activity_logs').delete().eq('user_id', userId);
+    // Delete tasks
+    await _supabase.from('tasks').delete().eq('user_id', userId);
+    // Reset user stats
+    await _supabase.from('user_stats').update({
+      'xp': 0,
+      'level': 1,
+      'current_streak': 0,
+      'combo_count': 0,
+      'combo_points': 0,
+      'updated_at': DateTime.now().toIso8601String(),
+    }).eq('user_id', userId);
+  }
 }
 
 final taskRepositoryProvider = Provider<TaskRepository>((ref) {

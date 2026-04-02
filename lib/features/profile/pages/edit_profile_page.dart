@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../providers/profile_provider.dart';
+import '../widgets/user_avatar.dart';
 
 class EditProfilePage extends ConsumerStatefulWidget {
   const EditProfilePage({super.key});
@@ -97,24 +98,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           Center(
             child: Stack(
               children: [
-                Container(
-                  width: 100,
-                  height: 100,
-                  decoration: const BoxDecoration(
-                    gradient: AppColors.primaryGradient,
-                    shape: BoxShape.circle,
-                  ),
-                  padding: const EdgeInsets.all(4),
-                  child: Container(
-                    decoration: const BoxDecoration(
-                      color: AppColors.surface,
-                      shape: BoxShape.circle,
-                    ),
-                    alignment: Alignment.center,
-                    child: Text(_selectedAvatar,
-                        style: const TextStyle(fontSize: 44)),
-                  ),
-                ),
+                UserAvatar(avatar: _selectedAvatar, size: 100, fontSize: 44),
                 Positioned(
                   bottom: 0,
                   right: 0,
@@ -163,7 +147,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                       ),
                     ),
                     alignment: Alignment.center,
-                    child: Text(avatar, style: const TextStyle(fontSize: 24)),
+                    child: UserAvatar(avatar: avatar, size: 54, fontSize: 24),
                   ),
                 );
               },

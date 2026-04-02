@@ -9,6 +9,8 @@ import '../../gamification/models/skill_node_model.dart';
 import '../../../core/utils/xp_calculator.dart';
 import '../../../core/data/seed_data.dart';
 import '../providers/profile_provider.dart';
+import '../../auth/providers/auth_provider.dart';
+import '../widgets/user_avatar.dart';
 import 'edit_profile_page.dart';
 
 class ProfilePage extends ConsumerStatefulWidget {
@@ -38,7 +40,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   Widget build(BuildContext context) {
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
-    final totalXp = (tState.doneXp + gState.bonusXp).toInt();
+    final totalXp = gState.totalXp;
     final level = XpCalculator.level(totalXp);
     final lvlProgress = XpCalculator.levelProgress(totalXp);
     final rank = XpCalculator.currentRank(totalXp);
@@ -53,41 +55,50 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
         child: ListView(
           padding: const EdgeInsets.fromLTRB(16, 6, 16, 130),
           children: [
-            Align(
-              alignment: Alignment.topRight,
-              child: Container(
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.red.withValues(alpha: 0.12),
-                      blurRadius: 16,
-                      spreadRadius: 4,
-                    ),
-                  ],
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
+              children: [
+                IconButton(
+                  onPressed: () => ref.read(authRepositoryProvider).signOut(),
+                  icon: const Icon(Icons.logout_rounded,
+                      size: 20, color: AppColors.muted),
+                  tooltip: 'Sign Out',
                 ),
-                child: IconButton(
-                  onPressed: () async {
-                    final messenger = ScaffoldMessenger.of(context);
-                    final confirmed = await _confirmClear(
-                        context, tState.totalCount, totalXp);
-                    if (!confirmed || !mounted) return;
-                    ref.read(taskProvider.notifier).clearAll();
-                    ref.read(gamificationProvider.notifier).reset();
-                    ref.read(profileProvider.notifier).reset();
-                    messenger.showSnackBar(
-                      SnackBar(
-                        content: Text('All data cleared',
-                            style: AppTheme.sans(size: 12)),
-                        backgroundColor: AppColors.red.withValues(alpha: 0.2),
+                const SizedBox(width: 4),
+                Container(
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.red.withValues(alpha: 0.12),
+                        blurRadius: 16,
+                        spreadRadius: 4,
                       ),
-                    );
-                  },
-                  icon: const Icon(Icons.delete_sweep_rounded,
-                      size: 20, color: AppColors.red),
-                  tooltip: 'Clear All Data',
+                    ],
+                  ),
+                  child: IconButton(
+                    onPressed: () async {
+                      final messenger = ScaffoldMessenger.of(context);
+                      final confirmed = await _confirmClear(
+                          context, tState.totalCount, totalXp);
+                      if (!confirmed || !mounted) return;
+                      await ref.read(taskProvider.notifier).clearAll();
+                      await ref.read(gamificationProvider.notifier).reset();
+                      await ref.read(profileProvider.notifier).reset();
+                      messenger.showSnackBar(
+                        SnackBar(
+                          content: Text('All data cleared from server',
+                              style: AppTheme.sans(size: 12)),
+                          backgroundColor: AppColors.red.withValues(alpha: 0.2),
+                        ),
+                      );
+                    },
+                    icon: const Icon(Icons.delete_sweep_rounded,
+                        size: 20, color: AppColors.red),
+                    tooltip: 'Clear All Data',
+                  ),
                 ),
-              ),
+              ],
             ),
             // ── Avatar & Name ───────────────────────────
             Column(
@@ -97,24 +108,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     context,
                     MaterialPageRoute(builder: (_) => const EditProfilePage()),
                   ),
-                  child: Container(
-                    width: 72,
-                    height: 72,
-                    decoration: const BoxDecoration(
-                      gradient: AppColors.primaryGradient,
-                      shape: BoxShape.circle,
-                    ),
-                    padding: const EdgeInsets.all(3),
-                    child: Container(
-                      decoration: const BoxDecoration(
-                        color: AppColors.surface,
-                        shape: BoxShape.circle,
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(profile.avatar,
-                          style: const TextStyle(fontSize: 30)),
-                    ),
-                  ),
+                  child: UserAvatar(avatar: profile.avatar),
                 ),
                 const SizedBox(height: 10),
                 Row(

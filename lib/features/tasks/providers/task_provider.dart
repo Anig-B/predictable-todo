@@ -6,7 +6,6 @@ import '../models/activity_log_model.dart';
 import '../../../core/services/storage_service.dart';
 import '../../../core/data/seed_data.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
-
 import '../../auth/providers/auth_provider.dart';
 import '../data/task_repository.dart';
 
@@ -56,16 +55,17 @@ class TaskNotifier extends StateNotifier<TaskState> {
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         _subscribeToTasks(next.id);
+        _fetchRemoteActivity(next.id);
       } else {
         _taskSub?.cancel();
-        // Clear tasks when logged out
-        state = state.copyWith(tasks: []);
+        state = state.copyWith(tasks: [], activityLog: []);
       }
     });
 
     final initUser = ref.read(currentUserProvider);
     if (initUser != null) {
       _subscribeToTasks(initUser.id);
+      _fetchRemoteActivity(initUser.id);
     }
   }
 
@@ -74,6 +74,15 @@ class TaskNotifier extends StateNotifier<TaskState> {
     _taskSub = ref.read(taskRepositoryProvider).watchTasks(userId).listen((tasks) {
       state = state.copyWith(tasks: tasks);
     });
+  }
+
+  Future<void> _fetchRemoteActivity(String userId) async {
+    final remoteLog = await ref.read(taskRepositoryProvider).fetchActivityLogs(userId);
+    if (remoteLog.isNotEmpty) {
+      final logs = remoteLog.map((json) => ActivityLogModel.fromJson(json)).toList();
+      state = state.copyWith(activityLog: logs);
+      StorageService.saveLog(logs);
+    }
   }
 
   bool _initialized = false;
@@ -252,7 +261,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
     _persist();
   }
 
-  void clearAll() {
+  Future<void> clearAll() async {
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(taskRepositoryProvider).deleteAllData(user.id);
+    }
+    
     state = TaskState(
       tasks: [],
       activityLog: [],
