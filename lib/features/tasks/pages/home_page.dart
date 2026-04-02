@@ -15,7 +15,6 @@ import '../widgets/task_filter_bar.dart';
 import '../widgets/task_card.dart';
 import '../../gamification/widgets/boss_card.dart';
 import '../../gamification/widgets/combo_banner.dart';
-import 'package:image_picker/image_picker.dart';
 import '../widgets/proof_modal.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/task_repository.dart';
@@ -253,8 +252,10 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     .uploadProofImage(user.id, bytes, ext);
               }
             }
-            _completeTask(context, ref, task, bonusXp, rating,
-                notes: notes, imageUrl: imageUrl);
+            if (context.mounted) {
+              _completeTask(context, ref, task, bonusXp, rating,
+                  notes: notes, imageUrl: imageUrl);
+            }
           },
         ),
       );

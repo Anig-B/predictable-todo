@@ -24,12 +24,14 @@ class NoteModel {
   Map<String, dynamic> toJson() => {
         'id': id,
         'content': content,
-        'createdAt': createdAt.toIso8601String(),
+        'created_at': createdAt.toIso8601String(),
       };
 
   factory NoteModel.fromJson(Map<String, dynamic> json) => NoteModel(
         id: json['id'] as String,
         content: json['content'] as String,
-        createdAt: DateTime.parse(json['createdAt'] as String),
+        createdAt: DateTime.parse(
+          (json['created_at'] ?? json['createdAt']) as String,
+        ),
       );
 }

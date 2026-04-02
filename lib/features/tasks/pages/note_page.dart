@@ -148,97 +148,121 @@ class _NotePageState extends ConsumerState<NotePage> {
       ),
       body: Column(
         children: [
-          // ── Note List ────────────────────────────────
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
-              itemCount: notes.length,
-              itemBuilder: (_, i) {
-                final note = notes[i];
-                return Dismissible(
-                  key: Key(note.id),
-                  direction: DismissDirection.endToStart,
-                  onDismissed: (_) =>
-                      ref.read(noteProvider.notifier).deleteNote(note.id),
-                  background: Container(
-                    alignment: Alignment.centerRight,
-                    padding: const EdgeInsets.only(right: 20),
-                    decoration: BoxDecoration(
-                      color: AppColors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(16),
+            child: notes.isEmpty
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Text('📜', style: TextStyle(fontSize: 48)),
+                        const SizedBox(height: 16),
+                        Text('NO SCROLLS ETCHED',
+                            style: AppTheme.mono(
+                                    size: 14,
+                                    weight: FontWeight.w900,
+                                    color: AppColors.accent)
+                                .copyWith(letterSpacing: 2)),
+                        const SizedBox(height: 8),
+                        Text('Record your strategic thoughts here',
+                            style: AppTheme.sans(
+                                size: 12, color: AppColors.subtle)),
+                      ],
                     ),
-                    child: const Icon(Icons.delete_outline_rounded,
-                        color: AppColors.red),
-                  ),
-                  child: GestureDetector(
-                    onTap: () => _edit(note),
-                    child: Container(
-                      margin: const EdgeInsets.only(bottom: 12),
-                      padding: const EdgeInsets.all(16),
-                      decoration: BoxDecoration(
-                        color: AppColors.surface,
-                        borderRadius: BorderRadius.circular(16),
-                        border: Border.all(
-                          color: _editingNote?.id == note.id
-                              ? AppColors.accent
-                              : AppColors.border,
+                  )
+                : ListView.builder(
+                    padding: const EdgeInsets.fromLTRB(16, 8, 16, 20),
+                    itemCount: notes.length,
+                    itemBuilder: (_, i) {
+                      final note = notes[i];
+                      return Dismissible(
+                        key: Key(note.id),
+                        direction: DismissDirection.endToStart,
+                        onDismissed: (_) =>
+                            ref.read(noteProvider.notifier).deleteNote(note.id),
+                        background: Container(
+                          alignment: Alignment.centerRight,
+                          padding: const EdgeInsets.only(right: 20),
+                          decoration: BoxDecoration(
+                            color: AppColors.red.withValues(alpha: 0.1),
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                          child: const Icon(Icons.delete_outline_rounded,
+                              color: AppColors.red),
                         ),
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Row(
-                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: [
-                              Text(
-                                _formatDate(note.createdAt),
-                                style: AppTheme.mono(
-                                    size: 9, color: AppColors.subtle),
+                        child: GestureDetector(
+                          onTap: () => _edit(note),
+                          child: Container(
+                            margin: const EdgeInsets.only(bottom: 12),
+                            padding: const EdgeInsets.all(16),
+                            decoration: BoxDecoration(
+                              color: AppColors.surface,
+                              borderRadius: BorderRadius.circular(16),
+                              border: Border.all(
+                                color: _editingNote?.id == note.id
+                                    ? AppColors.accent
+                                    : AppColors.border,
                               ),
-                              Row(
-                                children: [
-                                  IconButton(
-                                    visualDensity: VisualDensity.compact,
-                                    padding: EdgeInsets.zero,
-                                    constraints: const BoxConstraints(),
-                                    icon: const Icon(Icons.copy_rounded,
-                                        size: 14, color: AppColors.muted),
-                                    onPressed: () {
-                                      Clipboard.setData(
-                                          ClipboardData(text: note.content));
-                                      ScaffoldMessenger.of(context)
-                                          .showSnackBar(
-                                        SnackBar(
-                                          content: Text('SCROLL CONTENT COPIED',
-                                              style: AppTheme.mono(
-                                                  size: 10,
-                                                  color: AppColors.bg)),
-                                          backgroundColor: AppColors.accent,
-                                          duration: const Duration(seconds: 1),
-                                          behavior: SnackBarBehavior.floating,
-                                          width: 200,
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  mainAxisAlignment:
+                                      MainAxisAlignment.spaceBetween,
+                                  children: [
+                                    Text(
+                                      _formatDate(note.createdAt),
+                                      style: AppTheme.mono(
+                                          size: 9, color: AppColors.subtle),
+                                    ),
+                                    Row(
+                                      children: [
+                                        IconButton(
+                                          visualDensity: VisualDensity.compact,
+                                          padding: EdgeInsets.zero,
+                                          constraints: const BoxConstraints(),
+                                          icon: const Icon(Icons.copy_rounded,
+                                              size: 14, color: AppColors.muted),
+                                          onPressed: () {
+                                            Clipboard.setData(ClipboardData(
+                                                text: note.content));
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              SnackBar(
+                                                content: Text(
+                                                    'SCROLL CONTENT COPIED',
+                                                    style: AppTheme.mono(
+                                                        size: 10,
+                                                        color: AppColors.bg)),
+                                                backgroundColor:
+                                                    AppColors.accent,
+                                                duration:
+                                                    const Duration(seconds: 1),
+                                                behavior:
+                                                    SnackBarBehavior.floating,
+                                                width: 200,
+                                              ),
+                                            );
+                                          },
                                         ),
-                                      );
-                                    },
-                                  ),
-                                ],
-                              ),
-                            ],
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 8),
+                                Text(
+                                  note.content,
+                                  style: AppTheme.sans(
+                                          size: 14, color: AppColors.text)
+                                      .copyWith(height: 1.5),
+                                ),
+                              ],
+                            ),
                           ),
-                          const SizedBox(height: 8),
-                          Text(
-                            note.content,
-                            style:
-                                AppTheme.sans(size: 14, color: AppColors.text)
-                                    .copyWith(height: 1.5),
-                          ),
-                        ],
-                      ),
-                    ),
+                        ),
+                      );
+                    },
                   ),
-                );
-              },
-            ),
           ),
         ],
       ),
