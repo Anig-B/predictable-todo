@@ -23,10 +23,11 @@ class SeedData {
   static const List<TaskModel> tasks = [];
 
   static const BossModel boss = BossModel(
+    id: 'chaos_lord',
     name: 'Chaos Lord',
     emoji: '👹', // Replaced image with emoji
-    hp: 10000,
-    maxHp: 10000,
+    hp: 1000,
+    maxHp: 1000,
     reward: 500,
     tasksDone: 0,
     tasksNeeded: 20,
@@ -246,6 +247,12 @@ class SeedData {
       'name': 'Night Owl',
       'unlocked': false,
       'color': AppColors.purple
+    },
+    {
+      'icon': '🧞',
+      'name': 'Mystery Genie',
+      'unlocked': false,
+      'color': AppColors.gold
     },
   ];
 

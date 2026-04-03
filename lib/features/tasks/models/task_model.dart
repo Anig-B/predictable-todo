@@ -108,6 +108,7 @@ class TaskModel {
   final DateTime? lastCompletedAt;
   final String? proofNotes;
   final String? proofImage;
+  final int proofRating;
 
   /// 1=Mon…7=Sun, null = any day
   final int? weeklyDay;
@@ -162,6 +163,13 @@ class TaskModel {
     return recurring.label;
   }
 
+  bool get isOverdue {
+    if (done) return false;
+    // For simplicity, let's say tasks are overdue if they were recurring and are due for reset.
+    return recurring.isDue(lastCompletedAt,
+        weeklyDay: weeklyDay, monthlyDay: monthlyDay);
+  }
+
   const TaskModel({
     required this.id,
     required this.title,
@@ -180,6 +188,7 @@ class TaskModel {
     this.monthlyDay,
     this.proofNotes,
     this.proofImage,
+    this.proofRating = 0,
   });
 
   TaskModel copyWith({
@@ -201,6 +210,7 @@ class TaskModel {
     int? monthlyDay,
     String? proofNotes,
     String? proofImage,
+    int? proofRating,
   }) =>
       TaskModel(
         id: id ?? this.id,
@@ -222,6 +232,7 @@ class TaskModel {
         monthlyDay: monthlyDay ?? this.monthlyDay,
         proofNotes: proofNotes ?? this.proofNotes,
         proofImage: proofImage ?? this.proofImage,
+        proofRating: proofRating ?? this.proofRating,
       );
 
   Map<String, dynamic> toJson() => {
@@ -242,6 +253,7 @@ class TaskModel {
         'monthlyDay': monthlyDay,
         'proof_notes': proofNotes,
         'proof_image': proofImage,
+        'proof_rating': proofRating,
       };
 
   factory TaskModel.fromJson(Map<String, dynamic> j) => TaskModel(
@@ -264,5 +276,6 @@ class TaskModel {
         monthlyDay: j['monthlyDay'] as int?,
         proofNotes: j['proof_notes'] as String?,
         proofImage: j['proof_image'] as String?,
+        proofRating: j['proof_rating'] as int? ?? 0,
       );
 }

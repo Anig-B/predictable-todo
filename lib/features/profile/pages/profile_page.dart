@@ -189,9 +189,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     value: '${gState.currentStreak}d', label: 'Day Streak'),
                 _StatBox(value: rank.name, label: 'Rank'),
                 _StatBox(
-                    value:
-                        '${SeedData.badges.where((b) => b['unlocked'] == true).length}',
-                    label: 'Badges'),
+                    value: '${gState.unlockedBadges.length}', label: 'Badges'),
               ],
             ),
             const SizedBox(height: 10),
@@ -265,7 +263,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 controller: _tabCtrl,
                 children: [
                   _ActivityTab(log: ref.watch(taskProvider).activityLog),
-                  const _BadgesTab(),
+                  _BadgesTab(unlockedBadges: gState.unlockedBadges),
                   _SkillsTab(
                     skillTree: gState.skillTree,
                     skillPoints: gState.skillPoints,
@@ -294,6 +292,28 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ],
               ),
             ),
+            const SizedBox(height: 16),
+            
+            // ── Debug / Force Boss Reset ────────────────
+            GestureDetector(
+              onTap: () {
+                ref.read(gamificationProvider.notifier).resetBossForTesting();
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Cycled to the next boss type...', style: AppTheme.sans(size: 11))),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: AppColors.blue.withValues(alpha: 0.2)),
+                ),
+                alignment: Alignment.center,
+                child: Text('⚔️ CYCLE BOSS (TEST)',
+                    style: AppTheme.mono(size: 9, color: AppColors.blue, weight: FontWeight.w700)),
+              ),
+            ),
+            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -450,7 +470,8 @@ class _ActivityTab extends StatelessWidget {
 // ── Badges Tab ───────────────────────────────────────────
 
 class _BadgesTab extends StatelessWidget {
-  const _BadgesTab();
+  final List<String> unlockedBadges;
+  const _BadgesTab({required this.unlockedBadges});
 
   @override
   Widget build(BuildContext context) {
@@ -463,7 +484,7 @@ class _BadgesTab extends StatelessWidget {
       itemCount: SeedData.badges.length,
       itemBuilder: (_, i) {
         final badge = SeedData.badges[i];
-        final unlocked = badge['unlocked'] as bool;
+        final unlocked = unlockedBadges.contains(badge['name']);
         return AnimatedOpacity(
           opacity: unlocked ? 1.0 : 0.22,
           duration: const Duration(milliseconds: 300),

@@ -184,8 +184,13 @@ class TaskNotifier extends StateNotifier<TaskState> {
       
       final user = ref.read(currentUserProvider);
       if (user != null) {
-        ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, true,
-            bonusEarned: bonusEarned, notes: notes, imageUrl: imageUrl);
+        final repo = ref.read(taskRepositoryProvider);
+        repo.setTaskCompletionFull(found!.id, true,
+            bonusEarned: bonusEarned,
+            notes: notes,
+            imageUrl: imageUrl,
+            rating: rating);
+        repo.addActivityLog(user.id, log.toJson());
       }
     }
     _persist();

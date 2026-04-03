@@ -61,17 +61,46 @@ class TaskRepository {
     };
     if (done) {
       updates['lastCompletedAt'] = DateTime.now().toIso8601String();
-      if (bonusEarned != null) updates['bonusEarned'] = bonusEarned;
       if (notes != null) updates['proof_notes'] = notes;
       if (imageUrl != null) updates['proof_image'] = imageUrl;
+      if (bonusEarned != null || notes != null) updates['proof_rating'] = bonusEarned != null ? (bonusEarned > 0 ? 5 : 0) : 0; // Temporary fallback if rating not passed
     } else {
       updates['lastCompletedAt'] = null;
       updates['bonusEarned'] = 0;
       updates['proof_notes'] = null;
       updates['proof_image'] = null;
+      updates['proof_rating'] = 0;
     }
     
     await _supabase.from('tasks').update(updates).eq('id', id);
+  }
+
+  // Update setTaskCompletion signature to match
+  Future<void> setTaskCompletionFull(String id, bool done, {int? bonusEarned, String? notes, String? imageUrl, int? rating}) async {
+    final updates = <String, dynamic>{
+      'done': done,
+    };
+    if (done) {
+      updates['lastCompletedAt'] = DateTime.now().toIso8601String();
+      if (bonusEarned != null) updates['bonusEarned'] = bonusEarned;
+      if (notes != null) updates['proof_notes'] = notes;
+      if (imageUrl != null) updates['proof_image'] = imageUrl;
+      if (rating != null) updates['proof_rating'] = rating;
+    } else {
+      updates['lastCompletedAt'] = null;
+      updates['bonusEarned'] = 0;
+      updates['proof_notes'] = null;
+      updates['proof_image'] = null;
+      updates['proof_rating'] = 0;
+    }
+    await _supabase.from('tasks').update(updates).eq('id', id);
+  }
+
+  // Add activity log
+  Future<void> addActivityLog(String userId, Map<String, dynamic> log) async {
+    final data = Map<String, dynamic>.from(log);
+    data['user_id'] = userId;
+    await _supabase.from('activity_logs').insert(data);
   }
 
   // Fetch activity logs

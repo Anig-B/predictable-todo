@@ -8,6 +8,8 @@ import '../models/skill_node_model.dart';
 import '../../../core/data/seed_data.dart';
 import '../../../core/utils/xp_calculator.dart';
 import '../../../core/services/storage_service.dart';
+import '../data/boss_data.dart';
+import '../../tasks/providers/task_provider.dart';
 
 class GamificationState {
   final int totalXp;
@@ -26,6 +28,9 @@ class GamificationState {
   final int currentStreak;
   final DateTime? lastActiveDate;
   final DateTime? lastBossResetDate;
+  final String? lastBossId;
+  final List<String> unlockedBadges;
+  final bool isLoading;
 
   const GamificationState({
     this.totalXp = 0,
@@ -44,6 +49,9 @@ class GamificationState {
     this.currentStreak = 0,
     this.lastActiveDate,
     this.lastBossResetDate,
+    this.lastBossId,
+    this.unlockedBadges = const ['Early Adopter', '7-Day Streak', 'Perfect Week'],
+    this.isLoading = false,
   });
 
   int get comboMulti => XpCalculator.comboMultiplier(comboPoints);
@@ -76,6 +84,9 @@ class GamificationState {
     DateTime? lastActiveDate,
     bool clearLastActiveDate = false,
     DateTime? lastBossResetDate,
+    String? lastBossId,
+    List<String>? unlockedBadges,
+    bool? isLoading,
   }) =>
       GamificationState(
         totalXp: totalXp ?? this.totalXp,
@@ -96,6 +107,9 @@ class GamificationState {
             ? null
             : (lastActiveDate ?? this.lastActiveDate),
         lastBossResetDate: lastBossResetDate ?? this.lastBossResetDate,
+        lastBossId: lastBossId ?? this.lastBossId,
+        unlockedBadges: unlockedBadges ?? this.unlockedBadges,
+        isLoading: isLoading ?? this.isLoading,
       );
 
   Map<String, dynamic> toJson() => {
@@ -116,12 +130,16 @@ class GamificationState {
         'currentStreak': currentStreak,
         'lastActiveDate': lastActiveDate?.toIso8601String(),
         'lastBossResetDate': lastBossResetDate?.toIso8601String(),
+        'bossId': boss.id,
+        'lastBossId': lastBossId,
+        'unlockedBadges': unlockedBadges,
       };
 }
 
 const _initialState = GamificationState(
   boss: SeedData.boss,
   skillTree: SeedData.skillTree,
+  isLoading: true,
 );
 
 class GamificationNotifier extends StateNotifier<GamificationState> {
@@ -172,9 +190,11 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       spinUsed: saved['spinUsed'] as bool? ?? false,
       lastSpunDate: parseDate('lastSpunDate'),
       currentStreak: saved['currentStreak'] as int? ?? 0,
-      lastActiveDate: parseDate('lastActiveDate'),
       lastBossResetDate: parseDate('lastBossResetDate'),
-      boss: SeedData.boss.copyWith(
+      lastBossId: saved['lastBossId'] as String?,
+      unlockedBadges: (saved['unlockedBadges'] as List<dynamic>?)?.cast<String>() ?? 
+          ['Early Adopter', '7-Day Streak', 'Perfect Week'],
+      boss: BossData.getById(saved['bossId'] as String? ?? 'chaos_lord').copyWith(
         hp: saved['bossHp'] as int? ?? SeedData.boss.hp,
         tasksDone: saved['bossDone'] as int? ?? 0,
       ),
@@ -182,6 +202,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
           .map((s) =>
               s.copyWith(unlocked: unlockedIds.contains(s.id) || s.unlocked))
           .toList(),
+      isLoading: false,
     );
 
     _checkWeeklyBossReset();
@@ -193,9 +214,36 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       state = state.copyWith(
         currentStreak: stats['current_streak'] as int? ?? 0,
         totalXp: stats['xp'] as int? ?? state.totalXp,
+        lastBossResetDate: stats['last_boss_reset_at'] != null 
+            ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
+            : state.lastBossResetDate,
+        boss: BossData.getById(stats['boss_id'] as String? ?? state.boss.id).copyWith(
+          hp: stats['boss_hp'] as int? ?? state.boss.hp,
+          tasksDone: stats['boss_tasks_done'] as int? ?? state.boss.tasksDone,
+        ),
+        lastBossId: stats['last_boss_id'] as String? ?? state.lastBossId,
+        unlockedBadges: (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? 
+            state.unlockedBadges,
+        isLoading: false,
       );
       _persist();
+    } else {
+      state = state.copyWith(isLoading: false);
     }
+  }
+
+  void _syncBossToRemote() {
+    final user = ref.read(currentUserProvider);
+    if (user == null) return;
+    
+    ref.read(profileRepositoryProvider).updateUserStats(user.id, {
+      'boss_id': state.boss.id,
+      'boss_hp': state.boss.hp,
+      'boss_tasks_done': state.boss.tasksDone,
+      'last_boss_reset_at': state.lastBossResetDate?.toIso8601String(),
+      'last_boss_id': state.lastBossId,
+      'unlocked_badges': state.unlockedBadges,
+    });
   }
 
   void _persist() {
@@ -224,18 +272,56 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final lastMonday = today.subtract(Duration(days: daysSinceMonday));
 
     final lastReset = state.lastBossResetDate;
-    final shouldReset = lastReset == null || lastReset.isBefore(lastMonday);
+    final isNewWeek = lastReset == null || lastReset.isBefore(lastMonday);
 
-    if (shouldReset && state.boss.isDefeated) {
+    if (isNewWeek) {
+      final newBossId = _determineWeeklyBoss();
       state = state.copyWith(
-        boss: SeedData.boss,
+        lastBossId: state.boss.id,
+        boss: BossData.getById(newBossId),
         lastBossResetDate: lastMonday,
       );
       _persist();
-    } else if (lastReset == null) {
-      state = state.copyWith(lastBossResetDate: lastMonday);
-      _persist();
+      _syncBossToRemote();
     }
+  }
+
+  String _determineWeeklyBoss() {
+    final tasks = ref.read(taskProvider).tasks;
+    final activity = ref.read(taskProvider).activityLog;
+
+    // Condition 1: Rare Mystery Genie (Once a month-ish check)
+    // For simplicity, we'll use a random chance if the user was consistent last week
+    final lastWeekActivity = activity.where((a) {
+      return a.createdAt
+          .isAfter(DateTime.now().subtract(const Duration(days: 7)));
+    }).length;
+
+    final isConsistent = lastWeekActivity >= 10; // Averaging 1.5 tasks per day
+    if (isConsistent && Random().nextDouble() < 0.2) {
+      return 'mystery_genie';
+    }
+
+    // Condition 2: Overwhelmed -> Chaos Lord
+    if (tasks.where((t) => !t.done).length > 15) {
+      return 'chaos_lord';
+    }
+
+    // Condition 3: Procrastination Zombie
+    final overdueCount = tasks.where((t) => !t.done && t.isOverdue).length;
+    if (overdueCount > 5 || (state.currentStreak < 2 && lastWeekActivity > 0)) {
+      return 'procrastination_zombie';
+    }
+
+    // Condition 4: Lazy Master
+    if (lastWeekActivity == 0) {
+      return 'lazy_master';
+    }
+
+    // Default or fallback
+    final available = ['chaos_lord', 'procrastination_zombie', 'lazy_master'];
+    available.remove(state.boss.id); // Avoid repeating the same boss
+    return available[Random().nextInt(available.length)];
   }
 
   int onTaskCompleted(int basePoints) {
@@ -261,6 +347,12 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
     final earnedXp = basePoints + bonus;
     final spGained = earnedXp ~/ 10;
+    
+    // Achievement Logic: Unlock 'Mystery Achievement' if Mystery Genie is defeated
+    List<String> newBadges = List.from(state.unlockedBadges);
+    if (newBoss.id == 'mystery_genie' && newBoss.isDefeated && !newBadges.contains('Mystery Genie')) {
+       newBadges.add('Mystery Genie');
+    }
 
     state = state.copyWith(
       totalXp: state.totalXp + earnedXp,
@@ -274,8 +366,10 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       currentStreak: _updatedStreak(),
       lastActiveDate: DateTime.now(),
       skillPoints: state.skillPoints + spGained,
+      unlockedBadges: newBadges,
     );
     _persist();
+    _syncBossToRemote();
 
     return bonus;
   }
@@ -302,6 +396,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       state = state.copyWith(comboPoints: 0);
     }
     _persist();
+    _syncBossToRemote();
   }
 
   void applySpinResult(Map<String, dynamic> seg) {
@@ -337,6 +432,21 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     );
     _persist();
     return true;
+  }
+
+  void resetBossForTesting() {
+    final ids = BossData.bosses.keys.toList();
+    final currentIdx = ids.indexOf(state.boss.id);
+    final nextIdx = (currentIdx + 1) % ids.length;
+    final nextBossId = ids[nextIdx];
+
+    state = state.copyWith(
+      lastBossId: state.boss.id,
+      boss: BossData.getById(nextBossId),
+      lastBossResetDate: DateTime.now(), // Force reset current week
+    );
+    _persist();
+    _syncBossToRemote();
   }
 
   Future<void> reset() async {

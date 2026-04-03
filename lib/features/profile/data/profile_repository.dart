@@ -44,6 +44,10 @@ class ProfileRepository {
       'updated_at': DateTime.now().toIso8601String(),
     });
   }
+
+  Future<void> updateUserStats(String userId, Map<String, dynamic> stats) async {
+    await _supabase.from('user_stats').update(stats).eq('user_id', userId);
+  }
 }
 
 final profileRepositoryProvider = Provider<ProfileRepository>((ref) {

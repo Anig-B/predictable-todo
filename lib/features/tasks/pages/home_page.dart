@@ -45,6 +45,15 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final level = XpCalculator.level(totalXp);
     final lvlProgress = XpCalculator.levelProgress(totalXp);
 
+    if (gState.isLoading) {
+      return const Scaffold(
+        backgroundColor: AppColors.bg,
+        body: Center(
+          child: CircularProgressIndicator(color: AppColors.accent),
+        ),
+      );
+    }
+
     return Scaffold(
       backgroundColor: AppColors.bg,
       body: SafeArea(
@@ -132,12 +141,10 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     );
   }
 
-  bool _isToday(DateTime? date) {
+  bool _isRecent(DateTime? date) {
     if (date == null) return false;
-    final now = DateTime.now();
-    return date.year == now.year &&
-        date.month == now.month &&
-        date.day == now.day;
+    // Clears after exact 24 hours from completion
+    return DateTime.now().difference(date).inHours < 24;
   }
 
   List<TaskModel> _filteredTasks(List<TaskModel> tasks) {
@@ -145,8 +152,8 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     switch (_activeFilter) {
       case TaskFilter.today:
         return tasks.where((t) {
-          if (t.done && !_isToday(t.lastCompletedAt)) return false;
-          if (t.done && _isToday(t.lastCompletedAt)) return true;
+          if (t.done && !_isRecent(t.lastCompletedAt)) return false;
+          if (t.done && _isRecent(t.lastCompletedAt)) return true;
 
           if (t.recurring == TaskRecurring.none) return true;
           if (t.recurring == TaskRecurring.daily) return true;
@@ -168,7 +175,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
             .toList();
       case TaskFilter.cleared:
         return tasks
-            .where((t) => t.done && !_isToday(t.lastCompletedAt))
+            .where((t) => t.done && !_isRecent(t.lastCompletedAt))
             .toList();
       case TaskFilter.notes:
         return [];
@@ -187,15 +194,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   Future<void> _handleQuickToggle(
       BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
-      // If task has proofs, ask for confirmation
-      if (task.proofNotes != null || task.proofImage != null) {
+      // If task is "old" (more than 24h), show warning
+      final isOld = !_isRecent(task.lastCompletedAt);
+      final warningMsg = isOld 
+          ? 'This task was cleared over 24 hours ago. Reverting it will remove it from your history and deduct XP.'
+          : 'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.';
+
+      if (task.proofNotes != null || task.proofImage != null || isOld) {
         final confirmed = await showDialog<bool>(
           context: context,
           builder: (ctx) => AlertDialog(
             backgroundColor: AppColors.surface,
-            title: Text('Undo Completion?', style: AppTheme.mono(size: 14)),
+            title: Text(isOld ? 'Undo Old Task?' : 'Undo Completion?', 
+                style: AppTheme.mono(size: 14)),
             content: Text(
-                'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.',
+                warningMsg,
                 style: AppTheme.sans(size: 13, color: AppColors.muted)),
             actions: [
               TextButton(

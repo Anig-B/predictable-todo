@@ -11,7 +11,7 @@ class RainbowGlimmer extends StatefulWidget {
     super.key,
     required this.child,
     this.active = true,
-    this.duration = const Duration(seconds: 3),
+    this.duration = const Duration(seconds: 6),
   });
 
   @override
@@ -63,15 +63,14 @@ class _RainbowGlimmerState extends State<RainbowGlimmer>
             return LinearGradient(
               begin: Alignment(-2.0 + (4.0 * _controller.value), 0.0),
               end: Alignment(-1.0 + (4.0 * _controller.value), 0.0),
-              colors: const [
-                Colors.red,
-                Colors.orange,
-                Colors.yellow,
-                Colors.green,
-                Colors.blue,
-                Colors.indigo,
-                Colors.purple,
-                Colors.red,
+              colors: [
+                Colors.pinkAccent.withValues(alpha: 0.8),
+                Colors.orangeAccent.withValues(alpha: 0.8),
+                Colors.yellowAccent.withValues(alpha: 0.8),
+                Colors.lightGreenAccent.withValues(alpha: 0.8),
+                Colors.cyanAccent.withValues(alpha: 0.8),
+                Colors.purpleAccent.withValues(alpha: 0.8),
+                Colors.pinkAccent.withValues(alpha: 0.8),
               ],
               tileMode: TileMode.clamp,
             ).createShader(bounds);
