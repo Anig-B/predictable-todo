@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../tasks/providers/task_provider.dart';
@@ -131,6 +132,33 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     ),
                   ],
                 ),
+                Row(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text('USER ID: ${profile.shortId}',
+                        style: AppTheme.mono(
+                            size: 10,
+                            color: AppColors.muted,
+                            weight: FontWeight.w700)),
+                    const SizedBox(width: 6),
+                    GestureDetector(
+                      onTap: () {
+                        Clipboard.setData(ClipboardData(text: profile.shortId));
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text('ID Copied!',
+                                style: AppTheme.sans(size: 11)),
+                            backgroundColor: AppColors.surface2,
+                            duration: const Duration(seconds: 1),
+                          ),
+                        );
+                      },
+                      child: const Icon(Icons.copy_rounded,
+                          size: 12, color: AppColors.muted),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
                 Text(profile.tagline,
                     style: AppTheme.mono(size: 9, color: AppColors.accent)),
               ],

@@ -1,7 +1,6 @@
 import '../../theme/app_colors.dart';
 import '../../../features/tasks/models/task_model.dart';
 import '../../../features/tasks/models/note_model.dart';
-import '../../../features/leaderboard/models/leaderboard_entry_model.dart';
 import 'demo_set_model.dart';
 
 final gymData = DemoSet(
@@ -96,32 +95,6 @@ final gymData = DemoSet(
       content:
           '💤 Recovery: Growth happens during sleep, not in the gym. Aim for 8 hours for hormonal balance.',
       createdAt: DateTime.now().subtract(const Duration(days: 5)),
-    ),
-  ],
-  leaderboard: [
-    LeaderboardEntry(
-      name: 'Jax (Mass Monster)',
-      avatar: 'https://i.pravatar.cc/150?u=jax_gym',
-      xp: 18500,
-      level: 12,
-      streak: 45,
-      tasksWeek: 50,
-    ),
-    LeaderboardEntry(
-      name: 'Luna (Yoga Queen)',
-      avatar: 'https://i.pravatar.cc/150?u=luna_gym',
-      xp: 16200,
-      level: 9,
-      streak: 22,
-      tasksWeek: 35,
-    ),
-    LeaderboardEntry(
-      name: 'Flex (The Ripper)',
-      avatar: 'https://i.pravatar.cc/150?u=flex_gym',
-      xp: 14100,
-      level: 8,
-      streak: 10,
-      tasksWeek: 28,
     ),
   ],
   projectStats: [

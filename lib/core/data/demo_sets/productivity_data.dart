@@ -1,7 +1,6 @@
 import '../../theme/app_colors.dart';
 import '../../../features/tasks/models/task_model.dart';
 import '../../../features/tasks/models/note_model.dart';
-import '../../../features/leaderboard/models/leaderboard_entry_model.dart';
 import 'demo_set_model.dart';
 
 final productivityData = DemoSet(
@@ -79,32 +78,6 @@ final productivityData = DemoSet(
       content:
           '📅 Rule of 3: Accomplishing 3 meaningful tasks is better than finishing 20 trivial ones.',
       createdAt: DateTime.now().subtract(const Duration(days: 3)),
-    ),
-  ],
-  leaderboard: [
-    LeaderboardEntry(
-      name: 'Oliver (Deep Worker)',
-      avatar: 'https://i.pravatar.cc/150?u=oliver_prod',
-      xp: 19800,
-      level: 15,
-      streak: 90,
-      tasksWeek: 60,
-    ),
-    LeaderboardEntry(
-      name: 'Grace (Inbox Zero)',
-      avatar: 'https://i.pravatar.cc/150?u=grace_prod',
-      xp: 17500,
-      level: 11,
-      streak: 30,
-      tasksWeek: 42,
-    ),
-    LeaderboardEntry(
-      name: 'Ben (The Strategist)',
-      avatar: 'https://i.pravatar.cc/150?u=ben_prod',
-      xp: 15100,
-      level: 9,
-      streak: 14,
-      tasksWeek: 25,
     ),
   ],
   projectStats: [

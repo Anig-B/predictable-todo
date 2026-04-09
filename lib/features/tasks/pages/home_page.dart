@@ -21,7 +21,6 @@ import '../data/task_repository.dart';
 import '../../gamification/widgets/spin_wheel_modal.dart';
 import '../../gamification/widgets/loot_box_modal.dart';
 import '../models/task_model.dart';
-import '../../notifications/models/notification_model.dart';
 
 class TasksPage extends ConsumerStatefulWidget {
   const TasksPage({super.key});
@@ -182,49 +181,47 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     }
   }
 
-  void _notify(WidgetRef ref, String text) {
-    ref.read(notificationProvider.notifier).add(NotificationModel(
-          id: DateTime.now().millisecondsSinceEpoch,
-          text: text,
-          time: 'Just now',
-          read: false,
-        ));
+  Future<bool> _confirmUndo(BuildContext context, TaskModel task) async {
+    if (!task.done) return true;
+
+    // If task is "old" (more than 24h), show warning
+    final isOld = !_isRecent(task.lastCompletedAt);
+    final hasProof = task.proofNotes != null || task.proofImage != null;
+
+    if (!isOld && !hasProof) return true;
+
+    final warningMsg = isOld
+        ? 'This task was cleared over 24 hours ago. Reverting it will remove it from your history and deduct XP.'
+        : 'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.';
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text(isOld ? 'Undo Old Task?' : 'Undo Completion?',
+            style: AppTheme.mono(size: 14)),
+        content: Text(warningMsg,
+            style: AppTheme.sans(size: 13, color: AppColors.muted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: AppTheme.sans(size: 13)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Uncheck',
+                style: AppTheme.sans(size: 13, color: AppColors.red)),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
   }
 
   Future<void> _handleQuickToggle(
       BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
-      // If task is "old" (more than 24h), show warning
-      final isOld = !_isRecent(task.lastCompletedAt);
-      final warningMsg = isOld 
-          ? 'This task was cleared over 24 hours ago. Reverting it will remove it from your history and deduct XP.'
-          : 'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.';
-
-      if (task.proofNotes != null || task.proofImage != null || isOld) {
-        final confirmed = await showDialog<bool>(
-          context: context,
-          builder: (ctx) => AlertDialog(
-            backgroundColor: AppColors.surface,
-            title: Text(isOld ? 'Undo Old Task?' : 'Undo Completion?', 
-                style: AppTheme.mono(size: 14)),
-            content: Text(
-                warningMsg,
-                style: AppTheme.sans(size: 13, color: AppColors.muted)),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, false),
-                child: Text('Cancel', style: AppTheme.sans(size: 13)),
-              ),
-              TextButton(
-                onPressed: () => Navigator.pop(ctx, true),
-                child: Text('Uncheck',
-                    style: AppTheme.sans(size: 13, color: AppColors.red)),
-              ),
-            ],
-          ),
-        );
-        if (confirmed != true) return;
-      }
+      if (!await _confirmUndo(context, task)) return;
 
       ref.read(taskProvider.notifier).uncompleteTask(task.id);
       ref
@@ -236,9 +233,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     }
   }
 
-  void _handleToggle(BuildContext context, WidgetRef ref, TaskModel task) {
+  Future<void> _handleToggle(
+      BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
-      // Uncomplete
+      if (!await _confirmUndo(context, task)) return;
+
       ref.read(taskProvider.notifier).uncompleteTask(task.id);
       ref
           .read(gamificationProvider.notifier)
@@ -310,17 +309,15 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     if (comboMulti == 3) {
       effects.showToast(
           icon: '🔥', title: '3× Combo!', desc: "You're on fire!");
-      _notify(ref, '🔥 3× Combo multiplier active!');
     } else if (comboMulti == 4) {
       effects.showToast(
           icon: '⚡', title: 'ULTRA COMBO!', desc: '4× XP multiplier!');
-      _notify(ref, '⚡ ULTRA COMBO! 4× XP multiplier active!');
     }
 
-    // Streak milestone notifications
+    // Streak milestone toasts (optional? They are handled somewhere else)
     final streak = gState.currentStreak;
     if (streak == 3 || streak == 7 || streak == 14 || streak == 30) {
-      _notify(ref, '🔥 $streak-day streak! Keep it up!');
+      // Could show toast here if we want
     }
 
     // Boss defeated toast + notification — only fires when boss transitions alive → defeated
@@ -330,7 +327,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           icon: '🐉',
           title: 'Boss Defeated!',
           desc: '+${boss.reward} XP earned!');
-      _notify(ref, '🐉 Weekly boss defeated! +${boss.reward} XP earned!');
     }
 
     // Loot box — capture before delay to avoid race with next task completion

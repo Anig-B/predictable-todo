@@ -19,6 +19,7 @@ class ProfileRepository {
     return ProfileModel(
       name: response['username'] ?? 'Quest Master',
       avatar: response['avatar_url'] ?? '🧑‍💻',
+      shortId: response['short_id'] ?? '',
       tagline: response['tagline'] ?? '#QUESTLOG',
       project: response['project'] ?? '',
     );

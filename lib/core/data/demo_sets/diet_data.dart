@@ -1,7 +1,6 @@
 import '../../theme/app_colors.dart';
 import '../../../features/tasks/models/task_model.dart';
 import '../../../features/tasks/models/note_model.dart';
-import '../../../features/leaderboard/models/leaderboard_entry_model.dart';
 import 'demo_set_model.dart';
 
 final dietData = DemoSet(
@@ -79,32 +78,6 @@ final dietData = DemoSet(
       content:
           '🥗 Fiber First: Starting your meal with a giant salad reduces the glucose spike of the subsequent dishes.',
       createdAt: DateTime.now().subtract(const Duration(days: 4)),
-    ),
-  ],
-  leaderboard: [
-    LeaderboardEntry(
-      name: 'Chef Marco',
-      avatar: 'https://i.pravatar.cc/150?u=marco_diet',
-      xp: 14200,
-      level: 7,
-      streak: 21,
-      tasksWeek: 35,
-    ),
-    LeaderboardEntry(
-      name: 'Sofia (Low Carb)',
-      avatar: 'https://i.pravatar.cc/150?u=sofia_diet',
-      xp: 12800,
-      level: 6,
-      streak: 15,
-      tasksWeek: 28,
-    ),
-    LeaderboardEntry(
-      name: 'Leo (Paleo King)',
-      avatar: 'https://i.pravatar.cc/150?u=leo_diet',
-      xp: 11500,
-      level: 5,
-      streak: 7,
-      tasksWeek: 20,
     ),
   ],
   projectStats: [

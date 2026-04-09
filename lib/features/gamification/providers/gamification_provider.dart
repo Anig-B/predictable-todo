@@ -1,3 +1,4 @@
+import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'dart:math';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -13,6 +14,7 @@ import '../../tasks/providers/task_provider.dart';
 
 class GamificationState {
   final int totalXp;
+  final int weeklyXp;
   final int bonusXp; // Local session bonus for UI feedback
   final int comboPoints;
   final int comboCount;
@@ -34,6 +36,7 @@ class GamificationState {
 
   const GamificationState({
     this.totalXp = 0,
+    this.weeklyXp = 0,
     this.bonusXp = 0,
     this.comboPoints = 0,
     this.comboCount = 0,
@@ -68,6 +71,7 @@ class GamificationState {
 
   GamificationState copyWith({
     int? totalXp,
+    int? weeklyXp,
     int? bonusXp,
     int? comboPoints,
     int? comboCount,
@@ -90,6 +94,7 @@ class GamificationState {
   }) =>
       GamificationState(
         totalXp: totalXp ?? this.totalXp,
+        weeklyXp: weeklyXp ?? this.weeklyXp,
         bonusXp: bonusXp ?? this.bonusXp,
         comboPoints: comboPoints ?? this.comboPoints,
         comboCount: comboCount ?? this.comboCount,
@@ -114,6 +119,7 @@ class GamificationState {
 
   Map<String, dynamic> toJson() => {
         'totalXp': totalXp,
+        'weeklyXp': weeklyXp,
         'bonusXp': bonusXp,
         'comboPoints': comboPoints,
         'comboCount': comboCount,
@@ -144,6 +150,8 @@ const _initialState = GamificationState(
 
 class GamificationNotifier extends StateNotifier<GamificationState> {
   final Ref ref;
+  final _supabase = Supabase.instance.client;
+  RealtimeChannel? _subscription;
 
   GamificationNotifier(this.ref) : super(_initialState) {
     _init();
@@ -151,7 +159,9 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         _fetchRemoteStats(next.id);
+        _listenToStats(next.id);
       } else {
+        _stopListening();
         state = _initialState;
       }
     });
@@ -159,7 +169,39 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final user = ref.read(currentUserProvider);
     if (user != null) {
       _fetchRemoteStats(user.id);
+      _listenToStats(user.id);
     }
+  }
+
+  void _listenToStats(String userId) {
+    _stopListening();
+    _subscription = _supabase
+        .channel('public:user_stats:user_id=eq.$userId')
+        .onPostgresChanges(
+            event: PostgresChangeEvent.all,
+            schema: 'public',
+            table: 'user_stats',
+            filter: PostgresChangeFilter(
+              type: PostgresChangeFilterType.eq,
+              column: 'user_id',
+              value: userId,
+            ),
+            callback: (payload) {
+              _fetchRemoteStats(userId);
+            })
+        .subscribe();
+  }
+
+  void _stopListening() {
+    _subscription?.unsubscribe();
+    _subscription = null;
+  }
+
+  @override
+  void dispose() {
+    _stopListening();
+    _comboTimer?.cancel();
+    super.dispose();
   }
 
   Timer? _comboTimer;
@@ -180,6 +222,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
     state = GamificationState(
       totalXp: saved['totalXp'] as int? ?? 0,
+      weeklyXp: saved['weeklyXp'] as int? ?? 0,
       bonusXp: saved['bonusXp'] as int? ?? 0,
       comboPoints: saved['comboPoints'] as int? ?? 0,
       comboCount: saved['comboCount'] as int? ?? 0,
@@ -212,8 +255,9 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
     if (stats != null) {
       state = state.copyWith(
-        currentStreak: stats['current_streak'] as int? ?? 0,
+        currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
         totalXp: stats['xp'] as int? ?? state.totalXp,
+        weeklyXp: stats['weekly_xp'] as int? ?? state.weeklyXp,
         lastBossResetDate: stats['last_boss_reset_at'] != null 
             ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
             : state.lastBossResetDate,
@@ -457,11 +501,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
   bool get shouldShowLoot => state.lootCount > 0 && state.lootCount % 5 == 0;
 
-  @override
-  void dispose() {
-    _comboTimer?.cancel();
-    super.dispose();
-  }
 }
 
 final gamificationProvider =

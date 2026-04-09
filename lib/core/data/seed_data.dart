@@ -1,7 +1,6 @@
 import '../../features/tasks/models/task_model.dart';
 import '../../features/gamification/models/boss_model.dart';
 import '../../features/gamification/models/challenge_model.dart';
-import '../../features/notifications/models/notification_model.dart';
 import '../../features/gamification/models/skill_node_model.dart';
 import '../../features/leaderboard/models/leaderboard_entry_model.dart';
 import '../../features/tasks/models/activity_log_model.dart';
@@ -62,28 +61,6 @@ class SeedData {
       done: false,
     ),
   ];
-
-  static const List<NotificationModel> notifications = [
-    NotificationModel(
-      id: 1,
-      text: 'Boss Spawning!', // Fixed named parameter title -> text
-      time: 'Just now',
-      read: false, // Fixed named parameter isRead -> read
-    ),
-    NotificationModel(
-      id: 2,
-      text: 'New Challenge',
-      time: '2h ago',
-      read: true,
-    ),
-    NotificationModel(
-      id: 3,
-      text: 'Loot Dropped',
-      time: '5h ago',
-      read: true,
-    ),
-  ];
-
   static const List<SkillNodeModel> skillTree = [
     SkillNodeModel(
       id: 's1',
@@ -113,6 +90,9 @@ class SeedData {
 
   static const List<LeaderboardEntry> leaderboard = [
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'You',
       avatar: '🧑‍💻',
       xp: 12450,
@@ -122,6 +102,9 @@ class SeedData {
       isYou: true,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Sarah Chen',
       avatar: 'https://i.pravatar.cc/150?u=sarah',
       xp: 15200,
@@ -130,6 +113,9 @@ class SeedData {
       tasksWeek: 45,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Mike Ross',
       avatar: 'https://i.pravatar.cc/150?u=mike',
       xp: 14800,
@@ -138,6 +124,9 @@ class SeedData {
       tasksWeek: 30,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Alex Rivera',
       avatar: 'https://i.pravatar.cc/150?u=alex',
       xp: 13500,
@@ -146,6 +135,9 @@ class SeedData {
       tasksWeek: 28,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Elena Gilbert',
       avatar: 'https://i.pravatar.cc/150?u=elena',
       xp: 11200,
@@ -154,6 +146,9 @@ class SeedData {
       tasksWeek: 20,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Damon Salvatore',
       avatar: 'https://i.pravatar.cc/150?u=damon',
       xp: 9800,
@@ -162,6 +157,9 @@ class SeedData {
       tasksWeek: 15,
     ),
     LeaderboardEntry(
+      id: 'dummy_id',
+      shortId: '000000',
+      weeklyXp: 0,
       name: 'Bonnie Bennett',
       avatar: 'https://i.pravatar.cc/150?u=bonnie',
       xp: 8500,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import 'package:timeago/timeago.dart' as timeago;
 import '../providers/notification_provider.dart';
 
 class NotificationPanel extends ConsumerWidget {
@@ -106,7 +107,7 @@ class NotificationPanel extends ConsumerWidget {
                           children: [
                             Text(n.text, style: AppTheme.sans(size: 12)),
                             const SizedBox(height: 3),
-                            Text(n.time,
+                            Text(timeago.format(n.createdAt),
                                 style: AppTheme.mono(
                                     size: 9, color: AppColors.subtle)),
                           ],
