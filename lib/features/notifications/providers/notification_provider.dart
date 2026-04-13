@@ -2,6 +2,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import '../../auth/providers/auth_provider.dart';
+import 'package:flutter/foundation.dart';
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationModel>>(
@@ -36,24 +37,25 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
   Future<void> fetchNotifications() async {
     if (userId == null) return;
     try {
-      print('DEBUG: Fetching notifications for user: $userId');
+      debugPrint('DEBUG: Fetching notifications for user: $userId');
       final data = await _supabase
           .from('notifications')
           .select()
           .eq('user_id', userId!)
           .order('created_at', ascending: false);
 
-      print('DEBUG: Found ${data.length} notifications');
+      debugPrint('DEBUG: Found ${data.length} notifications');
       state = data.map((map) => NotificationModel.fromMap(map)).toList();
     } catch (e) {
       // Handle error gracefully
-      print('Error fetching notifications: $e');
+
+      debugPrint('Error fetching notifications: $e');
     }
   }
 
   void listenToNotifications() {
     if (userId == null) return;
-    
+
     _subscription = _supabase
         .channel('public:notifications:user_id=eq.$userId')
         .onPostgresChanges(
@@ -75,10 +77,10 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
 
   Future<void> markAllRead() async {
     if (userId == null) return;
-    
+
     // Update local state immediately for fast UI
     state = state.map((n) => n.copyWith(read: true)).toList();
-    
+
     try {
       await _supabase
           .from('notifications')
@@ -86,20 +88,19 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
           .eq('user_id', userId!)
           .eq('is_read', false);
     } catch (e) {
-      print('Error marking all read: $e');
+      debugPrint('Error marking all read: $e');
     }
   }
 
   Future<void> markRead(String id) async {
     state = state.map((n) => n.id == id ? n.copyWith(read: true) : n).toList();
-    
+
     try {
       await _supabase
           .from('notifications')
-          .update({'is_read': true})
-          .eq('id', id);
+          .update({'is_read': true}).eq('id', id);
     } catch (e) {
-      print('Error marking read: $e');
+      debugPrint('Error marking read: $e');
     }
   }
 
@@ -108,47 +109,49 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
     try {
       await _supabase.from('notifications').delete().eq('id', id);
     } catch (e) {
-      print('Error deleting notification: $e');
+      debugPrint('Error deleting notification: $e');
     }
   }
 
-  Future<void> acceptChallenge(String notificationId, String challengeId) async {
+  Future<void> acceptChallenge(
+      String notificationId, String challengeId) async {
     // Optimistic UI: remove from list
     state = state.where((n) => n.id != notificationId).toList();
 
     try {
-      await _supabase.rpc('accept_challenge', params: {'challenge_id': challengeId});
+      await _supabase
+          .rpc('accept_challenge', params: {'challenge_id': challengeId});
       // Delete notification record after action
       await _supabase.from('notifications').delete().eq('id', notificationId);
     } catch (e) {
-      print('Error accepting challenge: $e');
+      debugPrint('Error accepting challenge: $e');
       fetchNotifications(); // Recover on error
     }
   }
 
-  Future<void> declineChallenge(String notificationId, String challengeId) async {
+  Future<void> declineChallenge(
+      String notificationId, String challengeId) async {
     // Optimistic UI: remove from list
     state = state.where((n) => n.id != notificationId).toList();
 
     try {
       await _supabase
           .from('social_challenges')
-          .update({'status': 'rejected'})
-          .eq('id', challengeId);
-      
+          .update({'status': 'rejected'}).eq('id', challengeId);
+
       await _supabase.from('notifications').delete().eq('id', notificationId);
     } catch (e) {
-      print('Error declining challenge: $e');
+      debugPrint('Error declining challenge: $e');
       fetchNotifications(); // Recover on error
     }
   }
 
   Future<void> clearAllSimpleNotifications() async {
     if (userId == null) return;
-    
+
     // Filter out challenge requests which need input
     state = state.where((n) => n.type == 'challenge_received').toList();
-    
+
     try {
       await _supabase
           .from('notifications')
@@ -156,7 +159,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
           .eq('user_id', userId!)
           .neq('type', 'challenge_received');
     } catch (e) {
-      print('Error clearing notifications: $e');
+      debugPrint('Error clearing notifications: $e');
       fetchNotifications();
     }
   }

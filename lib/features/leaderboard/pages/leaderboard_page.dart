@@ -14,6 +14,24 @@ import '../../profile/providers/profile_provider.dart';
 import '../providers/leaderboard_provider.dart';
 import '../widgets/user_search_modal.dart';
 import '../../social/providers/social_provider.dart';
+import '../../tasks/models/activity_log_model.dart';
+import '../../tasks/data/task_repository.dart';
+import '../../gamification/providers/challenge_provider.dart';
+import '../../profile/data/profile_repository.dart';
+import 'package:go_router/go_router.dart';
+
+final otherUserBadgesProvider = FutureProvider.family<List<String>, String>((ref, userId) async {
+  final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
+  if (stats != null) {
+    return (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? [];
+  }
+  return [];
+});
+
+final otherUserActivityProvider = FutureProvider.family<List<ActivityLogModel>, String>((ref, userId) async {
+  final raw = await ref.read(taskRepositoryProvider).fetchActivityLogs(userId);
+  return raw.map((json) => ActivityLogModel.fromJson(json)).toList();
+});
 
 class LeaderboardPage extends ConsumerStatefulWidget {
   const LeaderboardPage({super.key});
@@ -131,7 +149,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         if (i == 0) {
                           return Podium(
                             top3: entries.take(3).toList(),
-                            onTap: (entry) => _showPlayerCard(context, entry, entries.indexOf(entry) + 1),
+                            onTap: (entry) => _showPlayerCard(context, ref, entry, entries.indexOf(entry) + 1),
                           );
                         }
 
@@ -194,7 +212,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                   ref.read(socialProvider.notifier).sendChallenge(entry.id);
                                 }
                               },
-                              onTap: () => _showPlayerCard(context, entry, rank),
+                              onTap: () => _showPlayerCard(context, ref, entry, rank),
                             );
                           }
                         );
@@ -207,103 +225,12 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
     );
   }
 
-  void _showPlayerCard(BuildContext context, LeaderboardEntry entry, int rank) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: Colors.transparent,
-      isScrollControlled: true,
-      builder: (_) => Container(
-        height: MediaQuery.of(context).size.height * 0.7,
-        decoration: BoxDecoration(
-          color: AppColors.bg.withValues(alpha: 0.95),
-          borderRadius: const BorderRadius.vertical(top: Radius.circular(30)),
-          border: Border.all(color: AppColors.border, width: 1.5),
-        ),
-        child: Stack(
-          children: [
-            if (entry.isYou)
-              Positioned.fill(
-                child: RainbowGlimmer(
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius:
-                          const BorderRadius.vertical(top: Radius.circular(30)),
-                      border: Border.all(
-                          color: AppColors.accent.withValues(alpha: 0.1),
-                          width: 2),
-                    ),
-                  ),
-                ),
-              ),
-            Column(
-              children: [
-                const SizedBox(height: 12),
-                AppTheme.handleBar,
-                const SizedBox(height: 40),
-                AppAvatar(avatar: entry.avatar, size: 100, fontSize: 60),
-                const SizedBox(height: 16),
-                Text(entry.name,
-                    style: AppTheme.mono(size: 24, weight: FontWeight.w900)),
-                Text('LEVEL ${entry.level} CHAMPION',
-                    style: AppTheme.sans(
-                        size: 12,
-                        weight: FontWeight.w700,
-                        color: AppColors.accent,
-                        letterSpacing: 1.2)),
-                const SizedBox(height: 40),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 30),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-                    children: [
-                      _Stat(label: 'TOTAL XP', value: '${entry.xp}'),
-                      _Stat(label: 'STREAK', value: '${entry.streak}d'),
-                      _Stat(label: 'RANK', value: '#$rank'),
-                    ],
-                  ),
-                ),
-                const Spacer(),
-                if (!entry.isYou)
-                  Padding(
-                    padding: const EdgeInsets.all(30),
-                    child: SizedBox(
-                      width: double.infinity,
-                      height: 55,
-                      child: Consumer(
-                        builder: (context, ref, child) {
-                          final social = ref.watch(socialProvider);
-                          final isSent = social.sentChallenges.contains(entry.id);
-                          final isFriend = social.friends.contains(entry.id);
-                          
-                          if (isFriend) return const SizedBox.shrink();
-
-                          return ElevatedButton(
-                            onPressed: isSent ? null : () async {
-                              await ref.read(socialProvider.notifier).sendChallenge(entry.id);
-                            },
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: AppColors.purple,
-                              foregroundColor: Colors.white,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(16)),
-                              elevation: 0,
-                            ),
-                            child: Text(isSent ? 'CHALLENGE SENT ✓' : 'SEND CHALLENGE',
-                                style: AppTheme.mono(
-                                    size: 14, weight: FontWeight.w800)),
-                          );
-                        }
-                      ),
-                    ),
-                  )
-                else
-                  const SizedBox(height: 100),
-              ],
-            ),
-          ],
-        ),
-      ),
-    );
+  void _showPlayerCard(BuildContext context, WidgetRef ref, LeaderboardEntry entry, int rank) {
+    if (!entry.isYou) {
+      ref.read(challengeProvider.notifier).onSocialAction();
+    }
+    
+    context.push('/social-profile', extra: entry);
   }
 }
 
@@ -461,23 +388,4 @@ class _LeaderboardCard extends StatelessWidget {
   }
 }
 
-class _Stat extends StatelessWidget {
-  final String label;
-  final String value;
-  const _Stat({required this.label, required this.value});
 
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(value,
-            style: AppTheme.mono(
-                size: 20, weight: FontWeight.w900, color: AppColors.text)),
-        const SizedBox(height: 4),
-        Text(label,
-            style: AppTheme.sans(
-                size: 9, weight: FontWeight.w700, color: AppColors.subtle)),
-      ],
-    );
-  }
-}

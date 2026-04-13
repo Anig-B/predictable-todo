@@ -254,10 +254,13 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   Future<void> _fetchRemoteStats(String userId) async {
     final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
     if (stats != null) {
+      final unlockedSkills = (stats['unlocked_skills'] as List<dynamic>?)?.cast<String>().toSet() ?? {};
+      
       state = state.copyWith(
         currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
         totalXp: stats['xp'] as int? ?? state.totalXp,
         weeklyXp: stats['weekly_xp'] as int? ?? state.weeklyXp,
+        skillPoints: stats['skill_points'] as int? ?? state.skillPoints,
         lastBossResetDate: stats['last_boss_reset_at'] != null 
             ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
             : state.lastBossResetDate,
@@ -268,6 +271,9 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         lastBossId: stats['last_boss_id'] as String? ?? state.lastBossId,
         unlockedBadges: (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? 
             state.unlockedBadges,
+        skillTree: state.skillTree.map((s) => s.copyWith(
+          unlocked: unlockedSkills.contains(s.id) || s.unlocked
+        )).toList(),
         isLoading: false,
       );
       _persist();
@@ -276,17 +282,23 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     }
   }
 
-  void _syncBossToRemote() {
+  void _syncToRemote() {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
     
     ref.read(profileRepositoryProvider).updateUserStats(user.id, {
+      'xp': state.totalXp,
+      'weekly_xp': state.weeklyXp,
+      'current_streak': state.currentStreak,
+      'skill_points': state.skillPoints,
+      'unlocked_skills': state.skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
       'boss_id': state.boss.id,
       'boss_hp': state.boss.hp,
       'boss_tasks_done': state.boss.tasksDone,
       'last_boss_reset_at': state.lastBossResetDate?.toIso8601String(),
       'last_boss_id': state.lastBossId,
       'unlocked_badges': state.unlockedBadges,
+      'last_active_at': state.lastActiveDate?.toIso8601String(),
     });
   }
 
@@ -326,7 +338,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         lastBossResetDate: lastMonday,
       );
       _persist();
-      _syncBossToRemote();
+      _syncToRemote();
     }
   }
 
@@ -413,15 +425,22 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       unlockedBadges: newBadges,
     );
     _persist();
-    _syncBossToRemote();
+    _syncToRemote();
 
     return bonus;
   }
 
   void onTaskUncompleted(int basePoints, int bonusEarned) {
-    final dmg = state.boss.damagePerTask;
-    final newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
     final lostXp = basePoints + bonusEarned;
+    
+    // Boss defeat is sticky. If boss is dead, don't revive.
+    int newHp = state.boss.hp;
+    int newTasksDone = state.boss.tasksDone;
+    if (!state.boss.isDefeated) {
+      final dmg = state.boss.damagePerTask;
+      newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
+      newTasksDone = (state.boss.tasksDone - 1).clamp(0, 999);
+    }
 
     state = state.copyWith(
       totalXp: (state.totalXp - lostXp).clamp(0, 9999999),
@@ -430,7 +449,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       comboCount: (state.comboCount - 1).clamp(0, 999),
       boss: state.boss.copyWith(
         hp: newHp,
-        tasksDone: (state.boss.tasksDone - 1).clamp(0, 999),
+        tasksDone: newTasksDone,
       ),
       totalLifetimeTasks: (state.totalLifetimeTasks - 1).clamp(0, 999999),
     );
@@ -440,7 +459,32 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       state = state.copyWith(comboPoints: 0);
     }
     _persist();
-    _syncBossToRemote();
+    _syncToRemote();
+  }
+
+  void onTaskMissed(int lostPoints) {
+    if (!state.boss.isDefeated) {
+      final dmg = state.boss.damagePerTask;
+      final newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
+      state = state.copyWith(
+        boss: state.boss.copyWith(
+          hp: newHp,
+        ),
+      );
+      _persist();
+      _syncToRemote();
+    }
+  }
+
+  void onQuestCompleted(int rewardXp) {
+    final spGained = rewardXp ~/ 10;
+    state = state.copyWith(
+      totalXp: state.totalXp + rewardXp,
+      bonusXp: state.bonusXp + rewardXp,
+      skillPoints: state.skillPoints + spGained,
+    );
+    _persist();
+    _syncToRemote();
   }
 
   void applySpinResult(Map<String, dynamic> seg) {
@@ -451,6 +495,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     if (type == 'shield') state = state.copyWith(shields: state.shields + 1);
     state = state.copyWith(spinUsed: true, lastSpunDate: DateTime.now());
     _persist();
+    _syncToRemote();
   }
 
   void applyLootItem(String itemName) {
@@ -462,6 +507,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     }
     if (itemName.contains('Multiplier')) state = state.copyWith(multiplier: 3);
     _persist();
+    _syncToRemote();
   }
 
   bool unlockSkill(String id) {
@@ -475,6 +521,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
           .toList(),
     );
     _persist();
+    _syncToRemote();
     return true;
   }
 
@@ -490,7 +537,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       lastBossResetDate: DateTime.now(), // Force reset current week
     );
     _persist();
-    _syncBossToRemote();
+    _syncToRemote();
   }
 
   Future<void> reset() async {

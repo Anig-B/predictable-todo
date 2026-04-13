@@ -9,7 +9,7 @@ class ProfileNotifier extends StateNotifier<ProfileModel> {
   
   static final _defaultProfile = ProfileModel(
     name: 'Quest Master',
-    avatar: '🧑‍💻',
+    avatar: '👤',
     tagline: '#QUESTLOG',
     project: '',
   );

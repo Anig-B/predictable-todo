@@ -10,7 +10,7 @@ class BossData {
       maxHp: 1000,
       reward: 500,
       tasksDone: 0,
-      tasksNeeded: 20,
+      tasksNeeded: 50, // Increased from 20
       color: 'fire',
     ),
     'procrastination_zombie': BossModel(
@@ -21,7 +21,7 @@ class BossData {
       maxHp: 800,
       reward: 400,
       tasksDone: 0,
-      tasksNeeded: 15,
+      tasksNeeded: 40, // Increased from 15
       color: 'undead',
     ),
     'lazy_master': BossModel(
@@ -32,7 +32,7 @@ class BossData {
       maxHp: 600,
       reward: 300,
       tasksDone: 0,
-      tasksNeeded: 10,
+      tasksNeeded: 25, // Increased from 10
       color: 'earth',
     ),
     'mystery_genie': BossModel(
@@ -43,7 +43,7 @@ class BossData {
       maxHp: 2000,
       reward: 1500,
       tasksDone: 0,
-      tasksNeeded: 30,
+      tasksNeeded: 80, // Increased from 30
       color: 'rare',
     ),
   };

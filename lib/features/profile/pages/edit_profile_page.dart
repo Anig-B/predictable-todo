@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/data/seed_data.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/user_avatar.dart';
 
@@ -18,23 +19,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _projectCtrl;
   late String _selectedAvatar;
 
-  final List<String> _avatars = [
-    '🧑‍💻',
-    '🥷',
-    '🧙',
-    '🦸',
-    '🏹',
-    '⚔️',
-    '🛡️',
-    '⚡',
-    '🔥',
-    '🐉',
-    '👾',
-    '🚀',
-    '🎨',
-    '📚',
-    '🏃'
-  ];
 
   @override
   void initState() {
@@ -121,37 +105,37 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               style: AppTheme.mono(
                   size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
           const SizedBox(height: 12),
-          SizedBox(
-            height: 60,
-            child: ListView.separated(
-              scrollDirection: Axis.horizontal,
-              itemCount: _avatars.length,
-              separatorBuilder: (_, __) => const SizedBox(width: 12),
-              itemBuilder: (_, i) {
-                final avatar = _avatars[i];
-                final active = _selectedAvatar == avatar;
-                return GestureDetector(
-                  onTap: () => setState(() => _selectedAvatar = avatar),
-                  child: AnimatedContainer(
-                    duration: const Duration(milliseconds: 200),
-                    width: 54,
-                    height: 54,
-                    decoration: BoxDecoration(
-                      color: active
-                          ? AppColors.accent.withValues(alpha: 0.1)
-                          : AppColors.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      border: Border.all(
-                        color: active ? AppColors.accent : AppColors.border,
-                        width: active ? 2 : 1,
-                      ),
-                    ),
-                    alignment: Alignment.center,
-                    child: UserAvatar(avatar: avatar, size: 54, fontSize: 24),
-                  ),
-                );
-              },
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 5,
+              crossAxisSpacing: 10,
+              mainAxisSpacing: 10,
             ),
+            itemCount: SeedData.avatarEmojis.length,
+            itemBuilder: (_, i) {
+              final avatar = SeedData.avatarEmojis[i];
+              final active = _selectedAvatar == avatar;
+              return GestureDetector(
+                onTap: () => setState(() => _selectedAvatar = avatar),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 200),
+                  decoration: BoxDecoration(
+                    color: active
+                        ? AppColors.accent.withValues(alpha: 0.1)
+                        : AppColors.surface,
+                    borderRadius: BorderRadius.circular(12),
+                    border: Border.all(
+                      color: active ? AppColors.accent : AppColors.border,
+                      width: active ? 2 : 1,
+                    ),
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(avatar, style: const TextStyle(fontSize: 24)),
+                ),
+              );
+            },
           ),
 
           const SizedBox(height: 32),

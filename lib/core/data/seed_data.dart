@@ -32,42 +32,100 @@ class SeedData {
     tasksNeeded: 20,
   );
 
-  static const List<ChallengeModel> challenges = [
+  static const List<ChallengeModel> questPool = [
     ChallengeModel(
-      id: 1, // Fixed type from String to int
-      type: ChallengeType.earlyBird, // Fixed enum value
-      title: 'Early Bird',
-      desc: 'Complete 3 High priority tasks before 10 AM',
-      reward: 500,
+      id: 1, 
+      type: ChallengeType.earlyBird, 
+      title: 'Morning Hustle',
+      desc: 'Complete 3 tasks before 10 AM',
+      reward: 350,
       icon: '🌅',
       done: false,
+      target: 3,
     ),
     ChallengeModel(
       id: 2,
       type: ChallengeType.tripleThreat,
-      title: 'Triple Threat',
-      desc: 'Maintain a 7-day streak on any project',
-      reward: 2000,
+      title: 'Momentum',
+      desc: 'Complete 3 tasks in a row today',
+      reward: 500,
       icon: '🔥',
       done: false,
+      target: 3,
     ),
     ChallengeModel(
       id: 3,
       type: ChallengeType.healthHero,
-      title: 'Health Hero',
-      desc: 'Complete 50 tasks in total',
-      reward: 5000,
-      icon: '🏆',
+      title: 'Body & Mind',
+      desc: 'Complete 2 health category tasks',
+      reward: 400,
+      icon: '💪',
       done: false,
+      target: 2,
+    ),
+    ChallengeModel(
+      id: 4,
+      type: ChallengeType.bossDamage,
+      title: 'Boss Battler',
+      desc: 'Damage the current boss 5 times',
+      reward: 600,
+      icon: '⚔️',
+      done: false,
+      target: 5,
+    ),
+    ChallengeModel(
+      id: 5,
+      type: ChallengeType.socialScout,
+      title: 'Social Scout',
+      desc: 'View 3 other player profiles',
+      reward: 200,
+      icon: '🕵️',
+      done: false,
+      target: 3,
+    ),
+    ChallengeModel(
+      id: 6,
+      type: ChallengeType.proofProvider,
+      title: 'Show Your Work',
+      desc: 'Provide proof notes or an image for 2 tasks',
+      reward: 800,
+      icon: '📸',
+      done: false,
+      target: 2,
+    ),
+    ChallengeModel(
+      id: 7,
+      type: ChallengeType.consistency,
+      title: 'Steady Hand',
+      desc: 'Complete 5 total tasks today',
+      reward: 750,
+      icon: '🎯',
+      done: false,
+      target: 5,
+    ),
+    ChallengeModel(
+      id: 8,
+      type: ChallengeType.projectFocus,
+      title: 'Project Pusher',
+      desc: 'Complete 3 tasks in a single project',
+      reward: 450,
+      icon: '📁',
+      done: false,
+      target: 3,
     ),
   ];
+  static const List<String> avatarEmojis = [
+    '👤', '🧑‍🚀', '🦊', '🦁', '🦉', '🦋', '🍀', '🍎', '🧩', '🎨', 
+    '🎮', '🎸', '⚽', '🌌', '🍦', '🍩', '🤖', '👾', '👻', '🎃'
+  ];
+
   static const List<SkillNodeModel> skillTree = [
     SkillNodeModel(
       id: 's1',
       name: 'Focus',
       desc: 'Increase deep work efficiency',
       icon: '🎯',
-      cost: 100, // Fixed named parameter level/maxLevel -> cost
+      cost: 100,
       unlocked: true,
     ),
     SkillNodeModel(
@@ -84,6 +142,30 @@ class SeedData {
       desc: 'Reduces streak loss penalty',
       icon: '🔋',
       cost: 300,
+      unlocked: false,
+    ),
+    SkillNodeModel(
+      id: 's4',
+      name: 'Efficiency',
+      desc: 'Tasks take 10% less time',
+      icon: '⚡',
+      cost: 400,
+      unlocked: false,
+    ),
+    SkillNodeModel(
+      id: 's5',
+      name: 'Mindfulness',
+      desc: 'Bonus XP for consistent ratings',
+      icon: '🧘',
+      cost: 500,
+      unlocked: false,
+    ),
+    SkillNodeModel(
+      id: 's6',
+      name: 'Prioritization',
+      desc: 'Double XP for high priority',
+      icon: '🔝',
+      cost: 600,
       unlocked: false,
     ),
   ];
@@ -106,7 +188,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Sarah Chen',
-      avatar: 'https://i.pravatar.cc/150?u=sarah',
+      avatar: '👩‍💻',
       xp: 15200,
       level: 10,
       streak: 15,
@@ -117,7 +199,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Mike Ross',
-      avatar: 'https://i.pravatar.cc/150?u=mike',
+      avatar: '👨‍💼',
       xp: 14800,
       level: 8,
       streak: 10,
@@ -128,7 +210,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Alex Rivera',
-      avatar: 'https://i.pravatar.cc/150?u=alex',
+      avatar: '🧑‍🎨',
       xp: 13500,
       level: 7,
       streak: 5,
@@ -139,7 +221,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Elena Gilbert',
-      avatar: 'https://i.pravatar.cc/150?u=elena',
+      avatar: '👩‍⚕️',
       xp: 11200,
       level: 6,
       streak: 12,
@@ -150,7 +232,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Damon Salvatore',
-      avatar: 'https://i.pravatar.cc/150?u=damon',
+      avatar: '🧛',
       xp: 9800,
       level: 4,
       streak: 3,
@@ -161,7 +243,7 @@ class SeedData {
       shortId: '000000',
       weeklyXp: 0,
       name: 'Bonnie Bennett',
-      avatar: 'https://i.pravatar.cc/150?u=bonnie',
+      avatar: '🧙‍♀️',
       xp: 8500,
       level: 3,
       streak: 8,
@@ -252,7 +334,26 @@ class SeedData {
       'unlocked': false,
       'color': AppColors.gold
     },
+    {
+      'icon': '🧘',
+      'name': 'Focus Master',
+      'unlocked': false,
+      'color': AppColors.accent
+    },
+    {
+      'icon': '🧗',
+      'name': 'Peak Performer',
+      'unlocked': false,
+      'color': AppColors.blue
+    },
+    {
+      'icon': '💪',
+      'name': 'Weekend Warrior',
+      'unlocked': false,
+      'color': AppColors.red
+    },
   ];
+
 
   static const List<Map<String, dynamic>> categoryData = [
     {'name': 'Work', 'value': 45, 'color': AppColors.purple},

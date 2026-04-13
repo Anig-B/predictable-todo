@@ -40,7 +40,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final pendingChallenges =
         ref.watch(challengeProvider).where((c) => !c.done).length;
 
-    final totalXp = tState.doneXp + gState.bonusXp;
+    final totalXp = gState.totalXp;
     final level = XpCalculator.level(totalXp);
     final lvlProgress = XpCalculator.levelProgress(totalXp);
 
@@ -70,7 +70,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                   ? () => showModalBottomSheet(
                         context: context,
                         isScrollControlled: true,
-                        useRootNavigator: false,
+                        useRootNavigator: true,
                         useSafeArea: true,
                         backgroundColor: Colors.transparent,
                         builder: (_) => SpinWheelModal(
@@ -289,7 +289,12 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final totalBonus = multiBonus + proofBonus;
     tNotifier.completeTask(task.id, totalBonus,
         rating: rating, notes: notes, imageUrl: imageUrl);
-    challenges.onTaskCompleted(task, ref.read(gamificationProvider).comboCount);
+    final hasProof = notes != null || imageUrl != null;
+    challenges.onTaskCompleted(task, ref.read(gamificationProvider).comboCount, hasProof);
+    
+    if (bossWasAlive) {
+      challenges.onBossDamaged(1);
+    }
 
     // Effects
     if (!isQuick) {

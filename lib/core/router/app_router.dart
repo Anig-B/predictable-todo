@@ -11,6 +11,8 @@ import '../../features/notifications/pages/notifications_page.dart';
 import '../../features/gamification/pages/challenges_page.dart';
 import '../../features/tasks/pages/add_task_page.dart';
 import '../../features/tasks/pages/note_page.dart';
+import '../../features/social/pages/social_profile_page.dart';
+import '../../features/leaderboard/models/leaderboard_entry_model.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
@@ -78,6 +80,13 @@ final appRouterProvider = Provider<GoRouter>((ref) {
       GoRoute(
         path: '/notes',
         builder: (context, state) => const NotePage(),
+      ),
+      GoRoute(
+        path: '/social-profile',
+        builder: (context, state) {
+          final entry = state.extra as LeaderboardEntry;
+          return SocialProfilePage(entry: entry);
+        },
       ),
     ],
   );

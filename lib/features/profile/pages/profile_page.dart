@@ -316,32 +316,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     streak: gState.currentStreak,
                     bossDefeated: gState.boss.isDefeated,
                     rank: rank.name,
+                    unlockedSkillsCount: gState.skillTree.where((s) => s.unlocked).length,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
             
-            // ── Debug / Force Boss Reset ────────────────
-            GestureDetector(
-              onTap: () {
-                ref.read(gamificationProvider.notifier).resetBossForTesting();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Cycled to the next boss type...', style: AppTheme.sans(size: 11))),
-                );
-              },
-              child: Container(
-                padding: const EdgeInsets.symmetric(vertical: 12),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: AppColors.blue.withValues(alpha: 0.2)),
-                ),
-                alignment: Alignment.center,
-                child: Text('⚔️ CYCLE BOSS (TEST)',
-                    style: AppTheme.mono(size: 9, color: AppColors.blue, weight: FontWeight.w700)),
-              ),
-            ),
-            const SizedBox(height: 16),
           ],
         ),
       ),
@@ -645,6 +626,7 @@ class _MilestonesTab extends StatelessWidget {
   final int streak;
   final bool bossDefeated;
   final String rank;
+  final int unlockedSkillsCount;
 
   const _MilestonesTab({
     required this.tasksCompleted,
@@ -652,6 +634,7 @@ class _MilestonesTab extends StatelessWidget {
     required this.streak,
     required this.bossDefeated,
     required this.rank,
+    required this.unlockedSkillsCount,
   });
 
   @override
@@ -704,6 +687,42 @@ class _MilestonesTab extends StatelessWidget {
         title: '7-Day Streak',
         unlocked: streak >= 7,
         desc: '$streak / 7 days',
+      ),
+      _Milestone(
+        icon: '👑',
+        title: 'Quest Lord',
+        unlocked: tasksCompleted >= 50,
+        desc: '$tasksCompleted / 50 tasks',
+      ),
+      _Milestone(
+        icon: '🌊',
+        title: 'XP Titan',
+        unlocked: totalXp >= 10000,
+        desc: '$totalXp / 10000 XP',
+      ),
+      _Milestone(
+        icon: '🌌',
+        title: 'Legendary',
+        unlocked: totalXp >= 5000,
+        desc: '$totalXp / 5000 XP',
+      ),
+      _Milestone(
+        icon: '🗓️',
+        title: 'Fortnite Streak',
+        unlocked: streak >= 14,
+        desc: '$streak / 14 days',
+      ),
+      _Milestone(
+        icon: '🎓',
+        title: 'Skill Collector',
+        unlocked: unlockedSkillsCount >= 5,
+        desc: '$unlockedSkillsCount / 5 skills',
+      ),
+      _Milestone(
+        icon: '🌙',
+        title: 'Consistency',
+        unlocked: streak >= 30,
+        desc: '$streak / 30 days',
       ),
     ];
 

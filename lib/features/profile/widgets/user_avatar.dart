@@ -13,8 +13,6 @@ class UserAvatar extends StatelessWidget {
     this.fontSize = 30,
   });
 
-  bool get _isUrl => avatar.startsWith('http');
-
   @override
   Widget build(BuildContext context) {
     return Container(
@@ -32,19 +30,10 @@ class UserAvatar extends StatelessWidget {
         ),
         clipBehavior: Clip.antiAlias,
         alignment: Alignment.center,
-        child: _isUrl
-            ? Image.network(
-                avatar,
-                fit: BoxFit.cover,
-                width: size,
-                height: size,
-                errorBuilder: (context, error, stackTrace) =>
-                    Icon(Icons.person, size: fontSize, color: AppColors.muted),
-              )
-            : Text(
-                avatar,
-                style: TextStyle(fontSize: fontSize),
-              ),
+        child: Text(
+          avatar.isEmpty ? '👤' : avatar,
+          style: TextStyle(fontSize: fontSize),
+        ),
       ),
     );
   }

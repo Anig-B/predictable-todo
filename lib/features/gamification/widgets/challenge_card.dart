@@ -87,13 +87,28 @@ class ChallengeCard extends StatelessWidget {
             Column(
               crossAxisAlignment: CrossAxisAlignment.end,
               children: [
-                Text(done ? '✓' : '+${challenge.reward}',
-                    style: AppTheme.mono(
-                        size: 14,
-                        weight: FontWeight.w800,
-                        color: done ? AppColors.accent : AppColors.gold)),
-                Text('XP',
-                    style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+                if (done)
+                  Text('✓', style: AppTheme.mono(size: 14, weight: FontWeight.w800, color: AppColors.accent))
+                else if (challenge.target > 1)
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                    decoration: BoxDecoration(
+                      color: AppColors.purple.withValues(alpha: 0.1),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    child: Text('${challenge.progress}/${challenge.target}',
+                        style: AppTheme.mono(size: 12, weight: FontWeight.w800, color: AppColors.purple)),
+                  )
+                else
+                  Text('+${challenge.reward}',
+                      style: AppTheme.mono(
+                          size: 14,
+                          weight: FontWeight.w800,
+                          color: AppColors.gold)),
+                          
+                if (!done)
+                  Text('${challenge.reward} XP',
+                      style: AppTheme.sans(size: 8, color: AppColors.subtle)),
               ],
             ),
           ],

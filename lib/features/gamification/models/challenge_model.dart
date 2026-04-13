@@ -1,4 +1,13 @@
-enum ChallengeType { earlyBird, tripleThreat, healthHero }
+enum ChallengeType {
+  earlyBird, 
+  tripleThreat, 
+  healthHero,
+  bossDamage,
+  socialScout,
+  proofProvider,
+  consistency,
+  projectFocus
+}
 
 class ChallengeModel {
   final int id;
@@ -8,6 +17,8 @@ class ChallengeModel {
   final int reward;
   final String icon;
   final bool done;
+  final int progress;
+  final int target;
 
   const ChallengeModel({
     required this.id,
@@ -17,6 +28,8 @@ class ChallengeModel {
     required this.reward,
     required this.icon,
     required this.done,
+    this.progress = 0,
+    this.target = 1,
   });
 
   ChallengeModel copyWith({
@@ -27,6 +40,8 @@ class ChallengeModel {
     int? reward,
     String? icon,
     bool? done,
+    int? progress,
+    int? target,
   }) =>
       ChallengeModel(
         id: id ?? this.id,
@@ -36,5 +51,31 @@ class ChallengeModel {
         reward: reward ?? this.reward,
         icon: icon ?? this.icon,
         done: done ?? this.done,
+        progress: progress ?? this.progress,
+        target: target ?? this.target,
+      );
+
+  Map<String, dynamic> toJson() => {
+        'id': id,
+        'type': type.index,
+        'title': title,
+        'desc': desc,
+        'reward': reward,
+        'icon': icon,
+        'done': done,
+        'progress': progress,
+        'target': target,
+      };
+
+  factory ChallengeModel.fromJson(Map<String, dynamic> j) => ChallengeModel(
+        id: j['id'] as int,
+        type: ChallengeType.values[j['type'] as int? ?? 0],
+        title: j['title'] as String,
+        desc: j['desc'] as String,
+        reward: j['reward'] as int,
+        icon: j['icon'] as String,
+        done: j['done'] as bool,
+        progress: j['progress'] as int? ?? 0,
+        target: j['target'] as int? ?? 1,
       );
 }
