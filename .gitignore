@@ -49,3 +49,13 @@ app.*.map.json
 .antigravity/
 .env
 .metadata
+
+# Common build artifacts
+/Runner.app/
+*.app/
+*.ipa/
+*.apk/
+*.xcarchive/
+*.dSYM/
+build/
+
