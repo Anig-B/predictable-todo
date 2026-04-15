@@ -32,6 +32,8 @@ class GamificationState {
   final DateTime? lastBossResetDate;
   final String? lastBossId;
   final List<String> unlockedBadges;
+  final List<String> selectedBadges;
+  final bool bossRewardClaimed;
   final bool isLoading;
 
   const GamificationState({
@@ -54,6 +56,8 @@ class GamificationState {
     this.lastBossResetDate,
     this.lastBossId,
     this.unlockedBadges = const ['Early Adopter', '7-Day Streak', 'Perfect Week'],
+    this.selectedBadges = const [],
+    this.bossRewardClaimed = false,
     this.isLoading = false,
   });
 
@@ -90,6 +94,8 @@ class GamificationState {
     DateTime? lastBossResetDate,
     String? lastBossId,
     List<String>? unlockedBadges,
+    List<String>? selectedBadges,
+    bool? bossRewardClaimed,
     bool? isLoading,
   }) =>
       GamificationState(
@@ -114,6 +120,8 @@ class GamificationState {
         lastBossResetDate: lastBossResetDate ?? this.lastBossResetDate,
         lastBossId: lastBossId ?? this.lastBossId,
         unlockedBadges: unlockedBadges ?? this.unlockedBadges,
+        selectedBadges: selectedBadges ?? this.selectedBadges,
+        bossRewardClaimed: bossRewardClaimed ?? this.bossRewardClaimed,
         isLoading: isLoading ?? this.isLoading,
       );
 
@@ -139,6 +147,8 @@ class GamificationState {
         'bossId': boss.id,
         'lastBossId': lastBossId,
         'unlockedBadges': unlockedBadges,
+        'selectedBadges': selectedBadges,
+        'bossRewardClaimed': bossRewardClaimed,
       };
 }
 
@@ -237,6 +247,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       lastBossId: saved['lastBossId'] as String?,
       unlockedBadges: (saved['unlockedBadges'] as List<dynamic>?)?.cast<String>() ?? 
           ['Early Adopter', '7-Day Streak', 'Perfect Week'],
+      selectedBadges: (saved['selectedBadges'] as List<dynamic>?)?.cast<String>() ?? [],
+      bossRewardClaimed: saved['bossRewardClaimed'] as bool? ?? false,
       boss: BossData.getById(saved['bossId'] as String? ?? 'chaos_lord').copyWith(
         hp: saved['bossHp'] as int? ?? SeedData.boss.hp,
         tasksDone: saved['bossDone'] as int? ?? 0,
@@ -271,6 +283,9 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         lastBossId: stats['last_boss_id'] as String? ?? state.lastBossId,
         unlockedBadges: (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? 
             state.unlockedBadges,
+        selectedBadges: (stats['selected_badges'] as List<dynamic>?)?.cast<String>() ?? 
+            state.selectedBadges,
+        bossRewardClaimed: stats['boss_reward_claimed'] as bool? ?? state.bossRewardClaimed,
         skillTree: state.skillTree.map((s) => s.copyWith(
           unlocked: unlockedSkills.contains(s.id) || s.unlocked
         )).toList(),
@@ -298,6 +313,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       'last_boss_reset_at': state.lastBossResetDate?.toIso8601String(),
       'last_boss_id': state.lastBossId,
       'unlocked_badges': state.unlockedBadges,
+      'selected_badges': state.selectedBadges,
+      'boss_reward_claimed': state.bossRewardClaimed,
       'last_active_at': state.lastActiveDate?.toIso8601String(),
     });
   }
@@ -336,6 +353,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         lastBossId: state.boss.id,
         boss: BossData.getById(newBossId),
         lastBossResetDate: lastMonday,
+        bossRewardClaimed: false,
       );
       _persist();
       _syncToRemote();
@@ -544,6 +562,45 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _comboTimer?.cancel();
     state = _initialState;
     _persist();
+  }
+
+  void toggleBadgeSelection(String badgeName) {
+    if (!state.unlockedBadges.contains(badgeName)) return;
+
+    final current = List<String>.from(state.selectedBadges);
+    if (current.contains(badgeName)) {
+      current.remove(badgeName);
+    } else {
+      if (current.length >= 3) current.removeAt(0);
+      current.add(badgeName);
+    }
+    state = state.copyWith(selectedBadges: current);
+    _persist();
+    _syncToRemote();
+  }
+
+  Future<bool> claimBossReward() async {
+    if (!state.boss.isDefeated || state.bossRewardClaimed) return false;
+    try {
+      final response = await _supabase.rpc('claim_boss_reward');
+      if (response != null && response['success'] == true) {
+        state = state.copyWith(bossRewardClaimed: true);
+        // Stats will implicitly fetch real-time updates for XP/badges
+        return true;
+      }
+    } catch (e) {
+       // Silently fail or handle error appropriately in production
+    }
+    // Optimistic fallback for local UI if offline
+    state = state.copyWith(
+      totalXp: state.totalXp + state.boss.reward,
+      bossRewardClaimed: true,
+      unlockedBadges: state.unlockedBadges.contains('Boss Slayer') 
+          ? state.unlockedBadges 
+          : [...state.unlockedBadges, 'Boss Slayer']
+    );
+    _persist();
+    return true;
   }
 
   bool get shouldShowLoot => state.lootCount > 0 && state.lootCount % 5 == 0;

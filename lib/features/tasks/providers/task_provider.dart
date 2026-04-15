@@ -8,6 +8,7 @@ import '../../../core/data/seed_data.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/task_repository.dart';
+import '../../../core/services/notification_service.dart';
 
 class TaskState {
   final List<TaskModel> tasks;
@@ -172,6 +173,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
       final log = ActivityLogModel(
         taskId: found!.id,
         task: found!.title,
+        project: found!.project,
         points: found!.points + bonusEarned,
         time: 'Today, $timeStr',
         icon: found!.category.icon,
@@ -240,11 +242,21 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   Future<void> addTask(TaskModel task) async {
     final user = ref.read(currentUserProvider);
+    // Optimistic UI update
+    state = state.copyWith(tasks: [task, ...state.tasks]);
+    _persist();
+
+    final scheduled = task.scheduledDateTime;
+    if (scheduled != null && scheduled.isAfter(DateTime.now())) {
+      NotificationService().scheduleTaskNotification(
+        task.id,
+        task.title,
+        scheduled,
+      );
+    }
+
     if (user != null) {
       await ref.read(taskRepositoryProvider).addTask(user.id, task);
-    } else {
-      state = state.copyWith(tasks: [...state.tasks, task]);
-      _persist();
     }
   }
 

@@ -9,6 +9,7 @@ class LeaderboardEntry {
   final int streak;
   final int tasksWeek;
   final bool isYou;
+  final List<String> selectedBadges;
 
   const LeaderboardEntry({
     required this.id,
@@ -21,6 +22,7 @@ class LeaderboardEntry {
     required this.streak,
     required this.tasksWeek,
     this.isYou = false,
+    this.selectedBadges = const [],
   });
 
   factory LeaderboardEntry.fromJson(Map<String, dynamic> json, {String? currentUserId}) {
@@ -39,6 +41,7 @@ class LeaderboardEntry {
       streak: json['streak'] as int? ?? json['current_streak'] as int? ?? 0,
       tasksWeek: json['tasksweek'] as int? ?? json['tasksWeek'] as int? ?? 0,
       isYou: currentUserId != null && entryId == currentUserId,
+      selectedBadges: (json['selected_badges'] as List<dynamic>?)?.cast<String>() ?? [],
     );
   }
 }

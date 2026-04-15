@@ -18,7 +18,7 @@ class OverviewTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
-    final totalXp = tState.doneXp + gState.bonusXp;
+    final totalXp = gState.totalXp;
     
     final categoryData = ref.watch(categoryBreakdownProvider);
     final weeklyXp = ref.watch(weeklyXpProvider);

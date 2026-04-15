@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/boss_model.dart';
+import '../providers/gamification_provider.dart';
 
-class BossCard extends StatefulWidget {
+class BossCard extends ConsumerStatefulWidget {
   final BossModel boss;
 
   const BossCard({super.key, required this.boss});
 
   @override
-  State<BossCard> createState() => _BossCardState();
+  ConsumerState<BossCard> createState() => _BossCardState();
 }
 
-class _BossCardState extends State<BossCard>
+class _BossCardState extends ConsumerState<BossCard>
     with SingleTickerProviderStateMixin {
   late AnimationController _controller;
   late Animation<double> _animation;
+  bool _isClaiming = false;
 
   @override
   void initState() {
@@ -35,8 +38,23 @@ class _BossCardState extends State<BossCard>
     super.dispose();
   }
 
+  Future<void> _handleClaim() async {
+    if (_isClaiming) return;
+    setState(() => _isClaiming = true);
+    final success = await ref.read(gamificationProvider.notifier).claimBossReward();
+    if (mounted) {
+      setState(() => _isClaiming = false);
+      if (success) {
+        // Optional: show a snackbar or let the UI naturally update
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final gState = ref.watch(gamificationProvider);
+    final isClaimed = gState.bossRewardClaimed;
+
     Color getElementColor() {
       switch (widget.boss.color) {
         case 'fire':
@@ -113,74 +131,123 @@ class _BossCardState extends State<BossCard>
             ],
           ),
           const SizedBox(height: 10),
-          // Boss emoji with floating animation
-          RepaintBoundary(
-            child: AnimatedBuilder(
-              animation: _animation,
-              builder: (context, child) {
-                return Transform.translate(
-                  offset:
-                      Offset(0, widget.boss.isDefeated ? 0 : _animation.value),
-                  child: child,
-                );
-              },
-              child: TweenAnimationBuilder<double>(
-                tween:
-                    Tween(begin: 0.0, end: widget.boss.isDefeated ? 0.4 : 1.0),
-                duration: const Duration(milliseconds: 600),
-                builder: (_, opacity, child) => Opacity(
-                  opacity: opacity,
-                  child: ColorFiltered(
-                    colorFilter: widget.boss.isDefeated
-                        ? AppColors.grayscaleFilter
-                        : const ColorFilter.mode(
-                            Colors.transparent, BlendMode.color),
-                    child: child,
+          
+          if (widget.boss.isDefeated && !isClaimed) ...[
+            // Unclaimed chest state
+            GestureDetector(
+              onTap: _handleClaim,
+              child: RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _animation,
+                  builder: (context, child) {
+                    return Transform.translate(
+                      offset: Offset(0, _animation.value),
+                      child: Transform.scale(
+                        scale: 1.0 + (_animation.value / 80), // Slight breathing effect
+                        child: child,
+                      ),
+                    );
+                  },
+                  child: Container(
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: AppColors.gold.withValues(alpha: 0.1),
+                      boxShadow: [
+                        BoxShadow(
+                          color: AppColors.gold.withValues(alpha: 0.2),
+                          blurRadius: 15,
+                          spreadRadius: 2,
+                        ),
+                      ],
+                    ),
+                    child: _isClaiming 
+                        ? const SizedBox(
+                            width: 44, 
+                            height: 44, 
+                            child: CircularProgressIndicator(color: AppColors.gold, strokeWidth: 3)
+                          )
+                        : const Text('🎁', style: TextStyle(fontSize: 44)),
                   ),
                 ),
-                child: Text(widget.boss.emoji,
-                    style: const TextStyle(fontSize: 44)),
               ),
             ),
-          ),
-          const SizedBox(height: 4),
-          Text(widget.boss.name,
-              style: AppTheme.mono(size: 12, weight: FontWeight.w800)),
-          if (widget.boss.isDefeated)
-            Padding(
-              padding: const EdgeInsets.only(top: 4),
-              child: Text('🎉 DEFEATED!',
-                  style: AppTheme.sans(
-                      size: 12,
-                      weight: FontWeight.w800,
-                      color: AppColors.accent)),
+            const SizedBox(height: 10),
+            Text('TAP TO CLAIM REWARD!',
+                style: AppTheme.mono(
+                    size: 12,
+                    weight: FontWeight.w800,
+                    color: AppColors.gold)),
+          ] else ...[
+            // Boss emoji with floating animation
+            RepaintBoundary(
+              child: AnimatedBuilder(
+                animation: _animation,
+                builder: (context, child) {
+                  return Transform.translate(
+                    offset:
+                        Offset(0, widget.boss.isDefeated ? 0 : _animation.value),
+                    child: child,
+                  );
+                },
+                child: TweenAnimationBuilder<double>(
+                  tween:
+                      Tween(begin: 0.0, end: widget.boss.isDefeated ? 0.4 : 1.0),
+                  duration: const Duration(milliseconds: 600),
+                  builder: (_, opacity, child) => Opacity(
+                    opacity: opacity,
+                    child: ColorFiltered(
+                      colorFilter: widget.boss.isDefeated
+                          ? AppColors.grayscaleFilter
+                          : const ColorFilter.mode(
+                              Colors.transparent, BlendMode.color),
+                      child: child,
+                    ),
+                  ),
+                  child: Text(widget.boss.emoji,
+                      style: const TextStyle(fontSize: 44)),
+                ),
+              ),
             ),
-          const SizedBox(height: 10),
-          // HP row
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text('HP',
-                  style: AppTheme.mono(size: 9, color: AppColors.subtle)),
-              Text('${widget.boss.hp.clamp(0, 999999)}/${widget.boss.maxHp}',
-                  style: AppTheme.mono(size: 9, color: hpColor)),
-            ],
-          ),
-          const SizedBox(height: 5),
-          ClipRRect(
-            borderRadius: BorderRadius.circular(4),
-            child: LinearProgressIndicator(
-              value: widget.boss.hpPercent,
-              minHeight: 8,
-              backgroundColor: AppColors.surface3,
-              valueColor: AlwaysStoppedAnimation<Color>(hpColor),
+            const SizedBox(height: 4),
+            Text(widget.boss.name,
+                style: AppTheme.mono(size: 12, weight: FontWeight.w800)),
+            if (widget.boss.isDefeated)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: Text('🎉 DEFEATED!',
+                    style: AppTheme.sans(
+                        size: 12,
+                        weight: FontWeight.w800,
+                        color: AppColors.accent)),
+              ),
+            const SizedBox(height: 10),
+            // HP row
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('HP',
+                    style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                Text('${widget.boss.hp.clamp(0, 999999)}/${widget.boss.maxHp}',
+                    style: AppTheme.mono(size: 9, color: hpColor)),
+              ],
             ),
-          ),
-          const SizedBox(height: 6),
-          Text(
-            '${widget.boss.tasksDone}/${widget.boss.tasksNeeded} tasks · ${widget.boss.damagePerTask} DMG each',
-            style: AppTheme.sans(size: 9, color: AppColors.subtle),
-          ),
+            const SizedBox(height: 5),
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: widget.boss.hpPercent,
+                minHeight: 8,
+                backgroundColor: AppColors.surface3,
+                valueColor: AlwaysStoppedAnimation<Color>(hpColor),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Text(
+              '${widget.boss.tasksDone}/${widget.boss.tasksNeeded} tasks · ${widget.boss.damagePerTask} DMG each',
+              style: AppTheme.sans(size: 9, color: AppColors.subtle),
+            ),
+          ],
         ],
       ),
     );

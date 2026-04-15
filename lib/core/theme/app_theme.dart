@@ -73,6 +73,7 @@ class AppTheme {
     Color? color,
     double? letterSpacing,
     double? height,
+    FontStyle? style,
   }) =>
       GoogleFonts.jetBrainsMono(
         fontSize: size,
@@ -80,6 +81,7 @@ class AppTheme {
         color: color ?? AppColors.text,
         letterSpacing: letterSpacing,
         height: height,
+        fontStyle: style,
       );
 
   static TextStyle sans({
@@ -88,6 +90,7 @@ class AppTheme {
     Color? color,
     double? letterSpacing,
     double? height,
+    FontStyle? style,
   }) =>
       GoogleFonts.nunito(
         fontSize: size,
@@ -95,6 +98,7 @@ class AppTheme {
         color: color ?? AppColors.text,
         letterSpacing: letterSpacing,
         height: height,
+        fontStyle: style,
       );
 
   // ── Box decoration helpers ──────────────────────────

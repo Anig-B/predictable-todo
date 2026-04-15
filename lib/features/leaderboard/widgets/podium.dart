@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../models/leaderboard_entry_model.dart';
+import '../../../core/data/seed_data.dart';
 import '../../../shared/widgets/app_avatar.dart';
 
 class Podium extends StatelessWidget {
@@ -93,11 +94,20 @@ class _PodiumItem extends StatelessWidget {
               overflow: TextOverflow.ellipsis,
             ),
 
-            // XP
             Text(
               '${entry.xp} XP',
               style: AppTheme.mono(size: 9, color: AppColors.accent),
             ),
+            if (entry.selectedBadges.isNotEmpty) ...[
+              const SizedBox(height: 4),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: entry.selectedBadges.map((b) => Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 1),
+                  child: Text(SeedData.getBadgeIcon(b), style: const TextStyle(fontSize: 12)),
+                )).toList(),
+              ),
+            ],
             const SizedBox(height: 8),
 
             // Pillar

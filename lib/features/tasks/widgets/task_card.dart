@@ -61,9 +61,10 @@ class _TaskCardState extends State<TaskCard>
   @override
   Widget build(BuildContext context) {
     final t = widget.task;
-    final xpLabel = widget.effectiveMulti > 1 && !t.done
-        ? '⚡ ${t.points}×${widget.effectiveMulti}'
-        : '⚡ ${t.points}';
+    int potentialXp = t.points * widget.effectiveMulti;
+    final xpLabel = t.done 
+        ? '⚡ ${t.points + t.bonusEarned}' 
+        : (widget.effectiveMulti > 1 ? '⚡ $potentialXp (${t.points}×${widget.effectiveMulti})' : '⚡ ${t.points}');
 
     return AnimatedOpacity(
       opacity: t.done ? 0.45 : 1.0,

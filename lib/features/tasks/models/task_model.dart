@@ -116,9 +116,37 @@ class TaskModel {
   /// 1-28 = specific date, 0 = last day of month, null = any day
   final int? monthlyDay;
 
+  DateTime? get scheduledDateTime {
+    final t = time.toLowerCase().trim();
+    if (!t.contains(':') && !t.contains('am') && !t.contains('pm')) return null;
+
+    try {
+      final now = DateTime.now();
+      int hour = 0;
+      int minute = 0;
+      bool isPm = t.contains('pm');
+      
+      final clean = t.replaceAll('am', '').replaceAll('pm', '').trim();
+      final parts = clean.split(':');
+      
+      if (parts.isNotEmpty) hour = int.parse(parts[0]);
+      if (parts.length > 1) minute = int.parse(parts[1]);
+
+      if (isPm && hour < 12) hour += 12;
+      if (!isPm && hour == 12) hour = 0;
+
+      final scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+      // If it's already past for today and recurring, schedule for tomorrow?
+      // Since tasks refresh daily, leaving it as is for now.
+      return scheduled;
+    } catch (_) {
+      return null;
+    }
+  }
+
   int get durationMinutes {
     final t = time.toLowerCase().trim();
-    if (t.contains('am') || t.contains('pm') || t.contains(':')) return 0;
+    if (t.contains('am') || t.contains('pm') || t.contains(':')) return 1;
 
     // Parse formats like "15m", "1h", "1.5h", "1h 30m"
     int total = 0;
@@ -131,7 +159,7 @@ class TaskModel {
         total += (val * 60).round();
       }
     }
-    return total;
+    return total > 0 ? total : 1;
   }
 
   String get recurringLabel {

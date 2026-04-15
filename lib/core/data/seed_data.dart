@@ -291,6 +291,11 @@ class SeedData {
     {'label': '200 XP', 'value': 200, 'color': AppColors.gold, 'type': 'xp'},
   ];
 
+  static String getBadgeIcon(String badgeName) {
+    final b = badges.firstWhere((e) => e['name'] == badgeName, orElse: () => {'icon': '🏆'});
+    return b['icon'] as String;
+  }
+
   static const List<Map<String, dynamic>> badges = [
     {
       'icon': '🚀',

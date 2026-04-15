@@ -291,7 +291,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 controller: _tabCtrl,
                 children: [
                   _ActivityTab(log: ref.watch(taskProvider).activityLog),
-                  _BadgesTab(unlockedBadges: gState.unlockedBadges),
+                  _BadgesTab(
+                    unlockedBadges: gState.unlockedBadges,
+                    selectedBadges: gState.selectedBadges,
+                    onToggle: (badge) => ref.read(gamificationProvider.notifier).toggleBadgeSelection(badge),
+                  ),
                   _SkillsTab(
                     skillTree: gState.skillTree,
                     skillPoints: gState.skillPoints,
@@ -480,7 +484,14 @@ class _ActivityTab extends StatelessWidget {
 
 class _BadgesTab extends StatelessWidget {
   final List<String> unlockedBadges;
-  const _BadgesTab({required this.unlockedBadges});
+  final List<String> selectedBadges;
+  final void Function(String) onToggle;
+
+  const _BadgesTab({
+    required this.unlockedBadges,
+    required this.selectedBadges,
+    required this.onToggle,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -493,31 +504,44 @@ class _BadgesTab extends StatelessWidget {
       itemCount: SeedData.badges.length,
       itemBuilder: (_, i) {
         final badge = SeedData.badges[i];
-        final unlocked = unlockedBadges.contains(badge['name']);
-        return AnimatedOpacity(
-          opacity: unlocked ? 1.0 : 0.22,
-          duration: const Duration(milliseconds: 300),
-          child: ColorFiltered(
-            colorFilter: unlocked
-                ? const ColorFilter.mode(Colors.transparent, BlendMode.color)
-                : AppColors.grayscaleFilter,
-            child: Container(
-              decoration: AppTheme.surfaceBox(radius: 11),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Text(badge['icon'] as String,
-                      style: const TextStyle(fontSize: 20)),
-                  const SizedBox(height: 2),
-                  Text(badge['name'] as String,
-                      style: AppTheme.sans(
-                          size: 7,
-                          color: AppColors.subtle,
-                          weight: FontWeight.w700),
-                      textAlign: TextAlign.center,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis),
-                ],
+        final badgeName = badge['name'] as String;
+        final unlocked = unlockedBadges.contains(badgeName);
+        final selected = selectedBadges.contains(badgeName);
+
+        return GestureDetector(
+          onTap: unlocked ? () => onToggle(badgeName) : null,
+          child: AnimatedOpacity(
+            opacity: unlocked ? 1.0 : 0.22,
+            duration: const Duration(milliseconds: 300),
+            child: ColorFiltered(
+              colorFilter: unlocked
+                  ? const ColorFilter.mode(Colors.transparent, BlendMode.color)
+                  : AppColors.grayscaleFilter,
+              child: Container(
+                decoration: BoxDecoration(
+                  color: selected ? AppColors.accent.withValues(alpha: 0.1) : AppColors.surface,
+                  borderRadius: BorderRadius.circular(11),
+                  border: Border.all(
+                    color: selected ? AppColors.accent : AppColors.border,
+                    width: selected ? 1.5 : 1,
+                  ),
+                ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(badge['icon'] as String,
+                        style: const TextStyle(fontSize: 20)),
+                    const SizedBox(height: 2),
+                    Text(badgeName,
+                        style: AppTheme.sans(
+                            size: 7,
+                            color: selected ? AppColors.accent : AppColors.subtle,
+                            weight: FontWeight.w700),
+                        textAlign: TextAlign.center,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis),
+                  ],
+                ),
               ),
             ),
           ),

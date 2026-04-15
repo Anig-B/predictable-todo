@@ -1,6 +1,7 @@
 class ActivityLogModel {
   final String taskId;
   final String task;
+  final String project;
   final int points;
   final String time;
   final String icon;
@@ -14,6 +15,7 @@ class ActivityLogModel {
   ActivityLogModel({
     required this.taskId,
     required this.task,
+    required this.project,
     required this.points,
     required this.time,
     required this.icon,
@@ -26,6 +28,7 @@ class ActivityLogModel {
   Map<String, dynamic> toJson() => {
         'taskId': taskId,
         'task': task,
+        'project': project,
         'points': points,
         'time': time,
         'icon': icon,
@@ -36,16 +39,17 @@ class ActivityLogModel {
       };
 
   factory ActivityLogModel.fromJson(Map<String, dynamic> j) => ActivityLogModel(
-        taskId: j['taskId'] as String,
-        task: j['task'] as String,
-        points: j['points'] as int,
-        time: j['time'] as String,
-        icon: j['icon'] as String,
+        taskId: j['taskId'] as String? ?? j['task_id'] as String? ?? 'unk',
+        task: j['task'] as String? ?? 'Unknown Task',
+        project: j['project'] as String? ?? 'General',
+        points: j['points'] as int? ?? 0,
+        time: j['time'] as String? ?? '',
+        icon: j['icon'] as String? ?? '📝',
         rating: j['rating'] as int? ?? 0,
         notes: j['notes'] as String?,
         imageUrl: j['imageUrl'] as String?,
         createdAt: j['createdAt'] != null
             ? DateTime.parse(j['createdAt'] as String)
-            : null,
+            : (j['created_at'] != null ? DateTime.parse(j['created_at'] as String) : DateTime.now()),
       );
 }

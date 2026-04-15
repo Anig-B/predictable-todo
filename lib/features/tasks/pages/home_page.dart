@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../shared/widgets/rainbow_glimmer.dart';
 import '../../../core/data/seed_data.dart';
 import '../providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
@@ -66,20 +67,32 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               pendingChallenges: pendingChallenges,
               onNotif: () => context.push('/notifications'),
               onChallenges: () => context.push('/challenges'),
-              onSpin: gState.isSpinAvailable
-                  ? () => showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        useRootNavigator: true,
-                        useSafeArea: true,
-                        backgroundColor: Colors.transparent,
-                        builder: (_) => SpinWheelModal(
-                          onResult: (seg) => ref
-                              .read(gamificationProvider.notifier)
-                              .applySpinResult(seg),
-                        ),
-                      )
-                  : null,
+              isSpinAvailable: gState.isSpinAvailable,
+              onSpin: () {
+                if (gState.isSpinAvailable) {
+                  showModalBottomSheet(
+                    context: context,
+                    isScrollControlled: true,
+                    useRootNavigator: true,
+                    useSafeArea: true,
+                    backgroundColor: Colors.transparent,
+                    builder: (_) => SpinWheelModal(
+                      onResult: (seg) => ref
+                          .read(gamificationProvider.notifier)
+                          .applySpinResult(seg),
+                    ),
+                  );
+                } else {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text('Come back tomorrow for your next spin!',
+                          style: AppTheme.sans(size: 12)),
+                      backgroundColor: AppColors.surface2,
+                      duration: const Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
             ),
             TaskFilterBar(
               selected: _activeFilter,
@@ -298,7 +311,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
     // Effects
     if (!isQuick) {
-      effects.triggerConfetti();
       final size = MediaQuery.of(context).size;
       effects.spawnXpFloat(
         x: size.width * 0.2 + (size.width * 0.5),
@@ -328,6 +340,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     // Boss defeated toast + notification — only fires when boss transitions alive → defeated
     final boss = ref.read(gamificationProvider).boss;
     if (bossWasAlive && boss.isDefeated) {
+      effects.triggerConfetti();
       effects.showToast(
           icon: '🐉',
           title: 'Boss Defeated!',
@@ -481,6 +494,7 @@ class _Header extends StatelessWidget {
   final VoidCallback onNotif;
   final VoidCallback onChallenges;
   final VoidCallback? onSpin;
+  final bool isSpinAvailable;
 
   const _Header({
     required this.level,
@@ -490,6 +504,7 @@ class _Header extends StatelessWidget {
     required this.onNotif,
     required this.onChallenges,
     this.onSpin,
+    this.isSpinAvailable = false,
   });
 
   @override
@@ -548,11 +563,24 @@ class _Header extends StatelessWidget {
           Row(
             children: [
               if (onSpin != null) ...[
-                _IconBtn(
-                  onTap: onSpin!,
-                  borderColor: AppColors.gold.withValues(alpha: 0.35),
-                  child: const Text('🎰', style: TextStyle(fontSize: 15)),
-                ),
+                Builder(builder: (context) {
+                  return _IconBtn(
+                    onTap: onSpin!,
+                    isRainbow: isSpinAvailable,
+                    borderColor: isSpinAvailable
+                        ? AppColors.gold.withValues(alpha: 0.35)
+                        : AppColors.border,
+                    child: ColorFiltered(
+                      colorFilter: isSpinAvailable
+                          ? const ColorFilter.mode(Colors.transparent, BlendMode.color)
+                          : AppColors.grayscaleFilter,
+                      child: Opacity(
+                        opacity: isSpinAvailable ? 1.0 : 0.5,
+                        child: const Text('🎰', style: TextStyle(fontSize: 15)),
+                      ),
+                    ),
+                  );
+                }),
                 const SizedBox(width: 7),
               ],
               _IconBtn(
@@ -603,6 +631,7 @@ class _IconBtn extends StatelessWidget {
   final Color borderColor;
   final int? badge;
   final Color badgeColor;
+  final bool isRainbow;
 
   const _IconBtn({
     required this.child,
@@ -610,6 +639,7 @@ class _IconBtn extends StatelessWidget {
     this.borderColor = AppColors.border,
     this.badge,
     this.badgeColor = AppColors.red,
+    this.isRainbow = false,
   });
 
   @override
@@ -620,13 +650,25 @@ class _IconBtn extends StatelessWidget {
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          if (isRainbow)
+            Positioned.fill(
+              child: RainbowGlimmer(
+                duration: const Duration(milliseconds: 2000),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(11),
+                    border: Border.all(color: Colors.white, width: 2),
+                  ),
+                ),
+              ),
+            ),
           Container(
             width: 38,
             height: 38,
             decoration: BoxDecoration(
               color: AppColors.surface,
               borderRadius: BorderRadius.circular(11),
-              border: Border.all(color: borderColor),
+              border: Border.all(color: isRainbow ? Colors.transparent : borderColor),
             ),
             alignment: Alignment.center,
             child: child,

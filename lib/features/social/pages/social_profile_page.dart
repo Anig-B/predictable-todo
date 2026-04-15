@@ -7,6 +7,7 @@ import '../../leaderboard/pages/leaderboard_page.dart'; // To reuse providers
 import '../../tasks/models/activity_log_model.dart';
 import '../../../shared/widgets/app_avatar.dart';
 import '../../social/providers/social_provider.dart';
+import '../../../core/data/seed_data.dart';
 
 class SocialProfilePage extends ConsumerWidget {
   final LeaderboardEntry entry;
@@ -105,7 +106,7 @@ class SocialProfilePage extends ConsumerWidget {
                             borderRadius: BorderRadius.circular(16),
                             border: Border.all(color: AppColors.purple.withValues(alpha: 0.2)),
                           ),
-                          child: Text('🏆 $b', style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.purple)),
+                          child: Text('${SeedData.getBadgeIcon(b)} $b', style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.purple)),
                         )).toList(),
                       );
                     },

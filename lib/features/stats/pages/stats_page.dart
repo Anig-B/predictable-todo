@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../tasks/providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
 import '../widgets/overview_tab.dart';
 import '../widgets/projects_tab.dart';
@@ -33,9 +32,9 @@ class _StatsPageState extends ConsumerState<StatsPage>
 
   @override
   Widget build(BuildContext context) {
-    final tState = ref.watch(taskProvider);
+    // Only kept tState if needed later, otherwise will be removed by lint if unused.
     final gState = ref.watch(gamificationProvider);
-    final totalXp = tState.doneXp + gState.bonusXp;
+    final totalXp = gState.totalXp;
 
     return Scaffold(
       backgroundColor: AppColors.bg,

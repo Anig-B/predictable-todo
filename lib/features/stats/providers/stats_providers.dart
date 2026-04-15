@@ -35,19 +35,47 @@ final categoryBreakdownProvider = Provider<List<Map<String, dynamic>>>((ref) {
 final weeklyXpProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final tState = ref.watch(taskProvider);
   const days = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
-  final today = DateTime.now().weekday; // 1=Mon … 7=Sun
+  final now = DateTime.now();
+  final todayStart = DateTime(now.year, now.month, now.day);
+  final mondayStart = todayStart.subtract(Duration(days: now.weekday - 1));
 
   final xpByDay = List.filled(7, 0);
   for (final log in tState.activityLog) {
-    if (log.time.startsWith('Today')) {
-      xpByDay[today - 1] += log.points;
-    } else if (log.time.startsWith('Yesterday')) {
-      final yday = (today - 2 + 7) % 7;
-      xpByDay[yday] += log.points;
+    if (log.createdAt.isAfter(mondayStart.subtract(const Duration(seconds: 1))) && 
+        log.createdAt.isBefore(mondayStart.add(const Duration(days: 7)))) {
+      final dayIdx = log.createdAt.weekday - 1;
+      xpByDay[dayIdx] += log.points;
     }
   }
 
   return List.generate(7, (i) => {'day': days[i], 'xp': xpByDay[i]});
+});
+
+final hourlyActivityProvider = Provider<List<Map<String, dynamic>>>((ref) {
+  final tState = ref.watch(taskProvider);
+  if (tState.activityLog.isEmpty) return SeedData.hourlyData;
+
+  final Map<String, int> counts = {};
+
+  for (final log in tState.activityLog) {
+    final hour = log.createdAt.hour;
+    final suffix = hour >= 12 ? 'p' : 'a';
+    final displayHour = hour == 0 ? 12 : (hour > 12 ? hour - 12 : hour);
+    final label = '$displayHour$suffix';
+    counts[label] = (counts[label] ?? 0) + 1;
+  }
+
+  final orderedLabels = [
+    '6a','7a','8a','9a','10a','11a','12p','1p','2p','3p','4p','5p','6p','7p','8p','9p','10p','11p'
+  ];
+  
+  final List<Map<String, dynamic>> res = [];
+  for (final label in orderedLabels) {
+    if (counts.containsKey(label)) {
+      res.add({'h': label, 'v': counts[label]});
+    }
+  }
+  return res.isNotEmpty ? res : SeedData.hourlyData;
 });
 
 final projectProgressProvider = Provider<List<Map<String, dynamic>>>((ref) {
@@ -94,7 +122,7 @@ final projectProgressProvider = Provider<List<Map<String, dynamic>>>((ref) {
   }).toList();
 });
 
-final heatmapProvider = Provider<List<List<int>>>((ref) {
+final heatmapProvider = Provider<List<List<DayStats>>>((ref) {
   final tState = ref.watch(taskProvider);
   return HeatmapGrid.fromLogs(tState.activityLog);
 });

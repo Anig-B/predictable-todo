@@ -109,7 +109,7 @@ class TaskRepository {
         .from('activity_logs')
         .select()
         .eq('user_id', userId)
-        .order('time', ascending: false)
+        .order('created_at', ascending: false)
         .limit(50);
     return response;
   }

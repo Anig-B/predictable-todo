@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/xp_calculator.dart';
+import '../../../core/data/seed_data.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
 import '../models/leaderboard_entry_model.dart';
@@ -63,6 +64,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
       streak: gState.currentStreak,
       tasksWeek: tState.doneCount,
       isYou: true,
+      selectedBadges: gState.selectedBadges,
     );
 
     // Fetch live leaderboard data
@@ -325,6 +327,13 @@ class _LeaderboardCard extends StatelessWidget {
                           Text(statLabel,
                               style: AppTheme.sans(
                                   size: 8, color: AppColors.subtle)),
+                          if (entry.selectedBadges.isNotEmpty) ...[
+                            const SizedBox(width: 8),
+                            ...entry.selectedBadges.map((b) => Padding(
+                              padding: const EdgeInsets.only(right: 2),
+                              child: Text(SeedData.getBadgeIcon(b), style: const TextStyle(fontSize: 10)),
+                            )),
+                          ],
                         ],
                       ),
                     ],

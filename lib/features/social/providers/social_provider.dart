@@ -113,6 +113,11 @@ class SocialNotifier extends StateNotifier<SocialState> {
     final user = ref.read(currentUserProvider);
     if (user == null) return;
 
+    // Optimistic update
+    state = state.copyWith(
+      sentChallenges: {...state.sentChallenges, targetId},
+    );
+
     await ref.read(leaderboardRepositoryProvider).sendChallenge(user.id, targetId);
     // Real-time listener will trigger the refresh automatically
   }
