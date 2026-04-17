@@ -11,6 +11,7 @@ import '../widgets/challenge_card.dart';
 import '../widgets/daily_goal_ring.dart';
 import '../widgets/rank_bar.dart';
 import '../widgets/pet_widget.dart';
+import '../widgets/loot_box_modal.dart';
 
 class ChallengesPage extends ConsumerWidget {
   const ChallengesPage({super.key});
@@ -145,57 +146,94 @@ class ChallengesPage extends ConsumerWidget {
                   ...challenges.map((ch) => ChallengeCard(challenge: ch)),
                   const SizedBox(height: 16),
                   // Loot banner
-                  Container(
-                    padding: const EdgeInsets.all(18),
-                    decoration: BoxDecoration(
-                      gradient: LinearGradient(colors: [
-                        AppColors.gold.withValues(alpha: 0.08),
-                        AppColors.orange.withValues(alpha: 0.06),
-                      ]),
-                      borderRadius: BorderRadius.circular(20),
-                      border: Border.all(
-                          color: AppColors.gold.withValues(alpha: 0.2)),
-                    ),
-                    child: Row(
-                      children: [
-                        const Text('🎁', style: TextStyle(fontSize: 32)),
-                        const SizedBox(width: 16),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text('Bonus Reward!',
-                                  style: AppTheme.sans(
-                                      size: 14, weight: FontWeight.w800)),
-                              const SizedBox(height: 2),
-                              Text('Complete all challenges for a mystery box',
-                                  style: AppTheme.sans(
-                                      size: 10, color: AppColors.subtle)),
-                            ],
+                  Opacity(
+                    opacity: challenges.isEmpty ? 0.5 : 1.0,
+                    child: Container(
+                      padding: const EdgeInsets.all(18),
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(colors: [
+                          AppColors.gold.withValues(alpha: 0.08),
+                          AppColors.orange.withValues(alpha: 0.06),
+                        ]),
+                        borderRadius: BorderRadius.circular(20),
+                        border: Border.all(
+                            color: AppColors.gold.withValues(alpha: 0.2)),
+                      ),
+                      child: Row(
+                        children: [
+                          const Text('🎁', style: TextStyle(fontSize: 32)),
+                          const SizedBox(width: 16),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Daily Bonus!',
+                                    style: AppTheme.sans(
+                                        size: 14, weight: FontWeight.w800)),
+                                const SizedBox(height: 2),
+                                Text(
+                                    gState.dailyQuestRewardClaimed
+                                        ? 'Collected! Come back tomorrow.'
+                                        : 'Complete all 3 for a mystery box',
+                                    style: AppTheme.sans(
+                                        size: 10, color: AppColors.subtle)),
+                              ],
+                            ),
                           ),
-                        ),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 6),
-                          decoration: BoxDecoration(
-                            color: allDone
-                                ? AppColors.accent.withValues(alpha: 0.1)
-                                : AppColors.gold.withValues(alpha: 0.1),
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: allDone
-                                    ? AppColors.accent.withValues(alpha: 0.3)
-                                    : AppColors.gold.withValues(alpha: 0.3)),
+                          GestureDetector(
+                            onTap: (allDone && !gState.dailyQuestRewardClaimed)
+                                ? () {
+                                    ref
+                                        .read(gamificationProvider.notifier)
+                                        .claimDailyQuestReward();
+                                    showModalBottomSheet(
+                                      context: context,
+                                      isScrollControlled: true,
+                                      useRootNavigator: false,
+                                      useSafeArea: true,
+                                      backgroundColor: Colors.transparent,
+                                      builder: (_) => LootBoxModal(
+                                        onCollect: (item) => ref
+                                            .read(gamificationProvider.notifier)
+                                            .applyLootItem(item.name),
+                                      ),
+                                    );
+                                  }
+                                : null,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 12, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: gState.dailyQuestRewardClaimed
+                                    ? AppColors.surface2
+                                    : (allDone
+                                        ? AppColors.accent.withValues(alpha: 0.1)
+                                        : AppColors.gold.withValues(alpha: 0.1)),
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                    color: gState.dailyQuestRewardClaimed
+                                        ? AppColors.border
+                                        : (allDone
+                                            ? AppColors.accent.withValues(alpha: 0.3)
+                                            : AppColors.gold.withValues(alpha: 0.3))),
+                              ),
+                              child: Text(
+                                  gState.dailyQuestRewardClaimed
+                                      ? 'CLAIMED'
+                                      : (allDone ? 'RECLAIM' : 'LOCKED'),
+                                  style: AppTheme.mono(
+                                      size: 9,
+                                      weight: FontWeight.w700,
+                                      color: gState.dailyQuestRewardClaimed
+                                          ? AppColors.muted
+                                          : (allDone
+                                              ? AppColors.accent
+                                              : AppColors.gold))),
+                            ),
                           ),
-                          child: Text(allDone ? 'RECLAIM' : 'LOCKED',
-                              style: AppTheme.mono(
-                                  size: 9,
-                                  weight: FontWeight.w700,
-                                  color: allDone
-                                      ? AppColors.accent
-                                      : AppColors.gold)),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
                   ),
                 ],

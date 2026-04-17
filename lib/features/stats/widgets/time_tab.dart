@@ -102,42 +102,50 @@ class _TimeTabState extends ConsumerState<TimeTab> {
         Container(
           padding: const EdgeInsets.all(12),
           decoration: AppTheme.surfaceBox(),
-          child: Column(
-            children: activityData.asMap().entries.map((entry) {
-              final d = entry.value;
-              final val = values[entry.key];
-              final pct = val / maxV;
-              final label = (d['h'] ?? d['hour'] ?? '--') as String;
-
-              return Padding(
-                padding: const EdgeInsets.only(bottom: 6),
-                child: Row(
-                  children: [
-                    SizedBox(
-                      width: 28,
-                      child: Text(label,
-                          textAlign: TextAlign.right,
-                          style:
-                              AppTheme.mono(size: 9, color: AppColors.muted)),
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
-                        child: LinearProgressIndicator(
-                          value: pct,
-                          minHeight: 14,
-                          backgroundColor: AppColors.surface2,
-                          valueColor: const AlwaysStoppedAnimation<Color>(
-                               AppColors.accent),
-                        ),
-                      ),
-                    ),
-                  ],
+          child: activityData.isEmpty 
+            ? Padding(
+                padding: const EdgeInsets.symmetric(vertical: 20),
+                child: Center(
+                  child: Text('No recent activity recorded.', 
+                      style: AppTheme.sans(size: 11, color: AppColors.muted, style: FontStyle.italic)),
                 ),
-              );
-            }).toList(),
-          ),
+              )
+            : Column(
+                children: activityData.asMap().entries.map((entry) {
+                  final d = entry.value;
+                  final val = values[entry.key];
+                  final pct = val / maxV;
+                  final label = (d['h'] ?? d['hour'] ?? '--') as String;
+
+                  return Padding(
+                    padding: const EdgeInsets.only(bottom: 6),
+                    child: Row(
+                      children: [
+                        SizedBox(
+                          width: 28,
+                          child: Text(label,
+                              textAlign: TextAlign.right,
+                              style:
+                                  AppTheme.mono(size: 9, color: AppColors.muted)),
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(4),
+                            child: LinearProgressIndicator(
+                              value: pct,
+                              minHeight: 14,
+                              backgroundColor: AppColors.surface2,
+                              valueColor: const AlwaysStoppedAnimation<Color>(
+                                   AppColors.accent),
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
         ),
         const SizedBox(height: 16),
         const SectionLabel('WORK CONTEXT & HEATMAP'),

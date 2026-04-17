@@ -30,67 +30,90 @@ class OverviewTab extends ConsumerWidget {
         const SizedBox(height: 16),
         const SectionLabel('CATEGORY BREAKDOWN'),
         const SizedBox(height: 8),
-        Row(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            DonutChart(data: categoryData),
-            const SizedBox(width: 20),
-            Expanded(
+        categoryData.isEmpty 
+          ? Container(
+              padding: const EdgeInsets.symmetric(vertical: 30),
+              decoration: AppTheme.surfaceBox(),
               child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: categoryData
-                    .map((d) => Padding(
-                          padding: const EdgeInsets.only(bottom: 8),
-                          child: Row(
-                            children: [
-                              Container(
-                                width: 8,
-                                height: 8,
-                                decoration: BoxDecoration(
-                                  color: d['color'] as Color,
-                                  shape: BoxShape.circle,
-                                ),
-                              ),
-                              const SizedBox(width: 6),
-                              Expanded(
-                                child: Text(d['name'] as String,
-                                    style: AppTheme.sans(
-                                        size: 11, weight: FontWeight.w600)),
-                              ),
-                              Text('${d['value']}%',
-                                  style: AppTheme.mono(
-                                      size: 9, color: AppColors.muted)),
-                            ],
-                          ),
-                        ))
-                    .toList(),
+                children: [
+                   const Text('📊', style: TextStyle(fontSize: 32)),
+                   const SizedBox(height: 12),
+                   Text('No task patterns yet', style: AppTheme.sans(size: 14, weight: FontWeight.w700)),
+                   const SizedBox(height: 4),
+                   Text('Complete tasks to see your focus areas', style: AppTheme.sans(size: 11, color: AppColors.muted)),
+                ],
               ),
+            )
+          : Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                DonutChart(data: categoryData),
+                const SizedBox(width: 20),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: categoryData
+                        .map((d) => Padding(
+                              padding: const EdgeInsets.only(bottom: 8),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: d['color'] as Color,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Expanded(
+                                    child: Text(d['name'] as String,
+                                        style: AppTheme.sans(
+                                            size: 11, weight: FontWeight.w600)),
+                                  ),
+                                  Text('${d['value']}%',
+                                      style: AppTheme.mono(
+                                          size: 9, color: AppColors.muted)),
+                                ],
+                              ),
+                            ))
+                        .toList(),
+                  ),
+                ),
+              ],
             ),
-          ],
-        ),
         const SizedBox(height: 16),
         const SectionLabel('WEEKLY XP'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: AppTheme.surfaceBox(),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              SparklineChart(data: weeklyXp),
-              const SizedBox(height: 8),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: weeklyXp
-                    .map((d) => Text(
-                          d['day'] as String,
-                          style:
-                              AppTheme.mono(size: 8, color: AppColors.subtle),
-                        ))
-                    .toList(),
+          child: weeklyXp.every((d) => d['xp'] == 0)
+            ? Column(
+                children: [
+                  const SizedBox(height: 20),
+                  Text('No activity recorded yet for this week', 
+                      style: AppTheme.sans(size: 11, color: AppColors.subtle, style: FontStyle.italic)),
+                  const SizedBox(height: 20),
+                ],
+              )
+            : Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SparklineChart(data: weeklyXp),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: weeklyXp
+                        .map((d) => Text(
+                              d['day'] as String,
+                              style:
+                                  AppTheme.mono(size: 8, color: AppColors.subtle),
+                            ))
+                        .toList(),
+                  ),
+                ],
               ),
-            ],
-          ),
         ),
         const SizedBox(height: 16),
         const SectionLabel('KEY STATS'),

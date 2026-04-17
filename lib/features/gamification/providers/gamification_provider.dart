@@ -34,6 +34,7 @@ class GamificationState {
   final List<String> unlockedBadges;
   final List<String> selectedBadges;
   final bool bossRewardClaimed;
+  final bool dailyQuestRewardClaimed;
   final bool isLoading;
 
   const GamificationState({
@@ -58,6 +59,7 @@ class GamificationState {
     this.unlockedBadges = const ['Early Adopter', '7-Day Streak', 'Perfect Week'],
     this.selectedBadges = const [],
     this.bossRewardClaimed = false,
+    this.dailyQuestRewardClaimed = false,
     this.isLoading = false,
   });
 
@@ -96,6 +98,7 @@ class GamificationState {
     List<String>? unlockedBadges,
     List<String>? selectedBadges,
     bool? bossRewardClaimed,
+    bool? dailyQuestRewardClaimed,
     bool? isLoading,
   }) =>
       GamificationState(
@@ -122,6 +125,7 @@ class GamificationState {
         unlockedBadges: unlockedBadges ?? this.unlockedBadges,
         selectedBadges: selectedBadges ?? this.selectedBadges,
         bossRewardClaimed: bossRewardClaimed ?? this.bossRewardClaimed,
+        dailyQuestRewardClaimed: dailyQuestRewardClaimed ?? this.dailyQuestRewardClaimed,
         isLoading: isLoading ?? this.isLoading,
       );
 
@@ -149,6 +153,7 @@ class GamificationState {
         'unlockedBadges': unlockedBadges,
         'selectedBadges': selectedBadges,
         'bossRewardClaimed': bossRewardClaimed,
+        'dailyQuestRewardClaimed': dailyQuestRewardClaimed,
       };
 }
 
@@ -285,7 +290,9 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
             state.unlockedBadges,
         selectedBadges: (stats['selected_badges'] as List<dynamic>?)?.cast<String>() ?? 
             state.selectedBadges,
-        bossRewardClaimed: stats['boss_reward_claimed'] as bool? ?? state.bossRewardClaimed,
+        bossRewardClaimed: stats['boss_reward_claimed'] ?? false,
+        dailyQuestRewardClaimed: stats['daily_quest_reward_claimed'] ?? false,
+        totalLifetimeTasks: stats['total_lifetime_tasks'] ?? 0,
         skillTree: state.skillTree.map((s) => s.copyWith(
           unlocked: unlockedSkills.contains(s.id) || s.unlocked
         )).toList(),
@@ -315,6 +322,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       'unlocked_badges': state.unlockedBadges,
       'selected_badges': state.selectedBadges,
       'boss_reward_claimed': state.bossRewardClaimed,
+      'daily_quest_reward_claimed': state.dailyQuestRewardClaimed,
       'last_active_at': state.lastActiveDate?.toIso8601String(),
     });
   }
@@ -354,6 +362,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         boss: BossData.getById(newBossId),
         lastBossResetDate: lastMonday,
         bossRewardClaimed: false,
+        dailyQuestRewardClaimed: false,
       );
       _persist();
       _syncToRemote();
@@ -605,6 +614,17 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
   bool get shouldShowLoot => state.lootCount > 0 && state.lootCount % 5 == 0;
 
+  void claimDailyQuestReward() {
+    state = state.copyWith(dailyQuestRewardClaimed: true);
+    _persist();
+    _syncToRemote();
+  }
+
+  void resetDailyQuestReward() {
+    state = state.copyWith(dailyQuestRewardClaimed: false);
+    _persist();
+    _syncToRemote();
+  }
 }
 
 final gamificationProvider =

@@ -2,16 +2,15 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../tasks/models/task_model.dart';
 import '../../../core/theme/app_colors.dart';
-import '../../../core/data/seed_data.dart';
 import '../widgets/charts/heatmap_grid.dart';
 
 final categoryBreakdownProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final tState = ref.watch(taskProvider);
   final doneTasks = tState.tasks.where((t) => t.done).toList();
-  if (doneTasks.isEmpty) return SeedData.categoryData;
+  if (doneTasks.isEmpty) return [];
 
   final totalXp = doneTasks.fold(0, (s, t) => s + t.points);
-  if (totalXp == 0) return SeedData.categoryData;
+  if (totalXp == 0) return [];
 
   const colors = {
     TaskCategory.work: AppColors.purple,
@@ -53,7 +52,7 @@ final weeklyXpProvider = Provider<List<Map<String, dynamic>>>((ref) {
 
 final hourlyActivityProvider = Provider<List<Map<String, dynamic>>>((ref) {
   final tState = ref.watch(taskProvider);
-  if (tState.activityLog.isEmpty) return SeedData.hourlyData;
+  if (tState.activityLog.isEmpty) return [];
 
   final Map<String, int> counts = {};
 
@@ -75,7 +74,7 @@ final hourlyActivityProvider = Provider<List<Map<String, dynamic>>>((ref) {
       res.add({'h': label, 'v': counts[label]});
     }
   }
-  return res.isNotEmpty ? res : SeedData.hourlyData;
+  return res;
 });
 
 final projectProgressProvider = Provider<List<Map<String, dynamic>>>((ref) {
@@ -89,17 +88,7 @@ final projectProgressProvider = Provider<List<Map<String, dynamic>>>((ref) {
     AppColors.red,
   ];
 
-  if (tState.tasks.isEmpty) {
-    return SeedData.projectStats.asMap().entries.map((e) {
-      final color = colors[e.key % colors.length];
-      return {
-        'name': e.value['name'] as String,
-        'completed': (e.value['value'] as int) ~/ 10,
-        'total': 20,
-        'color': color,
-      };
-    }).toList();
-  }
+  if (tState.tasks.isEmpty) return [];
 
   final projects = <String, Map<String, dynamic>>{};
   for (final task in tState.tasks) {
