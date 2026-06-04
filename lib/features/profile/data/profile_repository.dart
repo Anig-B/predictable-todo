@@ -31,7 +31,7 @@ class ProfileRepository {
         .select()
         .eq('user_id', userId)
         .maybeSingle();
-    
+
     return response;
   }
 
@@ -46,7 +46,8 @@ class ProfileRepository {
     });
   }
 
-  Future<void> updateUserStats(String userId, Map<String, dynamic> stats) async {
+  Future<void> updateUserStats(
+      String userId, Map<String, dynamic> stats) async {
     await _supabase.from('user_stats').update(stats).eq('user_id', userId);
   }
 }
