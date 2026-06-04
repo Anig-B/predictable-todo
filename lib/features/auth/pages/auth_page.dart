@@ -20,6 +20,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
   bool _isLogin = true;
   bool _isLoading = false;
+  bool _obscurePassword = true;
   String? _serverError;
 
   @override
@@ -74,9 +75,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         );
       }
     } on AuthException catch (e) {
-      setState(() => _serverError = e.message);
+      if (mounted) setState(() => _serverError = e.message);
     } catch (e) {
-      setState(() => _serverError = 'Unexpected error occurred');
+      if (mounted) setState(() => _serverError = 'Unexpected error occurred');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -132,8 +133,18 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   controller: _passwordController,
                   label: 'PASSWORD',
                   icon: Icons.lock_outline,
-                  obscureText: true,
+                  obscureText: _obscurePassword,
                   validator: _validatePassword,
+                  suffix: IconButton(
+                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
+                    icon: Icon(
+                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
+                      color: AppColors.muted,
+                      size: 18,
+                    ),
+                    padding: EdgeInsets.zero,
+                    constraints: const BoxConstraints(),
+                  ),
                 ),
                 if (_serverError != null) ...[
                   const SizedBox(height: 16),
@@ -188,7 +199,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                 ),
                 const SizedBox(height: 16),
                 TextButton(
-                  onPressed: () {
+                  onPressed: _isLoading ? null : () {
                     setState(() {
                       _isLogin = !_isLogin;
                       _serverError = null;
@@ -216,6 +227,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     required String? Function(String?)? validator,
     bool obscureText = false,
     TextInputType? keyboardType,
+    Widget? suffix,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -232,14 +244,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          enabled: !_isLoading,
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
-          style: const TextStyle(color: AppColors.text, fontSize: 14),
+          style: TextStyle(color: AppColors.text.withValues(alpha: _isLoading ? 0.4 : 1), fontSize: 14),
           decoration: InputDecoration(
             prefixIcon: Icon(icon, color: AppColors.muted, size: 20),
+            suffixIcon: suffix,
             filled: true,
-            fillColor: AppColors.surface,
+            fillColor: _isLoading ? AppColors.surface.withValues(alpha: 0.5) : AppColors.surface,
             border: OutlineInputBorder(
               borderRadius: BorderRadius.circular(12),
               borderSide: const BorderSide(color: AppColors.border),

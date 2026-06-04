@@ -16,7 +16,7 @@ class NotificationService {
 
     const initializationSettingsAndroid =
         AndroidInitializationSettings('@mipmap/ic_launcher');
-    
+
     const initializationSettingsIOS = DarwinInitializationSettings(
       requestAlertPermission: true,
       requestBadgePermission: true,
@@ -36,7 +36,8 @@ class NotificationService {
     );
   }
 
-  Future<void> scheduleTaskNotification(String id, String title, DateTime scheduledTime) async {
+  Future<void> scheduleTaskNotification(
+      String id, String title, DateTime scheduledTime) async {
     if (scheduledTime.isBefore(DateTime.now())) return;
 
     const androidDetails = AndroidNotificationDetails(
