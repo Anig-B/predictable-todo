@@ -90,13 +90,7 @@ class _NavItemState extends State<_NavItem> {
         onEnter: (_) => setState(() => _hovered = true),
         onExit: (_) => setState(() => _hovered = false),
         child: GestureDetector(
-          onTap: () {
-            // If there's a modal open (like Challenges), pop it before navigating away
-            if (Navigator.of(context).canPop()) {
-              Navigator.of(context).pop();
-            }
-            context.go(widget.route);
-          },
+          onTap: () => context.go(widget.route),
           behavior: HitTestBehavior.opaque,
           child: AnimatedContainer(
             duration: const Duration(milliseconds: 150),

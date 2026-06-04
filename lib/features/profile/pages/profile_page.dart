@@ -66,38 +66,34 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   tooltip: 'Sign Out',
                 ),
                 const SizedBox(width: 4),
-                Container(
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    boxShadow: [
-                      BoxShadow(
-                        color: AppColors.red.withValues(alpha: 0.12),
-                        blurRadius: 16,
-                        spreadRadius: 4,
-                      ),
-                    ],
+                IconButton(
+                  onPressed: tState.totalCount == 0 && totalXp == 0
+                      ? null
+                      : () async {
+                          final messenger = ScaffoldMessenger.of(context);
+                          final confirmed = await _confirmClear(
+                              context, tState.totalCount, totalXp);
+                          if (!confirmed || !mounted) return;
+                          await ref.read(taskProvider.notifier).clearAll();
+                          await ref.read(gamificationProvider.notifier).reset();
+                          await ref.read(profileProvider.notifier).reset();
+                          messenger.showSnackBar(
+                            SnackBar(
+                              content: Text('All data cleared from server',
+                                  style: AppTheme.sans(size: 12)),
+                              backgroundColor:
+                                  AppColors.red.withValues(alpha: 0.2),
+                            ),
+                          );
+                        },
+                  icon: Icon(
+                    Icons.delete_sweep_rounded,
+                    size: 20,
+                    color: tState.totalCount == 0 && totalXp == 0
+                        ? AppColors.muted
+                        : AppColors.red,
                   ),
-                  child: IconButton(
-                    onPressed: () async {
-                      final messenger = ScaffoldMessenger.of(context);
-                      final confirmed = await _confirmClear(
-                          context, tState.totalCount, totalXp);
-                      if (!confirmed || !mounted) return;
-                      await ref.read(taskProvider.notifier).clearAll();
-                      await ref.read(gamificationProvider.notifier).reset();
-                      await ref.read(profileProvider.notifier).reset();
-                      messenger.showSnackBar(
-                        SnackBar(
-                          content: Text('All data cleared from server',
-                              style: AppTheme.sans(size: 12)),
-                          backgroundColor: AppColors.red.withValues(alpha: 0.2),
-                        ),
-                      );
-                    },
-                    icon: const Icon(Icons.delete_sweep_rounded,
-                        size: 20, color: AppColors.red),
-                    tooltip: 'Clear All Data',
-                  ),
+                  tooltip: 'Clear All Data',
                 ),
               ],
             ),
@@ -223,40 +219,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
             const SizedBox(height: 10),
 
             // ── Rank Tiers ──────────────────────────────
-            Row(
-              children: XpCalculator.rankTiers.map((tier) {
-                final earned = totalXp >= tier.minXp;
-                return Expanded(
-                  child: Container(
-                    margin: const EdgeInsets.symmetric(horizontal: 2),
-                    padding: const EdgeInsets.symmetric(vertical: 8),
-                    decoration: BoxDecoration(
-                      color: earned ? AppColors.surface2 : AppColors.surface,
-                      borderRadius: BorderRadius.circular(9),
-                      border: Border.all(
-                        color: earned
-                            ? tier.color.withValues(alpha: 0.3)
-                            : AppColors.border,
-                      ),
-                    ),
-                    child: Column(
-                      children: [
-                        Text(tier.icon, style: const TextStyle(fontSize: 16)),
-                        const SizedBox(height: 3),
-                        Text(tier.name,
-                            style: AppTheme.sans(
-                                size: 7,
-                                weight: FontWeight.w700,
-                                color: earned ? tier.color : AppColors.subtle)),
-                        Text('${tier.minXp}',
-                            style: AppTheme.mono(
-                                size: 6, color: AppColors.subtle)),
-                      ],
-                    ),
-                  ),
-                );
-              }).toList(),
-            ),
+            _buildRankCard(totalXp),
             const SizedBox(height: 16),
 
             // ── Tabs ────────────────────────────────────
@@ -294,7 +257,9 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   _BadgesTab(
                     unlockedBadges: gState.unlockedBadges,
                     selectedBadges: gState.selectedBadges,
-                    onToggle: (badge) => ref.read(gamificationProvider.notifier).toggleBadgeSelection(badge),
+                    onToggle: (badge) => ref
+                        .read(gamificationProvider.notifier)
+                        .toggleBadgeSelection(badge),
                   ),
                   _SkillsTab(
                     skillTree: gState.skillTree,
@@ -320,13 +285,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     streak: gState.currentStreak,
                     bossDefeated: gState.boss.isDefeated,
                     rank: rank.name,
-                    unlockedSkillsCount: gState.skillTree.where((s) => s.unlocked).length,
+                    unlockedSkillsCount:
+                        gState.skillTree.where((s) => s.unlocked).length,
                   ),
                 ],
               ),
             ),
             const SizedBox(height: 16),
-            
           ],
         ),
       ),
@@ -420,6 +385,211 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
       ),
     );
     return result ?? false;
+  }
+
+  Widget _buildRankCard(int totalXp) {
+    final current = XpCalculator.currentRank(totalXp);
+    final next = XpCalculator.nextRank(totalXp);
+    final progress = XpCalculator.rankProgress(totalXp);
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            current.color.withValues(alpha: 0.15),
+            AppColors.surface,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: current.color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(current.icon, style: const TextStyle(fontSize: 36)),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('CURRENT RANK',
+                        style: AppTheme.mono(
+                            size: 9,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w800)),
+                    const SizedBox(height: 2),
+                    Text(current.name,
+                        style: AppTheme.sans(
+                            size: 22,
+                            weight: FontWeight.w900,
+                            color: current.color)),
+                  ],
+                ),
+              ),
+              const SizedBox(width: 8),
+              if (next != null)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('NEXT',
+                        style: AppTheme.mono(
+                            size: 8,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w800)),
+                    Text(next.icon, style: const TextStyle(fontSize: 24)),
+                    Text(next.name,
+                        style: AppTheme.sans(
+                            size: 10,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w600)),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          if (next != null) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(4),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 6,
+                backgroundColor: AppColors.surface3,
+                valueColor: AlwaysStoppedAnimation<Color>(current.color),
+              ),
+            ),
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${current.minXp} XP',
+                    style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                Text(
+                    '${totalXp - current.minXp} / ${next.minXp - current.minXp} XP to ${next.name}',
+                    style: AppTheme.mono(size: 9, color: current.color)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 12),
+          GestureDetector(
+            onTap: () => _showRankSheet(context, totalXp),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 8),
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.list_rounded,
+                      size: 12, color: AppColors.muted),
+                  const SizedBox(width: 6),
+                  Text('See all ranks',
+                      style: AppTheme.sans(
+                          size: 11,
+                          color: AppColors.muted,
+                          weight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showRankSheet(BuildContext context, int totalXp) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('RANK TIERS',
+                style: AppTheme.mono(
+                    size: 14, weight: FontWeight.w900, color: AppColors.text)),
+            const SizedBox(height: 20),
+            ...XpCalculator.rankTiers.map((tier) {
+              final earned = totalXp >= tier.minXp;
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: earned
+                      ? tier.color.withValues(alpha: 0.08)
+                      : AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: earned
+                        ? tier.color.withValues(alpha: 0.3)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(tier.icon, style: const TextStyle(fontSize: 28)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(tier.name,
+                              style: AppTheme.sans(
+                                  size: 15,
+                                  weight: FontWeight.w800,
+                                  color:
+                                      earned ? tier.color : AppColors.subtle)),
+                          Text('${tier.minXp}+ XP',
+                              style: AppTheme.mono(
+                                  size: 10, color: AppColors.muted)),
+                        ],
+                      ),
+                    ),
+                    if (earned)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: tier.color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text('EARNED',
+                            style: AppTheme.mono(
+                                size: 8,
+                                color: tier.color,
+                                weight: FontWeight.w900)),
+                      ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
   }
 }
 
@@ -519,7 +689,9 @@ class _BadgesTab extends StatelessWidget {
                   : AppColors.grayscaleFilter,
               child: Container(
                 decoration: BoxDecoration(
-                  color: selected ? AppColors.accent.withValues(alpha: 0.1) : AppColors.surface,
+                  color: selected
+                      ? AppColors.accent.withValues(alpha: 0.1)
+                      : AppColors.surface,
                   borderRadius: BorderRadius.circular(11),
                   border: Border.all(
                     color: selected ? AppColors.accent : AppColors.border,
@@ -535,7 +707,8 @@ class _BadgesTab extends StatelessWidget {
                     Text(badgeName,
                         style: AppTheme.sans(
                             size: 7,
-                            color: selected ? AppColors.accent : AppColors.subtle,
+                            color:
+                                selected ? AppColors.accent : AppColors.subtle,
                             weight: FontWeight.w700),
                         textAlign: TextAlign.center,
                         maxLines: 2,

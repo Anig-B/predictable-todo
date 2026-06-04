@@ -101,6 +101,38 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           ),
           const SizedBox(height: 32),
 
+          // ── Tips ─────────────────────────────────────
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    const Icon(Icons.info_outline_rounded,
+                        size: 14, color: AppColors.accent),
+                    const SizedBox(width: 8),
+                    Text('RPG PRO TIP',
+                        style: AppTheme.mono(
+                            size: 10,
+                            weight: FontWeight.w800,
+                            color: AppColors.accent)),
+                  ],
+                ),
+                const SizedBox(height: 8),
+                Text(
+                    'Your name and avatar appear in the leaderboard and notifications. Choose something that represents your leveling journey!',
+                    style: AppTheme.sans(size: 11, color: AppColors.muted)),
+              ],
+            ),
+          ),
+          const SizedBox(height: 32),
+
           Text('SELECT AVATAR',
               style: AppTheme.mono(
                   size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
@@ -177,37 +209,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             icon: Icons.tag_rounded,
           ),
           const SizedBox(height: 40),
-
-          // ── Tips ─────────────────────────────────────
-          Container(
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
-              border: Border.all(color: AppColors.border),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Row(
-                  children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 14, color: AppColors.accent),
-                    const SizedBox(width: 8),
-                    Text('RPG PRO TIP',
-                        style: AppTheme.mono(
-                            size: 10,
-                            weight: FontWeight.w800,
-                            color: AppColors.accent)),
-                  ],
-                ),
-                const SizedBox(height: 8),
-                Text(
-                    'Your name and avatar appear in the leaderboard and notifications. Choose something that represents your leveling journey!',
-                    style: AppTheme.sans(size: 11, color: AppColors.muted)),
-              ],
-            ),
-          ),
         ],
       ),
     );
