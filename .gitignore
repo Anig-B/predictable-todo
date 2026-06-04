@@ -46,6 +46,7 @@ app.*.map.json
 .agents/
 .antigravity/
 .env*
+!.env.example
 .metadata
 cortex_*/
 
