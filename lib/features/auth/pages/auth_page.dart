@@ -16,7 +16,13 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
   final _passwordController = TextEditingController();
+  final _confirmPasswordController = TextEditingController();
   final _usernameController = TextEditingController();
+
+  final _usernameFocusNode = FocusNode();
+  final _emailFocusNode = FocusNode();
+  final _passwordFocusNode = FocusNode();
+  final _confirmPasswordFocusNode = FocusNode();
 
   bool _isLogin = true;
   bool _isLoading = false;
@@ -27,7 +33,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   void dispose() {
     _emailController.dispose();
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     _usernameController.dispose();
+    _usernameFocusNode.dispose();
+    _emailFocusNode.dispose();
+    _passwordFocusNode.dispose();
+    _confirmPasswordFocusNode.dispose();
     super.dispose();
   }
 
@@ -43,6 +54,12 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     final password = value ?? '';
     if (password.isEmpty) return 'Password is required';
     if (password.length < 6) return 'Password must be at least 6 characters';
+    return null;
+  }
+
+  String? _validateConfirmPassword(String? value) {
+    if (value == null || value.isEmpty) return 'Confirm your password';
+    if (value != _passwordController.text) return 'Passwords do not match';
     return null;
   }
 
@@ -112,38 +129,86 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   style: const TextStyle(color: AppColors.subtle, fontSize: 16),
                 ),
                 const SizedBox(height: 48),
-                if (!_isLogin) ...[
-                  _buildTextFormField(
-                    controller: _usernameController,
-                    label: 'USERNAME',
-                    icon: Icons.person_outline,
-                    validator: _validateUsername,
-                  ),
-                  const SizedBox(height: 16),
-                ],
-                _buildTextFormField(
-                  controller: _emailController,
-                  label: 'EMAIL',
-                  icon: Icons.email_outlined,
-                  keyboardType: TextInputType.emailAddress,
-                  validator: _validateEmail,
-                ),
-                const SizedBox(height: 16),
-                _buildTextFormField(
-                  controller: _passwordController,
-                  label: 'PASSWORD',
-                  icon: Icons.lock_outline,
-                  obscureText: _obscurePassword,
-                  validator: _validatePassword,
-                  suffix: IconButton(
-                    onPressed: () => setState(() => _obscurePassword = !_obscurePassword),
-                    icon: Icon(
-                      _obscurePassword ? Icons.visibility_off_outlined : Icons.visibility_outlined,
-                      color: AppColors.muted,
-                      size: 18,
-                    ),
-                    padding: EdgeInsets.zero,
-                    constraints: const BoxConstraints(),
+                AutofillGroup(
+                  child: Column(
+                    children: [
+                      if (!_isLogin) ...[
+                        _buildTextFormField(
+                          controller: _usernameController,
+                          label: 'USERNAME',
+                          hintText: 'Choose a name',
+                          icon: Icons.person_outline,
+                          validator: _validateUsername,
+                          focusNode: _usernameFocusNode,
+                          textInputAction: TextInputAction.next,
+                          autofillHints: const [AutofillHints.username],
+                          onFieldSubmitted: () =>
+                              _emailFocusNode.requestFocus(),
+                        ),
+                        const SizedBox(height: 16),
+                      ],
+                      _buildTextFormField(
+                        controller: _emailController,
+                        label: 'EMAIL',
+                        hintText: 'you@example.com',
+                        icon: Icons.email_outlined,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: _validateEmail,
+                        focusNode: _emailFocusNode,
+                        textInputAction: TextInputAction.next,
+                        autofillHints: const [AutofillHints.email],
+                        onFieldSubmitted: () =>
+                            _passwordFocusNode.requestFocus(),
+                      ),
+                      const SizedBox(height: 16),
+                      _buildTextFormField(
+                        controller: _passwordController,
+                        label: 'PASSWORD',
+                        hintText: _isLogin ? 'Enter your password' : 'At least 6 characters',
+                        icon: Icons.lock_outline,
+                        obscureText: _obscurePassword,
+                        validator: _validatePassword,
+                        focusNode: _passwordFocusNode,
+                        textInputAction:
+                            _isLogin ? TextInputAction.done : TextInputAction.next,
+                        autofillHints: [
+                          _isLogin
+                              ? AutofillHints.password
+                              : AutofillHints.newPassword
+                        ],
+                        onFieldSubmitted: _isLogin
+                            ? _submit
+                            : () => _confirmPasswordFocusNode.requestFocus(),
+                        suffix: IconButton(
+                          onPressed: () =>
+                              setState(() => _obscurePassword = !_obscurePassword),
+                          icon: Icon(
+                            _obscurePassword
+                                ? Icons.visibility_off_outlined
+                                : Icons.visibility_outlined,
+                            color: AppColors.muted,
+                            size: 18,
+                          ),
+                          padding: EdgeInsets.zero,
+                          constraints: const BoxConstraints(),
+                        ),
+                      ),
+                      if (!_isLogin) ...[
+                        const SizedBox(height: 16),
+                        _buildTextFormField(
+                          controller: _confirmPasswordController,
+                          label: 'CONFIRM PASSWORD',
+                          hintText: 'Re-enter your password',
+                          icon: Icons.lock_outline,
+                          obscureText: true,
+                          validator: _validateConfirmPassword,
+                          focusNode: _confirmPasswordFocusNode,
+                          textInputAction: TextInputAction.done,
+                          autofillHints: const [AutofillHints.newPassword],
+                          onFieldSubmitted: _submit,
+                        ),
+                      ],
+                    ],
                   ),
                 ),
                 if (_serverError != null) ...[
@@ -207,9 +272,17 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     _formKey.currentState?.reset();
                   },
                   style: TextButton.styleFrom(foregroundColor: AppColors.muted),
-                  child: Text(
-                    _isLogin ? 'Need an account? Sign up' : 'Already have an account? Log in',
-                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  child: Text.rich(
+                    TextSpan(
+                      text: _isLogin ? 'Need an account? ' : 'Already have an account? ',
+                      style: AppTheme.sans(size: 13, color: AppColors.muted),
+                      children: [
+                        TextSpan(
+                          text: _isLogin ? 'Sign up' : 'Log in',
+                          style: AppTheme.sans(size: 13, color: AppColors.accent, weight: FontWeight.w800),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ],
@@ -223,11 +296,16 @@ class _AuthPageState extends ConsumerState<AuthPage> {
   Widget _buildTextFormField({
     required TextEditingController controller,
     required String label,
+    required String hintText,
     required IconData icon,
     required String? Function(String?)? validator,
+    required FocusNode focusNode,
+    required TextInputAction textInputAction,
+    required VoidCallback onFieldSubmitted,
     bool obscureText = false,
     TextInputType? keyboardType,
     Widget? suffix,
+    List<String>? autofillHints,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -244,12 +322,18 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         const SizedBox(height: 8),
         TextFormField(
           controller: controller,
+          focusNode: focusNode,
           enabled: !_isLoading,
           obscureText: obscureText,
           keyboardType: keyboardType,
           validator: validator,
+          textInputAction: textInputAction,
+          autofillHints: autofillHints,
+          onFieldSubmitted: (_) => onFieldSubmitted(),
           style: TextStyle(color: AppColors.text.withValues(alpha: _isLoading ? 0.4 : 1), fontSize: 14),
           decoration: InputDecoration(
+            hintText: hintText,
+            hintStyle: const TextStyle(color: AppColors.muted, fontSize: 14),
             prefixIcon: Icon(icon, color: AppColors.muted, size: 20),
             suffixIcon: suffix,
             filled: true,
