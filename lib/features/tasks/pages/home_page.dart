@@ -17,6 +17,7 @@ import '../widgets/task_card.dart';
 import '../../gamification/widgets/boss_card.dart';
 import '../../gamification/widgets/combo_banner.dart';
 import '../widgets/proof_modal.dart';
+import 'add_task_page.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../data/task_repository.dart';
 import '../../gamification/widgets/spin_wheel_modal.dart';
@@ -140,7 +141,8 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         onToggle: () => _handleToggle(context, ref, task),
                         onQuickToggle: () =>
                             _handleQuickToggle(context, ref, task),
-                        onDelete: () => _handleDelete(context, ref, task),
+                        onLongPress: () =>
+                            _handleLongPress(context, ref, task),
                       )),
 
                   if (_filteredTasks(tState.tasks).isEmpty)
@@ -232,30 +234,75 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     return confirmed ?? false;
   }
 
-  void _handleDelete(BuildContext context, WidgetRef ref, TaskModel task) {
-    showDialog(
+  void _handleLongPress(BuildContext context, WidgetRef ref, TaskModel task) {
+    showModalBottomSheet(
       context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: AppColors.surface,
-        title: Text('Delete Quest',
-            style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
-        content: Text('Delete "${task.title}" permanently?',
-            style: AppTheme.sans(size: 12, color: AppColors.muted)),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(ctx).pop(),
-            child: Text('Cancel',
-                style: AppTheme.sans(size: 11, color: AppColors.subtle)),
-          ),
-          TextButton(
-            onPressed: () {
-              ref.read(taskProvider.notifier).deleteTask(task.id);
-              Navigator.of(ctx).pop();
-            },
-            child: Text('Delete',
-                style: AppTheme.sans(size: 11, color: AppColors.red)),
-          ),
-        ],
+      backgroundColor: AppColors.surface,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      ),
+      builder: (ctx) => Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 32, height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: const Icon(Icons.edit_rounded, color: AppColors.accent, size: 20),
+              title: Text('Edit Quest',
+                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => AddTaskPage(existingTask: task),
+                  ),
+                );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+              title: Text('Delete Quest',
+                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                showDialog(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    backgroundColor: AppColors.surface,
+                    title: Text('Delete Quest',
+                        style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
+                    content: Text('Delete "${task.title}" permanently?',
+                        style: AppTheme.sans(size: 12, color: AppColors.muted)),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.of(ctx).pop(),
+                        child: Text('Cancel',
+                            style: AppTheme.sans(size: 11, color: AppColors.subtle)),
+                      ),
+                      TextButton(
+                        onPressed: () {
+                          ref.read(taskProvider.notifier).deleteTask(task.id);
+                          Navigator.of(ctx).pop();
+                        },
+                        child: Text('Delete',
+                            style: AppTheme.sans(size: 11, color: AppColors.red)),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            ),
+          ],
+        ),
       ),
     );
   }

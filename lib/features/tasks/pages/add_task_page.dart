@@ -8,13 +8,16 @@ import '../providers/task_provider.dart';
 import '../providers/note_provider.dart';
 
 class AddTaskPage extends ConsumerStatefulWidget {
-  const AddTaskPage({super.key});
+  final TaskModel? existingTask;
+
+  const AddTaskPage({super.key, this.existingTask});
 
   @override
   ConsumerState<AddTaskPage> createState() => _AddTaskPageState();
 }
 
 class _AddTaskPageState extends ConsumerState<AddTaskPage> {
+  final _formKey = GlobalKey<FormState>();
   final _titleCtrl = TextEditingController();
   final _descCtrl = TextEditingController();
   TaskCategory _category = TaskCategory.work;
@@ -22,8 +25,29 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
   TaskRecurring _recurring = TaskRecurring.none;
   TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
   bool _showDemoPicker = false;
-  int _weeklyDay = DateTime.now().weekday; // 1=Mon…7=Sun
-  int _monthlyDay = 1; // 1-28 or 0=last
+  int _weeklyDay = DateTime.now().weekday;
+  int _monthlyDay = 1;
+
+  @override
+  void initState() {
+    super.initState();
+    final existing = widget.existingTask;
+    if (existing != null) {
+      _titleCtrl.text = existing.title;
+      _descCtrl.text = existing.desc;
+      _category = existing.category;
+      _priority = existing.priority;
+      _recurring = existing.recurring;
+      _weeklyDay = existing.weeklyDay ?? DateTime.now().weekday;
+      _monthlyDay = existing.monthlyDay ?? 1;
+      final parts = existing.time.split(':');
+      if (parts.length == 2) {
+        final hour = int.tryParse(parts[0].trim()) ?? 9;
+        final minute = int.tryParse(parts[1].replaceAll(RegExp(r'\D'), '').trim()) ?? 0;
+        _time = TimeOfDay(hour: hour, minute: minute);
+      }
+    }
+  }
 
   @override
   void dispose() {
@@ -103,28 +127,33 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
   }
 
   void _submit() {
-    if (_titleCtrl.text.trim().isEmpty) return;
+    if (!_formKey.currentState!.validate()) return;
     final points = _priority == TaskPriority.high
         ? 80
         : _priority == TaskPriority.medium
             ? 50
             : 25;
+    final existing = widget.existingTask;
     final task = TaskModel(
-      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
       title: _titleCtrl.text.trim(),
       desc: _descCtrl.text.trim(),
       time: _time.format(context),
       points: points,
       project: _category.label,
-      streak: 0,
-      done: false,
+      streak: existing?.streak ?? 0,
+      done: existing?.done ?? false,
       priority: _priority,
       category: _category,
       recurring: _recurring,
       weeklyDay: _recurring == TaskRecurring.weekly ? _weeklyDay : null,
       monthlyDay: _recurring == TaskRecurring.monthly ? _monthlyDay : null,
     );
-    ref.read(taskProvider.notifier).addTask(task);
+    if (existing != null) {
+      ref.read(taskProvider.notifier).updateTask(task);
+    } else {
+      ref.read(taskProvider.notifier).addTask(task);
+    }
     Navigator.of(context).pop();
   }
 
@@ -140,7 +169,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               size: 20, color: AppColors.text),
           onPressed: () => Navigator.of(context).pop(),
         ),
-        title: Text('NEW QUEST',
+        title: Text(widget.existingTask != null ? 'EDIT QUEST' : 'NEW QUEST',
             style: AppTheme.mono(size: 14, weight: FontWeight.w700)
                 .copyWith(letterSpacing: 2)),
         centerTitle: true,
@@ -256,26 +285,36 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               const SizedBox(height: 24),
             ],
 
-            // Title
-            const _FieldLabel('TITLE'),
-            TextField(
-              controller: _titleCtrl,
-              autofocus: true,
-              style: AppTheme.sans(size: 15, weight: FontWeight.w600),
-              decoration: AppTheme.inputDecoration(
-                hint: 'What is your next mission?',
+            Form(
+              key: _formKey,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+              // Title
+              const _FieldLabel('TITLE'),
+              TextFormField(
+                controller: _titleCtrl,
+                autofocus: true,
+                style: AppTheme.sans(size: 15, weight: FontWeight.w600),
+                decoration: AppTheme.inputDecoration(
+                  hint: 'What is your next mission?',
+                ),
+                validator: (v) =>
+                    v == null || v.trim().isEmpty ? 'Title is required' : null,
               ),
-            ),
-            const SizedBox(height: 20),
+              const SizedBox(height: 20),
 
-            // Description
-            const _FieldLabel('DESCRIPTION', optional: true),
-            TextField(
-              controller: _descCtrl,
-              style: AppTheme.sans(size: 14),
-              maxLines: 3,
-              decoration: AppTheme.inputDecoration(
-                hint: 'Add objectives or details...',
+              // Description
+              const _FieldLabel('DESCRIPTION', optional: true),
+              TextFormField(
+                controller: _descCtrl,
+                style: AppTheme.sans(size: 14),
+                maxLines: 3,
+                decoration: AppTheme.inputDecoration(
+                  hint: 'Add objectives or details...',
+                ),
+              ),
+                ],
               ),
             ),
             const SizedBox(height: 20),
@@ -483,7 +522,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                     const Icon(Icons.add_rounded,
                         color: AppColors.bg, size: 24),
                     const SizedBox(width: 8),
-                    Text('CREATE QUEST',
+                    Text(widget.existingTask != null ? 'SAVE CHANGES' : 'CREATE QUEST',
                         style: AppTheme.sans(
                                 size: 14,
                                 weight: FontWeight.w900,

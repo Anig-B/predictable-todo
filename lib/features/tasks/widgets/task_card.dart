@@ -9,7 +9,7 @@ class TaskCard extends StatefulWidget {
   final int effectiveMulti;
   final VoidCallback onToggle;
   final VoidCallback onQuickToggle;
-  final VoidCallback? onDelete;
+  final VoidCallback? onLongPress;
 
   const TaskCard({
     super.key,
@@ -17,7 +17,7 @@ class TaskCard extends StatefulWidget {
     required this.effectiveMulti,
     required this.onToggle,
     required this.onQuickToggle,
-    this.onDelete,
+    this.onLongPress,
   });
 
   @override
@@ -72,7 +72,7 @@ class _TaskCardState extends State<TaskCard>
       opacity: t.done ? 0.45 : 1.0,
       duration: const Duration(milliseconds: 250),
       child: GestureDetector(
-        onLongPress: widget.onDelete,
+        onLongPress: widget.onLongPress,
         child: Container(
         margin: const EdgeInsets.only(bottom: 7),
         decoration: BoxDecoration(

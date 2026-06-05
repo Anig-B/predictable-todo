@@ -289,6 +289,18 @@ class TaskNotifier extends StateNotifier<TaskState> {
     _persist();
   }
 
+  Future<void> updateTask(TaskModel task) async {
+    state = state.copyWith(
+      tasks: state.tasks.map((t) => t.id == task.id ? task : t).toList(),
+    );
+    _persist();
+
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(taskRepositoryProvider).updateTask(task);
+    }
+  }
+
   Future<void> deleteTask(String id) async {
     state = state.copyWith(
       tasks: state.tasks.where((t) => t.id != id).toList(),
