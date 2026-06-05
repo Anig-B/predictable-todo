@@ -1,7 +1,7 @@
 -- Add proof fields to activity_logs
 alter table public.activity_logs 
-add column if not exists "notes" text,
-add column if not exists "imageUrl" text;
+add column if not exists notes text,
+add column if not exists image_url text;
 
 -- Add proof fields to tasks
 alter table public.tasks 
@@ -13,14 +13,20 @@ insert into storage.buckets (id, name, public)
 values ('task-proofs', 'task-proofs', true)
 on conflict (id) do nothing;
 
--- Storage policies
-create policy "Users can upload their own proofs"
-on storage.objects for insert
-with check (bucket_id = 'task-proofs' and (auth.uid())::text = (storage.foldername(name))[1]);
+-- Storage policies (safe re-run)
+do $$ begin
+  if not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'Users can upload their own proofs') then
+    create policy "Users can upload their own proofs"
+    on storage.objects for insert
+    with check (bucket_id = 'task-proofs' and (auth.uid())::text = (storage.foldername(name))[1]);
+  end if;
 
-create policy "Users can view all proofs"
-on storage.objects for select
-using (bucket_id = 'task-proofs');
+  if not exists (select 1 from pg_policies where schemaname = 'storage' and tablename = 'objects' and policyname = 'Users can view all proofs') then
+    create policy "Users can view all proofs"
+    on storage.objects for select
+    using (bucket_id = 'task-proofs');
+  end if;
+end $$;
 
 -- Trigger update for rewards
 create or replace function handle_task_completion()
@@ -83,13 +89,13 @@ begin
     where user_id = new.user_id;
     
     -- Insert activity log with proof
-    insert into public.activity_logs ("taskId", user_id, task, points, time, icon, rating, notes, "imageUrl")
+    insert into public.activity_logs (task_id, user_id, task, points, time, icon, rating, notes, image_url)
     values (new.id, new.user_id, new.title, xp_change, now()::text, '✅', coalesce(new.priority + 1, 3), new.proof_notes, new.proof_image);
   end if;
 
   -- Uncompletion Logic: (true -> false)
   if new.done = false and old.done = true then
-    select points into xp_change from public.activity_logs where "taskId" = old.id and user_id = old.user_id limit 1;
+    select points into xp_change from public.activity_logs where task_id = old.id and user_id = old.user_id limit 1;
     
     new_combo_count := greatest(0, new_combo_count - 1);
     new_combo_points := greatest(0, new_combo_points - old.points);
@@ -108,7 +114,7 @@ begin
       combo_multi = new_combo_multi
     where user_id = new.user_id;
     
-    delete from public.activity_logs where "taskId" = old.id and user_id = old.user_id;
+    delete from public.activity_logs where task_id = old.id and user_id = old.user_id;
     new.proof_notes := null;
     new.proof_image := null;
   end if;

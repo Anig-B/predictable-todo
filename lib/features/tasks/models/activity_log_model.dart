@@ -47,7 +47,7 @@ class ActivityLogModel {
         icon: j['icon'] as String? ?? '📝',
         rating: j['rating'] as int? ?? 0,
         notes: j['notes'] as String?,
-        imageUrl: j['imageUrl'] as String?,
+        imageUrl: j['imageUrl'] as String? ?? j['image_url'] as String?,
         createdAt: j['createdAt'] != null
             ? DateTime.parse(j['createdAt'] as String)
             : (j['created_at'] != null ? DateTime.parse(j['created_at'] as String) : DateTime.now()),

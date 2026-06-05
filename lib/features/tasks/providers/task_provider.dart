@@ -82,7 +82,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
     if (remoteLog.isNotEmpty) {
       final logs = remoteLog.map((json) => ActivityLogModel.fromJson(json)).toList();
       state = state.copyWith(activityLog: logs);
-      StorageService.saveLog(logs);
     }
   }
 
@@ -91,13 +90,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
   Future<void> _init() async {
     if (_initialized) return;
     final tasks = await StorageService.loadTasks();
-    final log = await StorageService.loadLog();
     final savedStats = await StorageService.loadProjectStats();
     final savedHourly = await StorageService.loadHourlyData();
 
     state = TaskState(
       tasks: tasks ?? [],
-      activityLog: log ?? [],
+      activityLog: [],
       projectStats: savedStats ?? SeedData.projectStats,
       hourlyData: savedHourly ?? SeedData.hourlyData,
       leaderboardOthers: List<LeaderboardEntry>.from(
@@ -117,7 +115,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   void _persist() {
     StorageService.saveTasks(state.tasks);
-    StorageService.saveLog(state.activityLog);
     StorageService.saveProjectStats(state.projectStats);
     StorageService.saveHourlyData(state.hourlyData);
   }
@@ -290,6 +287,19 @@ class TaskNotifier extends StateNotifier<TaskState> {
       );
     }
     _persist();
+  }
+
+  Future<void> deleteTask(String id) async {
+    state = state.copyWith(
+      tasks: state.tasks.where((t) => t.id != id).toList(),
+      activityLog: state.activityLog.where((a) => a.taskId != id).toList(),
+    );
+    _persist();
+
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(taskRepositoryProvider).deleteTask(id);
+    }
   }
 
   Future<void> clearAll() async {

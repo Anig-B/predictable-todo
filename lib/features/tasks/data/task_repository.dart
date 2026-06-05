@@ -5,7 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class TaskRepository {
   final SupabaseClient _supabase;
-  
+
   TaskRepository(this._supabase);
 
   // Get tasks for the current user
@@ -46,16 +46,18 @@ class TaskRepository {
   }
 
   // Upload proof image
-  Future<String?> uploadProofImage(String userId, Uint8List bytes, String ext) async {
+  Future<String?> uploadProofImage(
+      String userId, Uint8List bytes, String ext) async {
     final name = '${DateTime.now().millisecondsSinceEpoch}.$ext';
     final fullPath = '$userId/$name';
-    
+
     await _supabase.storage.from('task-proofs').uploadBinary(fullPath, bytes);
     return _supabase.storage.from('task-proofs').getPublicUrl(fullPath);
   }
-  
+
   // Mark task as completed/uncompleted
-  Future<void> setTaskCompletion(String id, bool done, {int? bonusEarned, String? notes, String? imageUrl}) async {
+  Future<void> setTaskCompletion(String id, bool done,
+      {int? bonusEarned, String? notes, String? imageUrl}) async {
     final updates = <String, dynamic>{
       'done': done,
     };
@@ -63,7 +65,10 @@ class TaskRepository {
       updates['lastCompletedAt'] = DateTime.now().toIso8601String();
       if (notes != null) updates['proof_notes'] = notes;
       if (imageUrl != null) updates['proof_image'] = imageUrl;
-      if (bonusEarned != null || notes != null) updates['proof_rating'] = bonusEarned != null ? (bonusEarned > 0 ? 5 : 0) : 0; // Temporary fallback if rating not passed
+      if (bonusEarned != null || notes != null) {
+        updates['proof_rating'] =
+            bonusEarned != null ? (bonusEarned > 0 ? 5 : 0) : 0;
+      } // Temporary fallback if rating not passed
     } else {
       updates['lastCompletedAt'] = null;
       updates['bonusEarned'] = 0;
@@ -71,12 +76,13 @@ class TaskRepository {
       updates['proof_image'] = null;
       updates['proof_rating'] = 0;
     }
-    
+
     await _supabase.from('tasks').update(updates).eq('id', id);
   }
 
   // Update setTaskCompletion signature to match
-  Future<void> setTaskCompletionFull(String id, bool done, {int? bonusEarned, String? notes, String? imageUrl, int? rating}) async {
+  Future<void> setTaskCompletionFull(String id, bool done,
+      {int? bonusEarned, String? notes, String? imageUrl, int? rating}) async {
     final updates = <String, dynamic>{
       'done': done,
     };
@@ -98,8 +104,19 @@ class TaskRepository {
 
   // Add activity log
   Future<void> addActivityLog(String userId, Map<String, dynamic> log) async {
-    final data = Map<String, dynamic>.from(log);
-    data['user_id'] = userId;
+    final data = {
+      'user_id': userId,
+      'task_id': log['taskId'],
+      'task': log['task'],
+      'project': log['project'],
+      'points': log['points'],
+      'time': log['time'],
+      'icon': log['icon'],
+      'rating': log['rating'],
+      'notes': log['notes'],
+      'image_url': log['imageUrl'],
+      'created_at': log['createdAt'],
+    };
     await _supabase.from('activity_logs').insert(data);
   }
 

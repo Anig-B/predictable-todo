@@ -571,6 +571,12 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _comboTimer?.cancel();
     state = _initialState;
     _persist();
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await _fetchRemoteStats(user.id);
+    } else {
+      state = state.copyWith(isLoading: false);
+    }
   }
 
   void toggleBadgeSelection(String badgeName) {

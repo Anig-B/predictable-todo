@@ -9,6 +9,7 @@ class TaskCard extends StatefulWidget {
   final int effectiveMulti;
   final VoidCallback onToggle;
   final VoidCallback onQuickToggle;
+  final VoidCallback? onDelete;
 
   const TaskCard({
     super.key,
@@ -16,6 +17,7 @@ class TaskCard extends StatefulWidget {
     required this.effectiveMulti,
     required this.onToggle,
     required this.onQuickToggle,
+    this.onDelete,
   });
 
   @override
@@ -69,7 +71,9 @@ class _TaskCardState extends State<TaskCard>
     return AnimatedOpacity(
       opacity: t.done ? 0.45 : 1.0,
       duration: const Duration(milliseconds: 250),
-      child: Container(
+      child: GestureDetector(
+        onLongPress: widget.onDelete,
+        child: Container(
         margin: const EdgeInsets.only(bottom: 7),
         decoration: BoxDecoration(
           color: AppColors.surface,
@@ -234,6 +238,7 @@ class _TaskCardState extends State<TaskCard>
             ),
           ],
         ),
+      ),
       ),
     );
   }

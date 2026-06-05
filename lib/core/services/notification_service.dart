@@ -57,14 +57,25 @@ class NotificationService {
 
     final numId = id.hashCode.remainder(100000);
 
-    await _notificationsPlugin.zonedSchedule(
-      id: numId,
-      title: 'Quest Reminder',
-      body: title,
-      scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
-      notificationDetails: details,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-    );
+    try {
+      await _notificationsPlugin.zonedSchedule(
+        id: numId,
+        title: 'Quest Reminder',
+        body: title,
+        scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      );
+    } catch (_) {
+      await _notificationsPlugin.zonedSchedule(
+        id: numId,
+        title: 'Quest Reminder',
+        body: title,
+        scheduledDate: tz.TZDateTime.from(scheduledTime, tz.local),
+        notificationDetails: details,
+        androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      );
+    }
   }
 
   Future<void> cancelTaskNotification(String id) async {

@@ -140,6 +140,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         onToggle: () => _handleToggle(context, ref, task),
                         onQuickToggle: () =>
                             _handleQuickToggle(context, ref, task),
+                        onDelete: () => _handleDelete(context, ref, task),
                       )),
 
                   if (_filteredTasks(tState.tasks).isEmpty)
@@ -229,6 +230,34 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       ),
     );
     return confirmed ?? false;
+  }
+
+  void _handleDelete(BuildContext context, WidgetRef ref, TaskModel task) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Delete Quest',
+            style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
+        content: Text('Delete "${task.title}" permanently?',
+            style: AppTheme.sans(size: 12, color: AppColors.muted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(ctx).pop(),
+            child: Text('Cancel',
+                style: AppTheme.sans(size: 11, color: AppColors.subtle)),
+          ),
+          TextButton(
+            onPressed: () {
+              ref.read(taskProvider.notifier).deleteTask(task.id);
+              Navigator.of(ctx).pop();
+            },
+            child: Text('Delete',
+                style: AppTheme.sans(size: 11, color: AppColors.red)),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _handleQuickToggle(
