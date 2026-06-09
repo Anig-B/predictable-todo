@@ -46,6 +46,11 @@ class StorageService {
     return jsonDecode(raw) as Map<String, dynamic>;
   }
 
+  static Future<void> clearGamification() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove(_keyGami);
+  }
+
   // ── Profile ──────────────────────────────────────────
 
   static Future<void> saveProfile(Map<String, dynamic> data) async {

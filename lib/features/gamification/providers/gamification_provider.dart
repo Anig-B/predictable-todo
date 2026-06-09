@@ -169,23 +169,23 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   RealtimeChannel? _subscription;
 
   GamificationNotifier(this.ref) : super(_initialState) {
-    _init();
+    _init().then((_) {
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        _fetchRemoteStats(user.id);
+        _listenToStats(user.id);
+      }
+    });
 
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
-        _fetchRemoteStats(next.id);
+        _init().then((_) => _fetchRemoteStats(next.id));
         _listenToStats(next.id);
       } else {
         _stopListening();
         state = _initialState;
       }
     });
-
-    final user = ref.read(currentUserProvider);
-    if (user != null) {
-      _fetchRemoteStats(user.id);
-      _listenToStats(user.id);
-    }
   }
 
   void _listenToStats(String userId) {
@@ -224,6 +224,10 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   Future<void> _init() async {
     final saved = await StorageService.loadGamification();
     if (saved == null) return;
+
+    final cachedUserId = saved['userId'] as String?;
+    final currentUser = ref.read(currentUserProvider);
+    if (cachedUserId != null && currentUser?.id != cachedUserId) return;
 
     final unlockedIds = (saved['unlockedSkills'] as List<dynamic>?)
             ?.map((e) => e as String)
@@ -277,7 +281,16 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
         totalXp: stats['xp'] as int? ?? state.totalXp,
         weeklyXp: stats['weekly_xp'] as int? ?? state.weeklyXp,
+        bonusXp: stats['bonus_xp'] as int? ?? state.bonusXp,
+        comboPoints: stats['combo_points'] as int? ?? state.comboPoints,
+        comboCount: stats['combo_count'] as int? ?? state.comboCount,
+        shields: stats['shields'] as int? ?? state.shields,
+        lootCount: stats['loot_count'] as int? ?? state.lootCount,
         skillPoints: stats['skill_points'] as int? ?? state.skillPoints,
+        spinUsed: stats['spin_used'] as bool? ?? state.spinUsed,
+        lastSpunDate: stats['last_spun_date'] != null
+            ? DateTime.tryParse(stats['last_spun_date'] as String)
+            : state.lastSpunDate,
         lastBossResetDate: stats['last_boss_reset_at'] != null 
             ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
             : state.lastBossResetDate,
@@ -292,7 +305,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
             state.selectedBadges,
         bossRewardClaimed: stats['boss_reward_claimed'] ?? false,
         dailyQuestRewardClaimed: stats['daily_quest_reward_claimed'] ?? false,
-        totalLifetimeTasks: stats['total_lifetime_tasks'] ?? 0,
+        totalLifetimeTasks: stats['total_lifetime_tasks'] ?? state.totalLifetimeTasks,
         skillTree: state.skillTree.map((s) => s.copyWith(
           unlocked: unlockedSkills.contains(s.id) || s.unlocked
         )).toList(),
@@ -311,8 +324,15 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     ref.read(profileRepositoryProvider).updateUserStats(user.id, {
       'xp': state.totalXp,
       'weekly_xp': state.weeklyXp,
+      'bonus_xp': state.bonusXp,
+      'combo_points': state.comboPoints,
+      'combo_count': state.comboCount,
+      'shields': state.shields,
+      'loot_count': state.lootCount,
       'current_streak': state.currentStreak,
       'skill_points': state.skillPoints,
+      'spin_used': state.spinUsed,
+      'last_spun_date': state.lastSpunDate?.toIso8601String(),
       'unlocked_skills': state.skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
       'boss_id': state.boss.id,
       'boss_hp': state.boss.hp,
@@ -324,11 +344,14 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       'boss_reward_claimed': state.bossRewardClaimed,
       'daily_quest_reward_claimed': state.dailyQuestRewardClaimed,
       'last_active_at': state.lastActiveDate?.toIso8601String(),
+      'total_lifetime_tasks': state.totalLifetimeTasks,
     });
   }
 
   void _persist() {
-    StorageService.saveGamification(state.toJson());
+    final data = state.toJson();
+    data['userId'] = ref.read(currentUserProvider)?.id;
+    StorageService.saveGamification(data);
   }
 
   int _updatedStreak() {
