@@ -8,6 +8,7 @@ class GaugeChart extends StatelessWidget {
   final double max;
   final String label;
   final Color color;
+  final double size;
 
   const GaugeChart({
     super.key,
@@ -15,6 +16,7 @@ class GaugeChart extends StatelessWidget {
     required this.max,
     required this.label,
     required this.color,
+    this.size = 76,
   });
 
   @override
@@ -25,7 +27,7 @@ class GaugeChart extends StatelessWidget {
       mainAxisSize: MainAxisSize.min,
       children: [
         SizedBox(
-          width: 76, height: 76,
+          width: size, height: size,
           child: CustomPaint(
             painter: _GaugePainter(pct: pct, color: color),
             child: Center(
@@ -56,7 +58,7 @@ class _GaugePainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final cx = size.width / 2;
     final cy = size.height / 2;
-    const r = 32.0;
+    final r = size.width / 2 - 6;
 
     final bg = Paint()
       ..style = PaintingStyle.stroke

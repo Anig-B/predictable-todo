@@ -121,12 +121,14 @@ class MomentumData {
   final double avgDailyXp;
   final double momentum;
   final bool isUp;
+  final int bestDayXp;
 
   MomentumData({
     required this.todayXp,
     required this.avgDailyXp,
     required this.momentum,
     required this.isUp,
+    required this.bestDayXp,
   });
 }
 
@@ -149,10 +151,21 @@ final momentumProvider = Provider<MomentumData>((ref) {
   final momentum = avgDailyXp > 0 ? todayXp / avgDailyXp : (todayXp > 0 ? 2.0 : 1.0);
   final isUp = momentum >= 1.0;
 
+  final bestDayXp = (() {
+    final Map<int, int> xpByDay = {};
+    for (final log in tState.activityLog) {
+      final day = DateTime(log.createdAt.year, log.createdAt.month, log.createdAt.day);
+      xpByDay[day.millisecondsSinceEpoch] =
+          (xpByDay[day.millisecondsSinceEpoch] ?? 0) + log.points;
+    }
+    return xpByDay.values.isEmpty ? 0 : xpByDay.values.reduce((a, b) => a > b ? a : b);
+  })();
+
   return MomentumData(
     todayXp: todayXp,
     avgDailyXp: avgDailyXp,
     momentum: momentum,
     isUp: isUp,
+    bestDayXp: bestDayXp,
   );
 });

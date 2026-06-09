@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/xp_calculator.dart';
 import '../../tasks/providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
 import '../providers/stats_providers.dart';
@@ -44,11 +45,14 @@ class OverviewTab extends ConsumerWidget {
                 ],
               ),
             )
-          : Row(
+          : LayoutBuilder(
+              builder: (context, constraints) {
+                final chartSize = constraints.maxWidth < 300 ? 90.0 : 126.0;
+                return Row(
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                DonutChart(data: categoryData),
-                const SizedBox(width: 20),
+                DonutChart(data: categoryData, size: chartSize),
+                const SizedBox(width: 16),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -81,6 +85,8 @@ class OverviewTab extends ConsumerWidget {
                   ),
                 ),
               ],
+            );
+              },
             ),
         const SizedBox(height: 16),
         const SectionLabel('WEEKLY XP'),
@@ -118,33 +124,36 @@ class OverviewTab extends ConsumerWidget {
         const SizedBox(height: 16),
         const SectionLabel('KEY STATS'),
         const SizedBox(height: 8),
-        Row(
-          children: [
-            Expanded(
-              child: GaugeChart(
-                value: tState.doneCount.toDouble(),
-                max: tState.totalCount > 0 ? tState.totalCount.toDouble() : 1,
-                label: 'DONE',
-                color: AppColors.accent,
-              ),
-            ),
-            Expanded(
-              child: GaugeChart(
-                value: totalXp.toDouble(),
-                max: 3000,
-                label: 'XP',
-                color: AppColors.purple,
-              ),
-            ),
-            Expanded(
-              child: GaugeChart(
-                value: gState.comboPoints.toDouble(),
-                max: 500,
-                label: 'COMBO XP',
-                color: AppColors.gold,
-              ),
-            ),
-          ],
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final gaugeSize = ((constraints.maxWidth - 16) / 3).clamp(52.0, 90.0);
+            return Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                GaugeChart(
+                  value: tState.doneCount.toDouble(),
+                  max: tState.totalCount > 0 ? tState.totalCount.toDouble() : 1,
+                  label: 'DONE',
+                  color: AppColors.accent,
+                  size: gaugeSize,
+                ),
+                GaugeChart(
+                  value: XpCalculator.xpInLevel(totalXp).toDouble(),
+                  max: XpCalculator.xpPerLevel.toDouble(),
+                  label: 'XP',
+                  color: AppColors.purple,
+                  size: gaugeSize,
+                ),
+                GaugeChart(
+                  value: gState.comboPoints.toDouble(),
+                  max: gState.comboPoints >= 500 ? 500.0 : (gState.comboPoints >= 250 ? 500.0 : (gState.comboPoints >= 100 ? 250.0 : 100.0)),
+                  label: 'COMBO XP',
+                  color: AppColors.gold,
+                  size: gaugeSize,
+                ),
+              ],
+            );
+          },
         ),
       ],
     );

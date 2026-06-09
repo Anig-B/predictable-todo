@@ -20,10 +20,12 @@ class HorizontalBarChart extends StatelessWidget {
           padding: const EdgeInsets.only(bottom: 8),
           child: Row(
             children: [
-              SizedBox(
-                width: 60,
+              ConstrainedBox(
+                constraints: const BoxConstraints(maxWidth: 100, minWidth: 40),
                 child: Text(item['name'] as String,
                     textAlign: TextAlign.right,
+                    overflow: TextOverflow.ellipsis,
+                    maxLines: 1,
                     style: AppTheme.sans(size: 9, weight: FontWeight.w600, color: AppColors.muted)),
               ),
               const SizedBox(width: 8),

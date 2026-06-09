@@ -73,6 +73,70 @@ class _TimeTabState extends ConsumerState<TimeTab> {
     }
   }
 
+  Widget _momentumSection(MomentumData m) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: AppTheme.surfaceBox(),
+      child: Column(
+        children: [
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text('Today XP', style: AppTheme.sans(size: 11, color: AppColors.muted)),
+                  const SizedBox(height: 2),
+                  Text('${m.todayXp} XP', style: AppTheme.mono(size: 18, weight: FontWeight.w800, color: AppColors.gold)),
+                ],
+              ),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                decoration: BoxDecoration(
+                  color: m.isUp ? AppColors.accent.withValues(alpha: 0.1) : AppColors.red.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: Row(
+                  children: [
+                    Icon(m.isUp ? Icons.trending_up : Icons.trending_down, size: 14, color: m.isUp ? AppColors.accent : AppColors.red),
+                    const SizedBox(width: 4),
+                    Text(
+                      '${(m.momentum * 100).toInt()}%',
+                      style: AppTheme.mono(size: 11, weight: FontWeight.w700, color: m.isUp ? AppColors.accent : AppColors.red),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          const Divider(color: AppColors.border, height: 1),
+          const SizedBox(height: 16),
+          Row(
+            children: [
+              Expanded(
+                child: _StatMini(
+                  label: 'Weekly Avg',
+                  value: '${m.avgDailyXp.toInt()}',
+                  icon: Icons.calendar_month,
+                ),
+              ),
+              Container(width: 1, height: 30, color: AppColors.border),
+              Expanded(
+                child: _StatMini(
+                  label: 'Best Day',
+                  value: '${m.bestDayXp} XP',
+                  icon: Icons.auto_awesome,
+                  color: AppColors.gold,
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final heatmap = ref.watch(heatmapProvider);
@@ -281,67 +345,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
         const SizedBox(height: 16),
         const SectionLabel('MOMENTUM & STREAKS'),
         const SizedBox(height: 8),
-        ref.watch(momentumProvider).let((m) => Container(
-          padding: const EdgeInsets.all(16),
-          decoration: AppTheme.surfaceBox(),
-          child: Column(
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text('Today XP', style: AppTheme.sans(size: 11, color: AppColors.muted)),
-                      const SizedBox(height: 2),
-                      Text('${m.todayXp} XP', style: AppTheme.mono(size: 18, weight: FontWeight.w800, color: AppColors.gold)),
-                    ],
-                  ),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: m.isUp ? AppColors.accent.withValues(alpha: 0.1) : AppColors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Row(
-                      children: [
-                        Icon(m.isUp ? Icons.trending_up : Icons.trending_down, size: 14, color: m.isUp ? AppColors.accent : AppColors.red),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${(m.momentum * 100).toInt()}%',
-                          style: AppTheme.mono(size: 11, weight: FontWeight.w700, color: m.isUp ? AppColors.accent : AppColors.red),
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 16),
-              const Divider(color: AppColors.border, height: 1),
-              const SizedBox(height: 16),
-              Row(
-                children: [
-                  Expanded(
-                    child: _StatMini(
-                      label: 'Weekly Avg',
-                      value: '${m.avgDailyXp.toInt()}',
-                      icon: Icons.calendar_month,
-                    ),
-                  ),
-                  Container(width: 1, height: 30, color: AppColors.border),
-                  const Expanded(
-                    child: _StatMini(
-                      label: 'Best Day',
-                      value: '1.2k', 
-                      icon: Icons.auto_awesome,
-                      color: AppColors.gold,
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        )),
+        _momentumSection(ref.watch(momentumProvider)),
       ],
     );
   }
@@ -379,6 +383,4 @@ class _StatMini extends StatelessWidget {
   }
 }
 
-extension LetExtension<T> on T {
-  R let<R>(R Function(T) block) => block(this);
-}
+
