@@ -180,6 +180,8 @@ class _TaskCardState extends State<TaskCard>
                             children: [
                               Text(
                                 t.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
                                 style: AppTheme.sans(
                                   size: 12,
                                   weight: FontWeight.w700,
@@ -257,6 +259,8 @@ class _TaskCardState extends State<TaskCard>
                       decoration: AppTheme.surfaceBox(
                           color: AppColors.surface2, radius: 8),
                       child: Text(t.desc,
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
                           style:
                               AppTheme.sans(size: 11, color: AppColors.muted)),
                     ),
@@ -295,6 +299,8 @@ class _Chip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: mono
             ? AppTheme.mono(size: 9, weight: FontWeight.w600, color: color)
             : AppTheme.sans(size: 9, weight: FontWeight.w600, color: color),

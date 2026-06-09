@@ -249,11 +249,15 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(demo.name,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: AppTheme.sans(
                                               size: 14,
                                               weight: FontWeight.w800)),
                                       const SizedBox(height: 3),
                                       Text(demo.desc,
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
                                           style: AppTheme.sans(
                                               size: 10,
                                               color: AppColors.subtle)),

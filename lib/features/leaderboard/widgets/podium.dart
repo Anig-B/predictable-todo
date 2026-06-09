@@ -22,14 +22,19 @@ class Podium extends StatelessWidget {
 
     return Padding(
       padding: const EdgeInsets.only(bottom: 24, top: 16),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        crossAxisAlignment: CrossAxisAlignment.end,
-        children: [
-          if (second != null) _PodiumItem(entry: second, rank: 2, height: 100, onTap: () => onTap(second)),
-          if (first != null) _PodiumItem(entry: first, rank: 1, height: 140, onTap: () => onTap(first)),
-          if (third != null) _PodiumItem(entry: third, rank: 3, height: 80, onTap: () => onTap(third)),
-        ],
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          final itemWidth = (constraints.maxWidth - 32) / 3;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              if (second != null) _PodiumItem(entry: second, rank: 2, height: 100, itemWidth: itemWidth, onTap: () => onTap(second)),
+              if (first != null) _PodiumItem(entry: first, rank: 1, height: 140, itemWidth: itemWidth, onTap: () => onTap(first)),
+              if (third != null) _PodiumItem(entry: third, rank: 3, height: 80, itemWidth: itemWidth, onTap: () => onTap(third)),
+            ],
+          );
+        },
       ),
     );
   }
@@ -39,12 +44,14 @@ class _PodiumItem extends StatelessWidget {
   final LeaderboardEntry entry;
   final int rank;
   final double height;
+  final double itemWidth;
   final VoidCallback onTap;
 
   const _PodiumItem({
     required this.entry,
     required this.rank,
     required this.height,
+    required this.itemWidth,
     required this.onTap,
   });
 
@@ -60,7 +67,7 @@ class _PodiumItem extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: SizedBox(
-        width: 100,
+        width: itemWidth,
         child: Column(
           mainAxisAlignment: MainAxisAlignment.end,
           children: [

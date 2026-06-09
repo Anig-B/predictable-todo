@@ -32,63 +32,69 @@ class TaskFilterBar extends StatelessWidget {
             final active = selected == f;
             final isNotes = f == TaskFilter.notes;
 
-            Widget filterItem = GestureDetector(
-              onTap: () {
-                if (isNotes) {
-                  context.push('/notes');
-                } else {
-                  onChanged(f);
-                }
-              },
-              child: AnimatedContainer(
-                duration: const Duration(milliseconds: 240),
-                curve: Curves.easeOutCubic,
-                padding: EdgeInsets.symmetric(
-                  vertical: isNotes ? 6 : 8,
-                  horizontal: isNotes ? 8 : 0,
-                ),
-                decoration: BoxDecoration(
-                  color: active
-                      ? (isNotes
+            if (isNotes) {
+              return SizedBox(
+                width: 40,
+                child: GestureDetector(
+                  onTap: () => context.push('/notes'),
+                  child: AnimatedContainer(
+                    duration: const Duration(milliseconds: 240),
+                    curve: Curves.easeOutCubic,
+                    padding: const EdgeInsets.symmetric(vertical: 6, horizontal: 8),
+                    decoration: BoxDecoration(
+                      color: active
                           ? AppColors.accent.withValues(alpha: 0.15)
-                          : AppColors.surface3)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  boxShadow: active && !isNotes
-                      ? [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.2),
-                            blurRadius: 10,
-                            offset: const Offset(0, 2),
-                          ),
-                        ]
-                      : null,
-                ),
-                alignment: Alignment.center,
-                child: isNotes
-                    ? const RainbowGlimmer(
-                        child: Icon(
-                          Icons.history_edu_rounded,
-                          size: 16,
-                          color: Colors.white,
-                        ),
-                      )
-                    : Text(
-                        f.name.toUpperCase(),
-                        style: AppTheme.mono(
-                          size: 9,
-                          weight: active ? FontWeight.w900 : FontWeight.w700,
-                          color: active ? AppColors.accent : AppColors.muted,
-                        ).copyWith(letterSpacing: 1.2),
+                          : Colors.transparent,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: const RainbowGlimmer(
+                      child: Icon(
+                        Icons.history_edu_rounded,
+                        size: 16,
+                        color: Colors.white,
                       ),
+                    ),
+                  ),
+                ),
+              );
+            }
+
+            return Expanded(
+              child: GestureDetector(
+                onTap: () => onChanged(f),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 240),
+                  curve: Curves.easeOutCubic,
+                  padding: const EdgeInsets.symmetric(vertical: 8),
+                  decoration: BoxDecoration(
+                    color: active ? AppColors.surface3 : Colors.transparent,
+                    borderRadius: BorderRadius.circular(10),
+                    boxShadow: active
+                        ? [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.2),
+                              blurRadius: 10,
+                              offset: const Offset(0, 2),
+                            ),
+                          ]
+                        : null,
+                  ),
+                  alignment: Alignment.center,
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      f.name.toUpperCase(),
+                      style: AppTheme.mono(
+                        size: 9,
+                        weight: active ? FontWeight.w900 : FontWeight.w700,
+                        color: active ? AppColors.accent : AppColors.muted,
+                      ).copyWith(letterSpacing: 1.2),
+                    ),
+                  ),
+                ),
               ),
             );
-
-            // Give notes icon a fixed width or smaller flex
-            if (isNotes) {
-              return SizedBox(width: 44, child: filterItem);
-            }
-            return Expanded(child: filterItem);
           }).toList(),
         ),
       ),

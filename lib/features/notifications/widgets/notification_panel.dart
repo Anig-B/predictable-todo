@@ -105,7 +105,7 @@ class NotificationPanel extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text(n.text, style: AppTheme.sans(size: 12)),
+                            Text(n.text, maxLines: 3, overflow: TextOverflow.ellipsis, style: AppTheme.sans(size: 12)),
                             const SizedBox(height: 3),
                             Text(timeago.format(n.createdAt),
                                 style: AppTheme.mono(

@@ -202,6 +202,8 @@ class _NotificationCard extends StatelessWidget {
                         Expanded(
                           child: Text(
                             notification.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                             style: AppTheme.sans(
                               size: 14,
                               weight: notification.read
@@ -227,6 +229,8 @@ class _NotificationCard extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(
                       notification.text,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
                       style: AppTheme.sans(
                         size: 12,
                         weight: FontWeight.w500,
