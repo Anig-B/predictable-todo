@@ -252,6 +252,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       spinUsed: saved['spinUsed'] as bool? ?? false,
       lastSpunDate: parseDate('lastSpunDate'),
       currentStreak: saved['currentStreak'] as int? ?? 0,
+      lastActiveDate: parseDate('lastActiveDate'),
       lastBossResetDate: parseDate('lastBossResetDate'),
       lastBossId: saved['lastBossId'] as String?,
       unlockedBadges: (saved['unlockedBadges'] as List<dynamic>?)?.cast<String>() ?? 
@@ -269,7 +270,15 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       isLoading: false,
     );
 
+    _checkComboExpiry();
     _checkWeeklyBossReset();
+  }
+
+  void _checkComboExpiry() {
+    final last = state.lastActiveDate;
+    if (last != null && DateTime.now().difference(last).inHours >= 24 && state.comboPoints > 0) {
+      state = state.copyWith(comboPoints: 0, comboCount: 0);
+    }
   }
 
   Future<void> _fetchRemoteStats(String userId) async {
@@ -311,6 +320,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         )).toList(),
         isLoading: false,
       );
+      _checkComboExpiry();
       _persist();
     } else {
       state = state.copyWith(isLoading: false);
