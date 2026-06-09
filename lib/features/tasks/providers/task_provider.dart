@@ -49,6 +49,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
   final Ref ref;
   Timer? _recurTimer;
   StreamSubscription<List<TaskModel>>? _taskSub;
+  final Set<String> _locallyDeletedTaskIds = {};
 
   TaskNotifier(this.ref) : super(const TaskState(tasks: [], activityLog: [])) {
     _init();
@@ -70,10 +71,23 @@ class TaskNotifier extends StateNotifier<TaskState> {
     }
   }
 
+  void refresh() {
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      _subscribeToTasks(user.id);
+      _fetchRemoteActivity(user.id);
+    }
+    _resetDueTasks();
+  }
+
   void _subscribeToTasks(String userId) {
     _taskSub?.cancel();
     _taskSub = ref.read(taskRepositoryProvider).watchTasks(userId).listen((tasks) {
-      state = state.copyWith(tasks: tasks);
+      final filtered =
+          tasks.where((t) => !_locallyDeletedTaskIds.contains(t.id)).toList();
+      final streamIds = tasks.map((t) => t.id).toSet();
+      _locallyDeletedTaskIds.removeWhere((id) => !streamIds.contains(id));
+      state = state.copyWith(tasks: filtered);
     });
   }
 
@@ -89,12 +103,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   Future<void> _init() async {
     if (_initialized) return;
-    final tasks = await StorageService.loadTasks();
+    final user = ref.read(currentUserProvider);
     final savedStats = await StorageService.loadProjectStats();
     final savedHourly = await StorageService.loadHourlyData();
-
     state = TaskState(
-      tasks: tasks ?? [],
+      tasks: user != null ? [] : (await StorageService.loadTasks() ?? []),
       activityLog: [],
       projectStats: savedStats ?? SeedData.projectStats,
       hourlyData: savedHourly ?? SeedData.hourlyData,
@@ -120,7 +133,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
   }
 
   void _resetDueTasks() {
-    final updated = state.tasks.map((t) {
+    final oldTasks = state.tasks;
+    final updated = oldTasks.map((t) {
       if (t.recurring == TaskRecurring.none || !t.done) return t;
       if (t.recurring.isDue(t.lastCompletedAt,
           weeklyDay: t.weeklyDay, monthlyDay: t.monthlyDay)) {
@@ -130,7 +144,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
       return t;
     }).toList();
     if (updated
-        .any((t) => state.tasks.any((o) => o.id == t.id && o.done != t.done))) {
+        .any((t) => oldTasks.any((o) => o.id == t.id && o.done != t.done))) {
       state = state.copyWith(tasks: updated);
       _persist();
 
@@ -138,7 +152,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
       if (user != null) {
         final repo = ref.read(taskRepositoryProvider);
         for (final u in updated) {
-          final old = state.tasks.firstWhere((o) => o.id == u.id);
+          final old = oldTasks.firstWhere((o) => o.id == u.id);
           if (old.done && !u.done) {
             repo.setTaskCompletion(u.id, false);
           }
@@ -302,6 +316,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
   }
 
   Future<void> deleteTask(String id) async {
+    _locallyDeletedTaskIds.add(id);
     state = state.copyWith(
       tasks: state.tasks.where((t) => t.id != id).toList(),
       activityLog: state.activityLog.where((a) => a.taskId != id).toList(),
@@ -310,7 +325,24 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
     final user = ref.read(currentUserProvider);
     if (user != null) {
-      await ref.read(taskRepositoryProvider).deleteTask(id);
+      await ref.read(taskRepositoryProvider).deleteTask(user.id, id);
+    }
+  }
+
+  Future<void> deleteTasks(List<String> ids) async {
+    _locallyDeletedTaskIds.addAll(ids);
+    final idsSet = ids.toSet();
+    state = state.copyWith(
+      tasks: state.tasks.where((t) => !idsSet.contains(t.id)).toList(),
+      activityLog: state.activityLog.where((a) => !idsSet.contains(a.taskId)).toList(),
+    );
+    _persist();
+
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      for (final id in ids) {
+        await ref.read(taskRepositoryProvider).deleteTask(user.id, id);
+      }
     }
   }
 
@@ -319,6 +351,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     if (user != null) {
       await ref.read(taskRepositoryProvider).deleteAllData(user.id);
     }
+    _locallyDeletedTaskIds.clear();
     
     state = TaskState(
       tasks: [],

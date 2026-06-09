@@ -44,11 +44,10 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
           .eq('user_id', userId!)
           .order('created_at', ascending: false);
 
+      if (!mounted) return;
       debugPrint('DEBUG: Found ${data.length} notifications');
       state = data.map((map) => NotificationModel.fromMap(map)).toList();
     } catch (e) {
-      // Handle error gracefully
-
       debugPrint('Error fetching notifications: $e');
     }
   }

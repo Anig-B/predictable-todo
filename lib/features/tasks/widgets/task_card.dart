@@ -10,6 +10,9 @@ class TaskCard extends StatefulWidget {
   final VoidCallback onToggle;
   final VoidCallback onQuickToggle;
   final VoidCallback? onLongPress;
+  final bool selectMode;
+  final bool isSelected;
+  final VoidCallback? onSelect;
 
   const TaskCard({
     super.key,
@@ -18,6 +21,9 @@ class TaskCard extends StatefulWidget {
     required this.onToggle,
     required this.onQuickToggle,
     this.onLongPress,
+    this.selectMode = false,
+    this.isSelected = false,
+    this.onSelect,
   });
 
   @override
@@ -116,36 +122,58 @@ class _TaskCardState extends State<TaskCard>
                   Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Check button
-                      ScaleTransition(
-                        scale: _checkScale,
-                        child: GestureDetector(
-                          onTap: _handleQuickToggle,
-                          child: AnimatedContainer(
-                            duration: const Duration(milliseconds: 200),
+                      // Select checkbox
+                      if (widget.selectMode)
+                        GestureDetector(
+                          onTap: widget.onSelect,
+                          child: Container(
                             width: 22,
                             height: 22,
+                            margin: const EdgeInsets.only(right: 9, top: 1),
                             decoration: BoxDecoration(
-                              gradient:
-                                  t.done ? AppColors.primaryGradient : null,
-                              border: t.done
-                                  ? null
-                                  : Border.all(
-                                      color: AppColors.border, width: 2),
+                              color: widget.isSelected ? AppColors.accent : Colors.transparent,
                               borderRadius: BorderRadius.circular(6),
+                              border: Border.all(
+                                color: widget.isSelected ? AppColors.accent : AppColors.border,
+                                width: 2,
+                              ),
                             ),
-                            child: t.done
-                                ? const Icon(Icons.check,
-                                    size: 13, color: Colors.white)
+                            child: widget.isSelected
+                                ? const Icon(Icons.check, size: 13, color: Colors.white)
                                 : null,
                           ),
                         ),
-                      ),
+                      // Check button (hidden in select mode)
+                      if (!widget.selectMode)
+                        ScaleTransition(
+                          scale: _checkScale,
+                          child: GestureDetector(
+                            onTap: _handleQuickToggle,
+                            child: AnimatedContainer(
+                              duration: const Duration(milliseconds: 200),
+                              width: 22,
+                              height: 22,
+                              decoration: BoxDecoration(
+                                gradient:
+                                    t.done ? AppColors.primaryGradient : null,
+                                border: t.done
+                                    ? null
+                                    : Border.all(
+                                        color: AppColors.border, width: 2),
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: t.done
+                                  ? const Icon(Icons.check,
+                                      size: 13, color: Colors.white)
+                                  : null,
+                            ),
+                          ),
+                        ),
                       const SizedBox(width: 9),
                       // Title + chips
                       Expanded(
                         child: GestureDetector(
-                          onTap: widget.onToggle,
+                          onTap: widget.selectMode ? widget.onSelect : widget.onToggle,
                           behavior: HitTestBehavior.opaque,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

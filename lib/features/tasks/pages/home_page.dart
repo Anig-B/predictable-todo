@@ -33,6 +33,32 @@ class TasksPage extends ConsumerStatefulWidget {
 
 class _TasksPageState extends ConsumerState<TasksPage> {
   TaskFilter _activeFilter = TaskFilter.today;
+  bool _selectMode = false;
+  final Set<String> _selectedIds = {};
+
+  void _enterSelectMode() {
+    setState(() {
+      _selectMode = true;
+      _selectedIds.clear();
+    });
+  }
+
+  void _exitSelectMode() {
+    setState(() {
+      _selectMode = false;
+      _selectedIds.clear();
+    });
+  }
+
+  void _toggleSelect(String id) {
+    setState(() {
+      if (_selectedIds.contains(id)) {
+        _selectedIds.remove(id);
+      } else {
+        _selectedIds.add(id);
+      }
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -57,6 +83,120 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
     return Scaffold(
       backgroundColor: AppColors.bg,
+      bottomNavigationBar: _selectMode
+          ? Container(
+              padding: EdgeInsets.only(
+                left: 16, right: 16, top: 12,
+                bottom: MediaQuery.of(context).padding.bottom + 12,
+              ),
+              decoration: BoxDecoration(
+                color: AppColors.surface,
+                border: Border(top: BorderSide(color: AppColors.border)),
+              ),
+              child: Row(
+                children: [
+                  TextButton(
+                    onPressed: () {
+                      setState(() {
+                        if (_selectedIds.length == _filteredTasks(tState.tasks).length) {
+                          _selectedIds.clear();
+                        } else {
+                          _selectedIds.addAll(
+                            _filteredTasks(tState.tasks).map((t) => t.id),
+                          );
+                        }
+                      });
+                    },
+                    child: Text(
+                      _selectedIds.length == _filteredTasks(tState.tasks).length
+                          ? 'Deselect All' : 'Select All',
+                      style: AppTheme.sans(size: 11, color: AppColors.accent, weight: FontWeight.w700),
+                    ),
+                  ),
+                  Text('${_selectedIds.length}',
+                      style: AppTheme.mono(size: 10, color: AppColors.subtle)),
+                  const Spacer(),
+                  GestureDetector(
+                    onTap: _selectedIds.isEmpty ? null : () async {
+                      final tasks = _selectedIds
+                          .map((id) => tState.tasks.firstWhere((t) => t.id == id))
+                          .where((t) => t.done)
+                          .toList();
+                      if (tasks.isEmpty) return;
+
+                      final needConfirm = tasks.any((t) =>
+                          !_isRecent(t.lastCompletedAt) ||
+                          t.proofNotes != null ||
+                          t.proofImage != null);
+                      if (needConfirm) {
+                        final confirmed = await _confirmBulkUndo(context, tasks);
+                        if (!confirmed) return;
+                      }
+
+                      for (final task in tasks) {
+                        ref.read(taskProvider.notifier).uncompleteTask(task.id);
+                        ref.read(gamificationProvider.notifier)
+                            .onTaskUncompleted(task.points, task.bonusEarned);
+                      }
+                      _exitSelectMode();
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedIds.isEmpty ? AppColors.surface2 : AppColors.accent,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('Undo',
+                          style: AppTheme.sans(size: 12, weight: FontWeight.w700,
+                              color: _selectedIds.isEmpty ? AppColors.muted : Colors.white)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  GestureDetector(
+                    onTap: _selectedIds.isEmpty ? null : () {
+                      final count = _selectedIds.length;
+                      showDialog(
+                        context: context,
+                        builder: (ctx) => AlertDialog(
+                          backgroundColor: AppColors.surface,
+                          title: Text('Delete $count quests?',
+                              style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
+                          content: Text('This cannot be undone.',
+                              style: AppTheme.sans(size: 12, color: AppColors.muted)),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.of(ctx).pop(),
+                              child: Text('Cancel',
+                                  style: AppTheme.sans(size: 11, color: AppColors.subtle)),
+                            ),
+                            TextButton(
+                              onPressed: () {
+                                ref.read(taskProvider.notifier).deleteTasks(_selectedIds.toList());
+                                _exitSelectMode();
+                                Navigator.of(ctx).pop();
+                              },
+                              child: Text('Delete All',
+                                  style: AppTheme.sans(size: 11, color: AppColors.red)),
+                            ),
+                          ],
+                        ),
+                      );
+                    },
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: _selectedIds.isEmpty ? AppColors.surface2 : AppColors.red,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Text('Delete',
+                          style: AppTheme.sans(size: 12, weight: FontWeight.w700,
+                              color: _selectedIds.isEmpty ? AppColors.muted : Colors.white)),
+                    ),
+                  ),
+                ],
+              ),
+            )
+          : null,
       body: SafeArea(
         bottom: false,
         child: Column(
@@ -97,10 +237,21 @@ class _TasksPageState extends ConsumerState<TasksPage> {
             ),
             TaskFilterBar(
               selected: _activeFilter,
-              onChanged: (v) => setState(() => _activeFilter = v),
+              onChanged: (v) => setState(() {
+                _activeFilter = v;
+                _selectedIds.clear();
+                _selectMode = false;
+              }),
             ),
             Expanded(
-              child: ListView(
+              child: RefreshIndicator(
+                onRefresh: () async {
+                  ref.read(taskProvider.notifier).refresh();
+                  setState(() {});
+                },
+                color: AppColors.accent,
+                backgroundColor: AppColors.surface,
+                child: ListView(
                 padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
                 children: [
                   // Combo & multiplier banners
@@ -141,13 +292,18 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         onToggle: () => _handleToggle(context, ref, task),
                         onQuickToggle: () =>
                             _handleQuickToggle(context, ref, task),
-                        onLongPress: () =>
-                            _handleLongPress(context, ref, task),
+                        onLongPress: _selectMode
+                            ? null
+                            : () => _handleLongPress(context, ref, task),
+                        selectMode: _selectMode,
+                        isSelected: _selectedIds.contains(task.id),
+                        onSelect: () => _toggleSelect(task.id),
                       )),
 
                   if (_filteredTasks(tState.tasks).isEmpty)
                     _EmptyState(filter: _activeFilter, ref: ref),
                 ],
+              ),
               ),
             ),
           ],
@@ -234,6 +390,39 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     return confirmed ?? false;
   }
 
+  Future<bool> _confirmBulkUndo(BuildContext context, List<TaskModel> tasks) async {
+    final hasOld = tasks.any((t) => !_isRecent(t.lastCompletedAt));
+    final hasProof = tasks.any((t) => t.proofNotes != null || t.proofImage != null);
+
+    final parts = <String>[];
+    if (hasOld) parts.add('${tasks.where((t) => !_isRecent(t.lastCompletedAt)).length} cleared quest(s)');
+    if (hasProof) parts.add('${tasks.where((t) => t.proofNotes != null || t.proofImage != null).length} quest(s) with proof');
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: AppColors.surface,
+        title: Text('Undo Multiple?',
+            style: AppTheme.mono(size: 14)),
+        content: Text(
+          '${parts.join(' and ')} will be reverted, removing them from history and deducting XP.',
+          style: AppTheme.sans(size: 13, color: AppColors.muted)),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Cancel', style: AppTheme.sans(size: 13)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Uncheck All',
+                style: AppTheme.sans(size: 13, color: AppColors.red)),
+          ),
+        ],
+      ),
+    );
+    return confirmed ?? false;
+  }
+
   void _handleLongPress(BuildContext context, WidgetRef ref, TaskModel task) {
     showModalBottomSheet(
       context: context,
@@ -266,6 +455,15 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     builder: (_) => AddTaskPage(existingTask: task),
                   ),
                 );
+              },
+            ),
+            ListTile(
+              leading: const Icon(Icons.checklist_rounded, color: AppColors.blue, size: 20),
+              title: Text('Select Multiple',
+                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _enterSelectMode();
               },
             ),
             ListTile(
@@ -463,7 +661,7 @@ class _EmptyState extends StatelessWidget {
           filter == TaskFilter.notes
               ? 'NO SCROLLS ETCHED'
               : (filter == TaskFilter.cleared
-                  ? 'NO RECENT QUESTS'
+                  ? 'NO CLEARED QUESTS'
                   : 'ALL QUESTS CLEARED!'),
           style: AppTheme.mono(
                   size: 14, weight: FontWeight.w900, color: AppColors.accent)

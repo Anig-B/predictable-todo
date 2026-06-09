@@ -41,8 +41,8 @@ class TaskRepository {
   }
 
   // Delete a task
-  Future<void> deleteTask(String id) async {
-    await _supabase.from('tasks').delete().eq('id', id);
+  Future<void> deleteTask(String userId, String id) async {
+    await _supabase.from('tasks').delete().eq('id', id).eq('user_id', userId);
   }
 
   // Upload proof image

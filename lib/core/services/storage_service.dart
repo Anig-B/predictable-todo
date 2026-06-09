@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/painting.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../../features/tasks/models/task_model.dart';
 
@@ -82,7 +83,12 @@ class StorageService {
 
   static Future<void> saveProjectStats(List<Map<String, dynamic>> stats) async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_keyProjectStats, jsonEncode(stats));
+    final sanitized = stats.map((s) {
+      final copy = Map<String, dynamic>.from(s);
+      if (copy['color'] is Color) copy['color'] = (copy['color'] as Color).toARGB32();
+      return copy;
+    }).toList();
+    await prefs.setString(_keyProjectStats, jsonEncode(sanitized));
   }
 
   static Future<List<Map<String, dynamic>>?> loadProjectStats() async {
@@ -90,7 +96,11 @@ class StorageService {
     final raw = prefs.getString(_keyProjectStats);
     if (raw == null) return null;
     final list = jsonDecode(raw) as List<dynamic>;
-    return list.map((e) => e as Map<String, dynamic>).toList();
+    return list.map((e) {
+      final m = e as Map<String, dynamic>;
+      if (m['color'] is int) m['color'] = Color(m['color'] as int);
+      return m;
+    }).toList();
   }
 
   static Future<void> saveHourlyData(List<Map<String, dynamic>> data) async {
