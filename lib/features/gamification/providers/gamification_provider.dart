@@ -537,6 +537,16 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _syncToRemote();
   }
 
+  void addProofBonus(int amount) {
+    if (amount <= 0) return;
+    state = state.copyWith(
+      totalXp: state.totalXp + amount,
+      bonusXp: state.bonusXp + amount,
+    );
+    _persist();
+    _syncToRemote();
+  }
+
   void applySpinResult(Map<String, dynamic> seg) {
     final type = seg['type'] as String;
     final value = seg['value'] as int;

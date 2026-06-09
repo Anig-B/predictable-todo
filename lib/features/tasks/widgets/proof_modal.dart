@@ -18,6 +18,7 @@ class _ProofModalState extends State<ProofModal> {
   final _noteCtrl = TextEditingController();
   int _rating = 0;
   XFile? _imageFile;
+  bool _isPicking = false;
 
   static const _ratingEmojis = ['🥱', '😌', '🙂', '😊', '🔥'];
 
@@ -106,11 +107,12 @@ class _ProofModalState extends State<ProofModal> {
 
             // Photo button
             GestureDetector(
-              onTap: () async {
+              onTap: _isPicking ? null : () async {
+                setState(() => _isPicking = true);
                 final picker = ImagePicker();
                 final file = await picker.pickImage(
                     source: ImageSource.gallery, imageQuality: 70);
-                if (file != null) setState(() => _imageFile = file);
+                if (mounted) setState(() { _isPicking = false; _imageFile = file; });
               },
               child: Container(
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),

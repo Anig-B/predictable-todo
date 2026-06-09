@@ -573,6 +573,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final bossWasAlive = !ref.read(gamificationProvider).boss.isDefeated;
 
     final multiBonus = gNotifier.onTaskCompleted(task.points);
+    if (proofBonus > 0) gNotifier.addProofBonus(proofBonus);
     final totalBonus = multiBonus + proofBonus;
     tNotifier.completeTask(task.id, totalBonus,
         rating: rating, notes: notes, imageUrl: imageUrl);

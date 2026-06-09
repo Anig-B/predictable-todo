@@ -74,78 +74,78 @@ class _TaskCardState extends State<TaskCard>
         ? '⚡ ${t.points + t.bonusEarned}' 
         : (widget.effectiveMulti > 1 ? '⚡ $potentialXp (${t.points}×${widget.effectiveMulti})' : '⚡ ${t.points}');
 
-    return AnimatedOpacity(
-      opacity: t.done ? 0.45 : 1.0,
-      duration: const Duration(milliseconds: 250),
-      child: GestureDetector(
-        onLongPress: widget.onLongPress,
-        child: Container(
-        margin: const EdgeInsets.only(bottom: 7),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: BorderRadius.circular(13),
-          border: Border.all(color: AppColors.border),
-        ),
-        child: Stack(
-          children: [
-            // Rainbow Border Celebration
-            if (_showCelebration)
-              Positioned.fill(
-                child: RainbowGlimmer(
-                  duration: const Duration(milliseconds: 1000),
-                  child: Container(
-                    decoration: BoxDecoration(
-                      borderRadius: BorderRadius.circular(13),
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
+    return GestureDetector(
+      onLongPress: widget.onLongPress,
+      child: Container(
+      margin: const EdgeInsets.only(bottom: 7),
+      decoration: BoxDecoration(
+        color: AppColors.surface,
+        borderRadius: BorderRadius.circular(13),
+        border: Border.all(color: AppColors.border),
+      ),
+      child: Stack(
+        children: [
+          // Rainbow Border Celebration
+          if (_showCelebration)
+            Positioned.fill(
+              child: RainbowGlimmer(
+                duration: const Duration(milliseconds: 1000),
+                child: Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(13),
+                    border: Border.all(color: Colors.white, width: 2),
                   ),
                 ),
               ),
-            // Priority stripe
-            Positioned(
-              left: 0,
-              top: 6,
-              bottom: 6,
-              child: Container(
-                width: 3,
-                decoration: BoxDecoration(
-                  color: t.priority.color,
-                  borderRadius: BorderRadius.circular(3),
-                ),
+            ),
+          // Priority stripe
+          Positioned(
+            left: 0,
+            top: 6,
+            bottom: 6,
+            child: Container(
+              width: 3,
+              decoration: BoxDecoration(
+                color: t.priority.color,
+                borderRadius: BorderRadius.circular(3),
               ),
             ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(15, 11, 11, 11),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Select checkbox
-                      if (widget.selectMode)
-                        GestureDetector(
-                          onTap: widget.onSelect,
-                          child: Container(
-                            width: 22,
-                            height: 22,
-                            margin: const EdgeInsets.only(right: 9, top: 1),
-                            decoration: BoxDecoration(
-                              color: widget.isSelected ? AppColors.accent : Colors.transparent,
-                              borderRadius: BorderRadius.circular(6),
-                              border: Border.all(
-                                color: widget.isSelected ? AppColors.accent : AppColors.border,
-                                width: 2,
-                              ),
+          ),
+          Padding(
+            padding: const EdgeInsets.fromLTRB(15, 11, 11, 11),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Select checkbox
+                    if (widget.selectMode)
+                      GestureDetector(
+                        onTap: widget.onSelect,
+                        child: Container(
+                          width: 22,
+                          height: 22,
+                          margin: const EdgeInsets.only(right: 9, top: 1),
+                          decoration: BoxDecoration(
+                            color: widget.isSelected ? AppColors.accent : Colors.transparent,
+                            borderRadius: BorderRadius.circular(6),
+                            border: Border.all(
+                              color: widget.isSelected ? AppColors.accent : AppColors.border,
+                              width: 2,
                             ),
-                            child: widget.isSelected
-                                ? const Icon(Icons.check, size: 13, color: Colors.white)
-                                : null,
                           ),
+                          child: widget.isSelected
+                              ? const Icon(Icons.check, size: 13, color: Colors.white)
+                              : null,
                         ),
-                      // Check button (hidden in select mode)
-                      if (!widget.selectMode)
-                        ScaleTransition(
+                      ),
+                    // Check button (hidden in select mode)
+                    if (!widget.selectMode)
+                      AnimatedOpacity(
+                        opacity: t.done ? 0.45 : 1.0,
+                        duration: const Duration(milliseconds: 250),
+                        child: ScaleTransition(
                           scale: _checkScale,
                           child: GestureDetector(
                             onTap: _handleQuickToggle,
@@ -169,9 +169,13 @@ class _TaskCardState extends State<TaskCard>
                             ),
                           ),
                         ),
-                      const SizedBox(width: 9),
-                      // Title + chips
-                      Expanded(
+                      ),
+                    const SizedBox(width: 9),
+                    // Title + chips
+                    Expanded(
+                      child: AnimatedOpacity(
+                        opacity: t.done ? 0.45 : 1.0,
+                        duration: const Duration(milliseconds: 250),
                         child: GestureDetector(
                           onTap: widget.selectMode ? widget.onSelect : widget.onToggle,
                           behavior: HitTestBehavior.opaque,
@@ -231,6 +235,7 @@ class _TaskCardState extends State<TaskCard>
                           ),
                         ),
                       ),
+                      ),
                       // Expand button
                       GestureDetector(
                         onTap: () => setState(() => _expanded = !_expanded),
@@ -250,27 +255,83 @@ class _TaskCardState extends State<TaskCard>
                       ),
                     ],
                   ),
-                  // Expanded description
-                  if (_expanded && t.desc.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Container(
-                      width: double.infinity,
-                      padding: const EdgeInsets.all(10),
-                      decoration: AppTheme.surfaceBox(
-                          color: AppColors.surface2, radius: 8),
-                      child: Text(t.desc,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                          style:
-                              AppTheme.sans(size: 11, color: AppColors.muted)),
-                    ),
+                  // Expanded details
+                  if (_expanded) ...[
+                    if (t.desc.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: AppTheme.surfaceBox(
+                            color: AppColors.surface2, radius: 8),
+                        child: Text(t.desc,
+                            maxLines: 4,
+                            overflow: TextOverflow.ellipsis,
+                            style: AppTheme.sans(
+                                size: 11, color: AppColors.muted)),
+                      ),
+                    ],
+                    if (t.proofNotes != null && t.proofNotes!.isNotEmpty) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(10),
+                        decoration: AppTheme.surfaceBox(
+                            color: AppColors.accent.withValues(alpha: 0.06),
+                            radius: 8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text('PROOF NOTE',
+                                style: AppTheme.mono(
+                                    size: 8,
+                                    color: AppColors.accent,
+                                    weight: FontWeight.w700)),
+                            const SizedBox(height: 4),
+                            Text(t.proofNotes!,
+                                style: AppTheme.sans(
+                                    size: 11, color: AppColors.muted)),
+                          ],
+                        ),
+                      ),
+                    ],
+                    if (t.proofImage != null) ...[
+                      const SizedBox(height: 8),
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: Image.network(
+                          t.proofImage!,
+                          width: double.infinity,
+                          height: 160,
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            height: 40,
+                            alignment: Alignment.center,
+                            decoration: BoxDecoration(
+                              color: AppColors.surface2,
+                              borderRadius: BorderRadius.circular(8),
+                            ),
+                            child: Text('Image unavailable',
+                                style: AppTheme.sans(
+                                    size: 10, color: AppColors.muted)),
+                          ),
+                          loadingBuilder: (_, child, progress) =>
+                              progress == null
+                                  ? child
+                                  : Container(
+                                      height: 40,
+                                      alignment: Alignment.center,
+                                      child: const CircularProgressIndicator(
+                                          color: AppColors.accent)),
+                        ),
+                      ),
+                    ],
                   ],
                 ],
               ),
             ),
           ],
         ),
-      ),
       ),
     );
   }
