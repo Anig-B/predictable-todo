@@ -444,6 +444,10 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   }
 
   int onTaskCompleted(int basePoints) {
+    final pet = XpCalculator.currentPet(state.totalLifetimeTasks);
+    final companionXp = pet.xpBonus;
+    final companionDmg = pet.bossDmgBonus;
+
     final multi = state.effectiveMulti;
     final bonus = multi > 1 ? basePoints * (multi - 1) : 0;
     final newComboPoints = state.comboPoints + basePoints;
@@ -457,14 +461,14 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       }
     });
 
-    final dmg = state.boss.damagePerTask;
+    final dmg = state.boss.damagePerTask + companionDmg;
     final newHp = (state.boss.hp - dmg).clamp(0, state.boss.maxHp);
     final newBoss = state.boss.copyWith(
       hp: newHp,
       tasksDone: state.boss.tasksDone + 1,
     );
 
-    final earnedXp = basePoints + bonus;
+    final earnedXp = basePoints + bonus + companionXp;
     final spGained = earnedXp ~/ 10;
     
     // Achievement Logic: Unlock 'Mystery Achievement' if Mystery Genie is defeated
@@ -490,17 +494,20 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _persist();
     _syncToRemote();
 
-    return bonus;
+    return bonus + companionXp;
   }
 
   void onTaskUncompleted(int basePoints, int bonusEarned) {
+    final pet = XpCalculator.currentPet(state.totalLifetimeTasks);
+    final companionDmg = pet.bossDmgBonus;
+
     final lostXp = basePoints + bonusEarned;
     
     // Boss defeat is sticky. If boss is dead, don't revive.
     int newHp = state.boss.hp;
     int newTasksDone = state.boss.tasksDone;
     if (!state.boss.isDefeated) {
-      final dmg = state.boss.damagePerTask;
+      final dmg = state.boss.damagePerTask + companionDmg;
       newHp = (state.boss.hp + dmg).clamp(0, state.boss.maxHp);
       newTasksDone = (state.boss.tasksDone - 1).clamp(0, 999);
     }

@@ -22,8 +22,14 @@ class ProfilePage extends ConsumerStatefulWidget {
 }
 
 class _ProfilePageState extends ConsumerState<ProfilePage>
-    with SingleTickerProviderStateMixin {
+    with TickerProviderStateMixin {
   late final TabController _tabCtrl;
+  late final AnimationController _petBobbleCtrl = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 2000),
+  )..repeat(reverse: true);
+  late final Animation<double> _petBobble = Tween(begin: 0.0, end: -4.0)
+      .animate(CurvedAnimation(parent: _petBobbleCtrl, curve: Curves.easeInOut));
 
   @override
   void initState() {
@@ -33,6 +39,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
 
   @override
   void dispose() {
+    _petBobbleCtrl.dispose();
     _tabCtrl.dispose();
     super.dispose();
   }
@@ -197,26 +204,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ],
               ),
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 18),
 
-            // ── Stat Grid ───────────────────────────────
-            GridView.count(
-              crossAxisCount: 2,
-              crossAxisSpacing: 8,
-              mainAxisSpacing: 8,
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              childAspectRatio: 2,
+            // ── Stat Row ───────────────────────────────
+            Row(
               children: [
-                _StatBox(value: '${tState.doneCount}', label: 'Tasks Done'),
-                _StatBox(
-                    value: '${gState.currentStreak}d', label: 'Day Streak'),
-                _StatBox(value: rank.name, label: 'Rank'),
-                _StatBox(
-                    value: '${gState.unlockedBadges.length}', label: 'Badges'),
+                Expanded(
+                  child: _StatBox(
+                      value: '${tState.doneCount}', label: 'Tasks Done'),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _StatBox(
+                      value: '${gState.currentStreak}d', label: 'Day Streak'),
+                ),
               ],
             ),
-            const SizedBox(height: 10),
+            const SizedBox(height: 16),
+
+            // ── Companion ──────────────────────────────
+            _buildCompanionCard(gState.totalLifetimeTasks),
+            const SizedBox(height: 18),
 
             // ── Rank Tiers ──────────────────────────────
             _buildRankCard(totalXp),
@@ -387,13 +395,243 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
     return result ?? false;
   }
 
+  Widget _buildCompanionCard(int totalLifetimeTasks) {
+    final pet = XpCalculator.currentPet(totalLifetimeTasks);
+    final next = XpCalculator.nextPet(totalLifetimeTasks);
+    final progress = XpCalculator.petProgress(totalLifetimeTasks);
+    final bonusLabel = (pet.xpBonus > 0 || pet.bossDmgBonus > 0)
+        ? '${pet.xpBonus > 0 ? '+${pet.xpBonus} XP ' : ''}${pet.bossDmgBonus > 0 ? '+${pet.bossDmgBonus} boss dmg' : ''}per task'
+        : '';
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            pet.color.withValues(alpha: 0.15),
+            AppColors.surface,
+          ],
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+        ),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: pet.color.withValues(alpha: 0.3)),
+      ),
+      child: Column(
+        children: [
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              RepaintBoundary(
+                child: AnimatedBuilder(
+                  animation: _petBobble,
+                  builder: (_, __) => Transform.translate(
+                    offset: Offset(0, _petBobble.value),
+                    child: Text(pet.emoji, style: const TextStyle(fontSize: 28)),
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text('YOUR COMPANION',
+                        style: AppTheme.mono(
+                            size: 8,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w800)),
+                    const SizedBox(height: 1),
+                    Text(pet.name,
+                        style: AppTheme.sans(
+                            size: 17,
+                            weight: FontWeight.w900,
+                            color: pet.color)),
+                    if (bonusLabel.isNotEmpty) ...[
+                      const SizedBox(height: 1),
+                      Text(bonusLabel,
+                          style: AppTheme.mono(
+                              size: 8, color: pet.color)),
+                    ],
+                  ],
+                ),
+              ),
+              if (next != null && next.minTasks > pet.minTasks)
+                Column(
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text('NEXT',
+                        style: AppTheme.mono(
+                            size: 7,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w800)),
+                    Text(next.emoji, style: const TextStyle(fontSize: 18)),
+                    Text(next.name,
+                        style: AppTheme.sans(
+                            size: 9,
+                            color: AppColors.subtle,
+                            weight: FontWeight.w600)),
+                  ],
+                ),
+            ],
+          ),
+          const SizedBox(height: 12),
+          if (next != null && next.minTasks > pet.minTasks) ...[
+            ClipRRect(
+              borderRadius: BorderRadius.circular(3),
+              child: LinearProgressIndicator(
+                value: progress,
+                minHeight: 4,
+                backgroundColor: AppColors.surface3,
+                valueColor:
+                    AlwaysStoppedAnimation<Color>(pet.color),
+              ),
+            ),
+            const SizedBox(height: 4),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Text('${pet.minTasks} tasks',
+                    style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+                Text('${totalLifetimeTasks - pet.minTasks} / ${next.minTasks - pet.minTasks} tasks to ${next.emoji}',
+                    style: AppTheme.mono(size: 8, color: pet.color)),
+              ],
+            ),
+          ],
+          const SizedBox(height: 8),
+          GestureDetector(
+            onTap: () => _showEvolutionSheet(context, totalLifetimeTasks),
+            child: Container(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              decoration: BoxDecoration(
+                color: AppColors.surface2,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.list_rounded,
+                      size: 10, color: AppColors.muted),
+                  const SizedBox(width: 4),
+                  Text('See all stages',
+                      style: AppTheme.sans(
+                          size: 10,
+                          color: AppColors.muted,
+                          weight: FontWeight.w600)),
+                ],
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEvolutionSheet(BuildContext context, int totalLifetimeTasks) {
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: Colors.transparent,
+      isScrollControlled: true,
+      useSafeArea: true,
+      builder: (_) => Container(
+        padding: const EdgeInsets.all(20),
+        decoration: const BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Container(
+              width: 36,
+              height: 4,
+              decoration: BoxDecoration(
+                color: AppColors.border,
+                borderRadius: BorderRadius.circular(4),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text('EVOLUTION STAGES',
+                style: AppTheme.mono(
+                    size: 14, weight: FontWeight.w900, color: AppColors.text)),
+            const SizedBox(height: 20),
+            ...XpCalculator.petStages.map((stage) {
+              final earned = totalLifetimeTasks >= stage.minTasks;
+              final taskLabel = stage.minTasks == 0
+                  ? 'Start'
+                  : '${stage.minTasks} tasks';
+              return Container(
+                margin: const EdgeInsets.only(bottom: 8),
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: earned
+                      ? stage.color.withValues(alpha: 0.08)
+                      : AppColors.surface,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                    color: earned
+                        ? stage.color.withValues(alpha: 0.3)
+                        : AppColors.border,
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    Text(stage.emoji, style: const TextStyle(fontSize: 28)),
+                    const SizedBox(width: 14),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(stage.name,
+                              style: AppTheme.sans(
+                                  size: 15,
+                                  weight: FontWeight.w800,
+                                  color:
+                                      earned ? AppColors.text : AppColors.subtle)),
+                          Text(taskLabel,
+                              style: AppTheme.mono(
+                                  size: 10, color: AppColors.muted)),
+                          if (stage.xpBonus > 0 || stage.bossDmgBonus > 0)
+                            Text(
+                              '${stage.xpBonus > 0 ? '+${stage.xpBonus} XP per task ' : ''}${stage.bossDmgBonus > 0 ? '+${stage.bossDmgBonus} boss dmg per task' : ''}',
+                              style: AppTheme.mono(
+                                  size: 8, color: stage.color),
+                            ),
+                        ],
+                      ),
+                    ),
+                    if (earned)
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 8, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: stage.color.withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text('EARNED',
+                            style: AppTheme.mono(
+                                size: 8,
+                                color: stage.color,
+                                weight: FontWeight.w900)),
+                      ),
+                  ],
+                ),
+              );
+            }),
+            const SizedBox(height: 12),
+          ],
+        ),
+      ),
+    );
+  }
+
   Widget _buildRankCard(int totalXp) {
     final current = XpCalculator.currentRank(totalXp);
     final next = XpCalculator.nextRank(totalXp);
     final progress = XpCalculator.rankProgress(totalXp);
 
     return Container(
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           colors: [
@@ -403,7 +641,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           begin: Alignment.centerLeft,
           end: Alignment.centerRight,
         ),
-        borderRadius: BorderRadius.circular(16),
+        borderRadius: BorderRadius.circular(14),
         border: Border.all(color: current.color.withValues(alpha: 0.3)),
       ),
       child: Column(
@@ -411,21 +649,21 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
           Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(current.icon, style: const TextStyle(fontSize: 36)),
-              const SizedBox(width: 16),
+              Text(current.icon, style: const TextStyle(fontSize: 28)),
+              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('CURRENT RANK',
                         style: AppTheme.mono(
-                            size: 9,
+                            size: 8,
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 1),
                     Text(current.name,
                         style: AppTheme.sans(
-                            size: 22,
+                            size: 17,
                             weight: FontWeight.w900,
                             color: current.color)),
                   ],
@@ -438,60 +676,60 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('NEXT',
                         style: AppTheme.mono(
-                            size: 8,
+                            size: 7,
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
-                    Text(next.icon, style: const TextStyle(fontSize: 24)),
+                    Text(next.icon, style: const TextStyle(fontSize: 18)),
                     Text(next.name,
                         style: AppTheme.sans(
-                            size: 10,
+                            size: 9,
                             color: AppColors.subtle,
                             weight: FontWeight.w600)),
                   ],
                 ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
           if (next != null) ...[
             ClipRRect(
-              borderRadius: BorderRadius.circular(4),
+              borderRadius: BorderRadius.circular(3),
               child: LinearProgressIndicator(
                 value: progress,
-                minHeight: 6,
+                minHeight: 4,
                 backgroundColor: AppColors.surface3,
                 valueColor: AlwaysStoppedAnimation<Color>(current.color),
               ),
             ),
-            const SizedBox(height: 6),
+            const SizedBox(height: 4),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${current.minXp} XP',
-                    style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                    style: AppTheme.mono(size: 8, color: AppColors.subtle)),
                 Text(
                     '${totalXp - current.minXp} / ${next.minXp - current.minXp} XP to ${next.name}',
-                    style: AppTheme.mono(size: 9, color: current.color)),
+                    style: AppTheme.mono(size: 8, color: current.color)),
               ],
             ),
           ],
-          const SizedBox(height: 12),
+          const SizedBox(height: 8),
           GestureDetector(
             onTap: () => _showRankSheet(context, totalXp),
             child: Container(
-              padding: const EdgeInsets.symmetric(vertical: 8),
+              padding: const EdgeInsets.symmetric(vertical: 6),
               decoration: BoxDecoration(
                 color: AppColors.surface2,
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(8),
               ),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   const Icon(Icons.list_rounded,
-                      size: 12, color: AppColors.muted),
-                  const SizedBox(width: 6),
+                      size: 10, color: AppColors.muted),
+                  const SizedBox(width: 4),
                   Text('See all ranks',
                       style: AppTheme.sans(
-                          size: 11,
+                          size: 10,
                           color: AppColors.muted,
                           weight: FontWeight.w600)),
                 ],

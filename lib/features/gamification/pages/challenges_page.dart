@@ -10,7 +10,6 @@ import '../../tasks/providers/task_provider.dart';
 import '../widgets/challenge_card.dart';
 import '../widgets/daily_goal_ring.dart';
 import '../widgets/rank_bar.dart';
-import '../widgets/pet_widget.dart';
 import '../widgets/loot_box_modal.dart';
 
 class ChallengesPage extends ConsumerWidget {
@@ -94,9 +93,6 @@ class ChallengesPage extends ConsumerWidget {
                   const SizedBox(height: 12),
                   RankBar(totalXp: totalXp),
                   const SizedBox(height: 16),
-                  const _SectionLabel('YOUR COMPANION'),
-                  const SizedBox(height: 12),
-                  PetWidget(totalLifetimeTasks: gState.totalLifetimeTasks),
                   const SizedBox(height: 24),
                   const _SectionLabel('ACTIVE CHALLENGES'),
                   const SizedBox(height: 12),

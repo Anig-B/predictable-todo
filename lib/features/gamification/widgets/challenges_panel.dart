@@ -7,7 +7,6 @@ import '../providers/challenge_provider.dart';
 import '../providers/gamification_provider.dart';
 import '../../tasks/providers/task_provider.dart';
 import 'challenge_card.dart';
-import 'pet_widget.dart';
 import 'rank_bar.dart';
 import 'daily_goal_ring.dart';
 
@@ -68,8 +67,6 @@ class ChallengesPanel extends ConsumerWidget {
                     StreakCard(streak: 30, shields: gState.shields),
                   ],
                 ),
-                const SizedBox(height: 8),
-                PetWidget(totalLifetimeTasks: gState.totalLifetimeTasks),
                 const SizedBox(height: 12),
                 // Challenge progress ring
                 Container(

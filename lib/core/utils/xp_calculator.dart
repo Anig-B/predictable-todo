@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../theme/app_colors.dart';
+import '../theme/app_colors.dart' show AppColors;
 
 class RankTier {
   final String name;
@@ -20,12 +20,18 @@ class PetStage {
   final String emoji;
   final int minTasks;
   final double size;
+  final int xpBonus;
+  final int bossDmgBonus;
+  final Color color;
 
   const PetStage({
     required this.name,
     required this.emoji,
     required this.minTasks,
     required this.size,
+    this.xpBonus = 0,
+    this.bossDmgBonus = 0,
+    required this.color,
   });
 }
 
@@ -44,11 +50,11 @@ class XpCalculator {
   ];
 
   static const List<PetStage> petStages = [
-    PetStage(name: 'Egg', emoji: '🥚', minTasks: 0, size: 28),
-    PetStage(name: 'Baby Slime', emoji: '🫧', minTasks: 3, size: 32),
-    PetStage(name: 'Fox Cub', emoji: '🦊', minTasks: 10, size: 36),
-    PetStage(name: 'Phoenix', emoji: '🦅', minTasks: 25, size: 40),
-    PetStage(name: 'Dragon', emoji: '🐲', minTasks: 50, size: 44),
+    PetStage(name: 'Egg', emoji: '🥚', minTasks: 0, size: 28, color: AppColors.subtle),
+    PetStage(name: 'Baby Slime', emoji: '🫧', minTasks: 3, size: 32, xpBonus: 5, bossDmgBonus: 3, color: AppColors.accent),
+    PetStage(name: 'Fox Cub', emoji: '🦊', minTasks: 10, size: 36, xpBonus: 12, bossDmgBonus: 8, color: AppColors.orange),
+    PetStage(name: 'Phoenix', emoji: '🦅', minTasks: 25, size: 40, xpBonus: 25, bossDmgBonus: 15, color: AppColors.gold),
+    PetStage(name: 'Dragon', emoji: '🐲', minTasks: 50, size: 44, xpBonus: 40, bossDmgBonus: 25, color: AppColors.purple),
   ];
 
   static int level(int totalXp) => (totalXp / xpPerLevel).floor() + 1;

@@ -52,6 +52,13 @@ class PetWidget extends StatelessWidget {
                         const AlwaysStoppedAnimation<Color>(AppColors.gold),
                   ),
                 ),
+                if (pet.xpBonus > 0 || pet.bossDmgBonus > 0) ...[
+                  const SizedBox(height: 3),
+                  Text(
+                    '${pet.xpBonus > 0 ? '+${pet.xpBonus} XP per task ' : ''}${pet.bossDmgBonus > 0 ? '+${pet.bossDmgBonus} boss dmg per task' : ''}',
+                    style: AppTheme.sans(size: 8, color: AppColors.gold),
+                  ),
+                ],
               ],
             ),
           ),
