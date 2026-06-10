@@ -1,6 +1,7 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'dart:math';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/data/profile_repository.dart';
@@ -169,14 +170,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   RealtimeChannel? _subscription;
 
   GamificationNotifier(this.ref) : super(_initialState) {
-    _init().then((_) {
-      final user = ref.read(currentUserProvider);
-      if (user != null) {
-        _fetchRemoteStats(user.id);
-        _listenToStats(user.id);
-      }
-    });
-
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         _init().then((_) => _fetchRemoteStats(next.id));
@@ -185,6 +178,16 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         _stopListening();
         state = _initialState;
       }
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _init().then((_) {
+        final user = ref.read(currentUserProvider);
+        if (user != null) {
+          _fetchRemoteStats(user.id);
+          _listenToStats(user.id);
+        }
+      });
     });
   }
 

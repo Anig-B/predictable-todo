@@ -52,8 +52,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
   final Set<String> _locallyDeletedTaskIds = {};
 
   TaskNotifier(this.ref) : super(const TaskState(tasks: [], activityLog: [])) {
-    _init();
-    
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         _subscribeToTasks(next.id);
@@ -64,11 +62,14 @@ class TaskNotifier extends StateNotifier<TaskState> {
       }
     });
 
-    final initUser = ref.read(currentUserProvider);
-    if (initUser != null) {
-      _subscribeToTasks(initUser.id);
-      _fetchRemoteActivity(initUser.id);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _init();
+      final initUser = ref.read(currentUserProvider);
+      if (initUser != null) {
+        _subscribeToTasks(initUser.id);
+        _fetchRemoteActivity(initUser.id);
+      }
+    });
   }
 
   void refresh() {

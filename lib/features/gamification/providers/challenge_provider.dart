@@ -1,4 +1,5 @@
 import 'dart:math';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -18,8 +19,6 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
   RealtimeChannel? _subscription;
   
   ChallengeNotifier(this.ref) : super([]) {
-    _init();
-
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         _syncFromRemote(next.id);
@@ -30,11 +29,14 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
       }
     });
 
-    final user = ref.read(currentUserProvider);
-    if (user != null) {
-      _syncFromRemote(user.id);
-      _listenToRemote(user.id);
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _init();
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        _syncFromRemote(user.id);
+        _listenToRemote(user.id);
+      }
+    });
   }
 
   int get doneCount => state.where((c) => c.done).length;

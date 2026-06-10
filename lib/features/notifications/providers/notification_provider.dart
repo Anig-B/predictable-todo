@@ -2,19 +2,11 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import '../../auth/providers/auth_provider.dart';
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationModel>>(
-  (ref) {
-    final userId = ref.watch(currentUserProvider)?.id;
-    final notifier = NotificationNotifier(userId);
-    if (userId != null) {
-      notifier.fetchNotifications();
-      notifier.listenToNotifications();
-    }
-    return notifier;
-  },
+  (ref) => NotificationNotifier(ref),
 );
 
 final unreadCountProvider = Provider<int>((ref) {
@@ -22,11 +14,36 @@ final unreadCountProvider = Provider<int>((ref) {
 });
 
 class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
-  final String? userId;
+  String? userId;
   final _supabase = Supabase.instance.client;
   RealtimeChannel? _subscription;
+  bool _initialized = false;
 
-  NotificationNotifier(this.userId) : super([]);
+  NotificationNotifier(Ref ref) : super([]) {
+    ref.listen(currentUserProvider, (previous, next) {
+      if (next != null) {
+        userId = next.id;
+        if (!_initialized) {
+          _initialized = true;
+          fetchNotifications();
+          listenToNotifications();
+        }
+      } else {
+        userId = null;
+        state = [];
+      }
+    });
+
+    final user = ref.read(currentUserProvider);
+    if (user != null && !_initialized) {
+      _initialized = true;
+      userId = user.id;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        fetchNotifications();
+        listenToNotifications();
+      });
+    }
+  }
 
   @override
   void dispose() {
