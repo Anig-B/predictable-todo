@@ -16,7 +16,7 @@ class ProjectsTab extends ConsumerWidget {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        const SectionLabel('PROJECT PROGRESS'),
+        const SectionLabel('PROJECT PROGRESS', tooltip: 'Task completion breakdown by project.'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -24,7 +24,7 @@ class ProjectsTab extends ConsumerWidget {
           child: HorizontalBarChart(data: projectStats),
         ),
         const SizedBox(height: 16),
-        const SectionLabel('PROJECT DETAILS'),
+        const SectionLabel('PROJECT DETAILS', tooltip: 'Individual task completion per project.'),
         const SizedBox(height: 8),
         ...projectStats.map((p) {
           final pct = (p['total'] as int) > 0 

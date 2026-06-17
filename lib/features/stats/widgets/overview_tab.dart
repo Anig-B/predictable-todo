@@ -29,7 +29,7 @@ class OverviewTab extends ConsumerWidget {
       children: [
         const MomentumCard(),
         const SizedBox(height: 16),
-        const SectionLabel('CATEGORY BREAKDOWN'),
+        const SectionLabel('CATEGORY BREAKDOWN', tooltip: 'Share of total XP earned per category.'),
         const SizedBox(height: 8),
         categoryData.isEmpty 
           ? Container(
@@ -89,7 +89,7 @@ class OverviewTab extends ConsumerWidget {
               },
             ),
         const SizedBox(height: 16),
-        const SectionLabel('WEEKLY XP'),
+        const SectionLabel('WEEKLY XP', tooltip: 'Total XP earned each day of the current week.'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -122,7 +122,7 @@ class OverviewTab extends ConsumerWidget {
               ),
         ),
         const SizedBox(height: 16),
-        const SectionLabel('KEY STATS'),
+        const SectionLabel('KEY STATS', tooltip: 'Task completion rate, level progress, and combo milestone progress.'),
         const SizedBox(height: 8),
         LayoutBuilder(
           builder: (context, constraints) {
@@ -130,26 +130,38 @@ class OverviewTab extends ConsumerWidget {
             return Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                GaugeChart(
-                  value: tState.doneCount.toDouble(),
-                  max: tState.totalCount > 0 ? tState.totalCount.toDouble() : 1,
-                  label: 'DONE',
-                  color: AppColors.accent,
-                  size: gaugeSize,
+                Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'Tasks completed vs total tasks created.',
+                  child: GaugeChart(
+                    value: tState.doneCount.toDouble(),
+                    max: tState.totalCount > 0 ? tState.totalCount.toDouble() : 1,
+                    label: 'DONE',
+                    color: AppColors.accent,
+                    size: gaugeSize,
+                  ),
                 ),
-                GaugeChart(
-                  value: XpCalculator.xpInLevel(totalXp).toDouble(),
-                  max: XpCalculator.xpPerLevel.toDouble(),
-                  label: 'XP',
-                  color: AppColors.purple,
-                  size: gaugeSize,
+                Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'XP earned toward next level (${XpCalculator.xpPerLevel} XP per level).',
+                  child: GaugeChart(
+                    value: XpCalculator.xpInLevel(totalXp).toDouble(),
+                    max: XpCalculator.xpPerLevel.toDouble(),
+                    label: 'XP',
+                    color: AppColors.purple,
+                    size: gaugeSize,
+                  ),
                 ),
-                GaugeChart(
-                  value: gState.comboPoints.toDouble(),
-                  max: gState.comboPoints >= 500 ? 500.0 : (gState.comboPoints >= 250 ? 500.0 : (gState.comboPoints >= 100 ? 250.0 : 100.0)),
-                  label: 'COMBO XP',
-                  color: AppColors.gold,
-                  size: gaugeSize,
+                Tooltip(
+                  triggerMode: TooltipTriggerMode.tap,
+                  message: 'Bonus XP toward the next combo milestone (100 / 250 / 500 XP).',
+                  child: GaugeChart(
+                    value: gState.comboPoints.toDouble(),
+                    max: gState.comboPoints >= 500 ? 500.0 : (gState.comboPoints >= 250 ? 500.0 : (gState.comboPoints >= 100 ? 250.0 : 100.0)),
+                    label: 'COMBO XP',
+                    color: AppColors.gold,
+                    size: gaugeSize,
+                  ),
                 ),
               ],
             );

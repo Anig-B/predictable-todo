@@ -20,7 +20,8 @@ class ChallengesPanel extends ConsumerWidget {
     final tState = ref.watch(taskProvider);
     final totalXp = tState.doneXp + gState.bonusXp;
     final doneCount = challenges.where((c) => c.done).length;
-    final allDone = challenges.every((c) => c.done);
+    final rewardGoal = 3;
+    final allDone = doneCount >= rewardGoal;
 
     return Container(
       height: MediaQuery.of(context).size.height * 0.92,
@@ -38,7 +39,7 @@ class ChallengesPanel extends ConsumerWidget {
                     style: AppTheme.mono(size: 14, weight: FontWeight.w700)),
                 Row(
                   children: [
-                    Text('$doneCount/${challenges.length} done',
+                    Text('${doneCount.clamp(0, rewardGoal)}/$rewardGoal done',
                         style:
                             AppTheme.mono(size: 10, color: AppColors.accent)),
                     const SizedBox(width: 12),
@@ -85,9 +86,9 @@ class ChallengesPanel extends ConsumerWidget {
                         height: 52,
                         child: CustomPaint(
                           painter: _ChallengeRingPainter(
-                              progress: doneCount / challenges.length),
+                              progress: doneCount.clamp(0, rewardGoal) / rewardGoal),
                           child: Center(
-                            child: Text('$doneCount/${challenges.length}',
+                            child: Text('${doneCount.clamp(0, rewardGoal)}/$rewardGoal',
                                 style: AppTheme.mono(
                                     size: 13, color: AppColors.purple)),
                           ),
@@ -106,7 +107,7 @@ class ChallengesPanel extends ConsumerWidget {
                                 style: AppTheme.sans(
                                     size: 10, color: AppColors.subtle)),
                             const SizedBox(height: 4),
-                            Text('Complete all 3 for a bonus 🎁',
+                            Text('Complete any 3 of 5 quests for a reward 🎁',
                                 style: AppTheme.sans(
                                     size: 9, color: AppColors.subtle)),
                           ],
@@ -137,7 +138,7 @@ class ChallengesPanel extends ConsumerWidget {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Text('Complete All Challenges',
+                            Text('Complete Any 3',
                                 style: AppTheme.sans(
                                     size: 11, weight: FontWeight.w800)),
                             const SizedBox(height: 1),

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/responsive_scale.dart';
 import '../../../core/utils/xp_calculator.dart';
 import '../../../core/data/seed_data.dart';
 import '../../tasks/providers/task_provider.dart';
@@ -46,6 +47,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
     final totalXp = gState.totalXp;
@@ -89,15 +91,16 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
       backgroundColor: AppColors.bg,
       body: SafeArea(
         bottom: false,
-        child: Column(
-          children: [
+        child: rs.tabletCenter(600)(
+          Column(
+            children: [
             Padding(
-              padding: const EdgeInsets.fromLTRB(16, 14, 16, 12),
+              padding: rs.fromLTRB(16, 14, 16, 12),
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text('Leaderboard',
-                      style: AppTheme.mono(size: 20, weight: FontWeight.w800)),
+                      style: AppTheme.mono(size: rs.f(20), weight: FontWeight.w800)),
                   Row(
                     children: ['weekly', 'all-time', 'friends', 'project'].map((f) {
                       final active = _filter == f;
@@ -110,14 +113,14 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         onTap: () => setState(() => _filter = f),
                         child: AnimatedContainer(
                           duration: const Duration(milliseconds: 180),
-                          margin: const EdgeInsets.only(left: 4),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 6, vertical: 5),
+                          margin: rs.only(l: 4),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: rs.p(6), vertical: rs.p(5)),
                           decoration: BoxDecoration(
                             color: active
                                 ? AppColors.accent.withValues(alpha: 0.1)
                                 : AppColors.surface,
-                            borderRadius: BorderRadius.circular(8),
+                            borderRadius: BorderRadius.circular(rs.p(8)),
                             border: Border.all(
                               color:
                                   active ? AppColors.accent : AppColors.border,
@@ -126,7 +129,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                           child: Text(
                             tabName,
                             style: AppTheme.sans(
-                              size: 10,
+                              size: rs.f(10),
                               weight: FontWeight.w700,
                               color:
                                   active ? AppColors.accent : AppColors.muted,
@@ -143,7 +146,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
               child: asyncEntries.isLoading
                   ? const Center(child: CircularProgressIndicator(color: AppColors.accent))
                   : ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
+                      padding: rs.fromLTRB(16, 0, 16, 130),
                       itemCount:
                           1 + (entries.length > 3 ? entries.length - 3 : 0) + 1,
                       itemBuilder: (_, i) {
@@ -161,10 +164,10 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                         // 2. Invite Button (Handled as the very last item)
                         if (i == cardsCount + 1) {
                           return Padding(
-                            padding: const EdgeInsets.only(top: 8),
+                            padding: rs.only(t: 8),
                             child: SizedBox(
                               width: double.infinity,
-                              height: 55,
+                              height: rs.p(55),
                               child: ElevatedButton(
                                 onPressed: () {
                                   showModalBottomSheet(
@@ -178,12 +181,12 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                                   backgroundColor: AppColors.purple.withValues(alpha: 0.1),
                                   foregroundColor: AppColors.purple,
                                   shape: RoundedRectangleBorder(
-                                      borderRadius: BorderRadius.circular(16)),
+                                      borderRadius: BorderRadius.circular(rs.p(16))),
                                   elevation: 0,
                                 ),
                                 child: Text('Challenge a Friend',
                                     style: AppTheme.mono(
-                                        size: 14, weight: FontWeight.w800)),
+                                        size: rs.f(14), weight: FontWeight.w800)),
                               ),
                             ),
                           );
@@ -222,6 +225,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                     ),
             ),
           ],
+        ),
         ),
       ),
     );

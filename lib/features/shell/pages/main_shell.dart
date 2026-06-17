@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/responsive_scale.dart';
 import '../../gamification/providers/effects_provider.dart';
 import '../widgets/effects/confetti_burst.dart';
 import '../widgets/effects/xp_float_overlay.dart';
@@ -61,22 +62,23 @@ class _AddFab extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return GestureDetector(
       onTap: () => context.push('/new-quest'),
       child: Container(
-        width: 52,
-        height: 52,
+        width: rs.s(52),
+        height: rs.s(52),
         decoration: BoxDecoration(
           gradient: AppColors.primaryGradient,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: BorderRadius.circular(rs.p(16)),
           boxShadow: [
             BoxShadow(
                 color: AppColors.accent.withValues(alpha: 0.28),
-                blurRadius: 20,
-                offset: const Offset(0, 4))
+                blurRadius: rs.s(20),
+                offset: Offset(0, rs.p(4)))
           ],
         ),
-        child: const Icon(Icons.add, color: AppColors.bg, size: 26),
+        child: Icon(Icons.add, color: AppColors.bg, size: rs.s(26)),
       ),
     );
   }

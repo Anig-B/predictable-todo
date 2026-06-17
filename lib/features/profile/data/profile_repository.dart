@@ -48,10 +48,27 @@ class ProfileRepository {
 
   Future<void> updateUserStats(
       String userId, Map<String, dynamic> stats) async {
-    await _supabase.from('user_stats').upsert({
-      'user_id': userId,
-      ...stats,
-    });
+    try {
+      await _supabase.from('user_stats').upsert({
+        'user_id': userId,
+        ...stats,
+      });
+    } on PostgrestException catch (e) {
+      if (e.code == '23503') {
+        // FK violation — profile missing, create one and retry
+        await _supabase.from('profiles').upsert({
+          'id': userId,
+          'username': 'Quest Master',
+          'updated_at': DateTime.now().toIso8601String(),
+        });
+        await _supabase.from('user_stats').upsert({
+          'user_id': userId,
+          ...stats,
+        });
+      } else {
+        rethrow;
+      }
+    }
   }
 }
 

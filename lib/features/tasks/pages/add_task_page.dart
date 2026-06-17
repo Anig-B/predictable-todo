@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/data/seed_data.dart';
+import '../../../core/utils/responsive_scale.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
 import '../providers/note_provider.dart';
@@ -128,11 +129,11 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
 
   void _submit() {
     if (!_formKey.currentState!.validate()) return;
-    final points = _priority == TaskPriority.high
-        ? 80
-        : _priority == TaskPriority.medium
-            ? 50
-            : 25;
+    final points = switch (_recurring) {
+      TaskRecurring.weekly => 50,
+      TaskRecurring.monthly => 100,
+      _ => 25,
+    };
     final existing = widget.existingTask;
     final task = TaskModel(
       id: existing?.id ?? DateTime.now().millisecondsSinceEpoch.toString(),
@@ -159,6 +160,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -170,7 +172,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
           onPressed: () => Navigator.of(context).pop(),
         ),
         title: Text(widget.existingTask != null ? 'EDIT QUEST' : 'NEW QUEST',
-            style: AppTheme.mono(size: 14, weight: FontWeight.w700)
+            style: AppTheme.mono(size: rs.f(14), weight: FontWeight.w700)
                 .copyWith(letterSpacing: 2)),
         centerTitle: true,
         actions: [
@@ -182,16 +184,18 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
+      body: LayoutBuilder(
+        builder: (_, __) => rs.tabletCenter(600)(
+          SingleChildScrollView(
+            padding: EdgeInsets.symmetric(horizontal: rs.p(20), vertical: rs.p(10)),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
             if (_showDemoPicker) ...[
-              const SizedBox(height: 10),
+              SizedBox(height: rs.p(10)),
               Container(
                 decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(rs.p(16)),
                   border: Border.all(
                       color: AppColors.purple.withValues(alpha: 0.25)),
                   color: AppColors.surface,
@@ -202,12 +206,12 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                   children: [
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16, vertical: 10),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: rs.p(16), vertical: rs.p(10)),
                       color: AppColors.purple.withValues(alpha: 0.08),
                       child: Text('SELECT A MISSION PACK',
                           style: AppTheme.mono(
-                                  size: 10,
+                                  size: rs.f(10),
                                   weight: FontWeight.w700,
                                   color: AppColors.purple)
                               .copyWith(letterSpacing: 1.5)),
@@ -223,16 +227,16 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                                         .withValues(alpha: 0.5)),
                               ),
                             ),
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 16, vertical: 14),
+                            padding: EdgeInsets.symmetric(
+                                horizontal: rs.p(16), vertical: rs.p(14)),
                             child: Row(
                               children: [
                                 Container(
-                                  width: 44,
-                                  height: 44,
+                                  width: rs.s(44),
+                                  height: rs.s(44),
                                   decoration: BoxDecoration(
                                     color: demo.color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(12),
+                                    borderRadius: BorderRadius.circular(rs.p(12)),
                                     border: Border.all(
                                         color:
                                             demo.color.withValues(alpha: 0.25)),
@@ -242,7 +246,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                                         style: const TextStyle(fontSize: 22)),
                                   ),
                                 ),
-                                const SizedBox(width: 14),
+                                SizedBox(width: rs.p(14)),
                                 Expanded(
                                   child: Column(
                                     crossAxisAlignment:
@@ -252,30 +256,30 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: AppTheme.sans(
-                                              size: 14,
+                                              size: rs.f(14),
                                               weight: FontWeight.w800)),
-                                      const SizedBox(height: 3),
+                                      SizedBox(height: rs.p(3)),
                                       Text(demo.desc,
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           style: AppTheme.sans(
-                                              size: 10,
+                                              size: rs.f(10),
                                               color: AppColors.subtle)),
                                     ],
                                   ),
                                 ),
-                                const SizedBox(width: 8),
+                                SizedBox(width: rs.p(8)),
                                 Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
+                                  padding: EdgeInsets.symmetric(
+                                      horizontal: rs.p(8), vertical: rs.p(4)),
                                   decoration: BoxDecoration(
                                     color: demo.color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(rs.p(8)),
                                   ),
                                   child: Text(
                                       '${demo.tasks.length} tasks · ${demo.notes.length} scrolls',
                                       style: AppTheme.mono(
-                                          size: 9,
+                                          size: rs.f(9),
                                           weight: FontWeight.w700,
                                           color: demo.color)),
                                 ),
@@ -286,7 +290,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              SizedBox(height: rs.p(24)),
             ],
 
             Form(
@@ -299,20 +303,20 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               TextFormField(
                 controller: _titleCtrl,
                 autofocus: true,
-                style: AppTheme.sans(size: 15, weight: FontWeight.w600),
+                style: AppTheme.sans(size: rs.f(15), weight: FontWeight.w600),
                 decoration: AppTheme.inputDecoration(
                   hint: 'What is your next mission?',
                 ),
                 validator: (v) =>
                     v == null || v.trim().isEmpty ? 'Title is required' : null,
               ),
-              const SizedBox(height: 20),
+              SizedBox(height: rs.p(20)),
 
               // Description
               const _FieldLabel('DESCRIPTION', optional: true),
               TextFormField(
                 controller: _descCtrl,
-                style: AppTheme.sans(size: 14),
+                style: AppTheme.sans(size: rs.f(14)),
                 maxLines: 3,
                 decoration: AppTheme.inputDecoration(
                   hint: 'Add objectives or details...',
@@ -321,7 +325,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                 ],
               ),
             ),
-            const SizedBox(height: 20),
+            SizedBox(height: rs.p(20)),
 
             Row(
               children: [
@@ -337,7 +341,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                     ],
                   ),
                 ),
-                const SizedBox(width: 16),
+                SizedBox(width: rs.p(16)),
                 Expanded(
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -353,17 +357,17 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                         },
                         child: Container(
                           width: double.infinity,
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
+                          padding: EdgeInsets.symmetric(
+                              horizontal: rs.p(16), vertical: rs.p(12)),
                           decoration: AppTheme.surfaceBox(),
                           child: Row(
                             children: [
                               const Icon(Icons.access_time_rounded,
                                   size: 16, color: AppColors.muted),
-                              const SizedBox(width: 8),
+                              SizedBox(width: rs.p(8)),
                               Text(_time.format(context),
                                   style: AppTheme.sans(
-                                      size: 14, weight: FontWeight.w600)),
+                                      size: rs.f(14), weight: FontWeight.w600)),
                             ],
                           ),
                         ),
@@ -373,7 +377,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                 ),
               ],
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: rs.p(24)),
 
             // Category
             const _FieldLabel('CATEGORY'),
@@ -383,7 +387,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               label: (v) => v.label,
               onSelect: (v) => setState(() => _category = v),
             ),
-            const SizedBox(height: 24),
+            SizedBox(height: rs.p(24)),
 
             // Recurring
             const _FieldLabel('RECURRING'),
@@ -394,11 +398,11 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               onSelect: (v) => setState(() => _recurring = v),
             ),
             if (_recurring == TaskRecurring.weekly) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: rs.p(12)),
               const _FieldLabel('ACTIVE DAYS'),
               Wrap(
-                spacing: 8,
-                runSpacing: 8,
+                spacing: rs.p(8),
+                runSpacing: rs.p(8),
                 children: const [
                   'Mon',
                   'Tue',
@@ -414,20 +418,20 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                     onTap: () => setState(() => _weeklyDay = day),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 14, vertical: 8),
+                      padding: EdgeInsets.symmetric(
+                          horizontal: rs.p(14), vertical: rs.p(8)),
                       decoration: BoxDecoration(
                         color: active
                             ? AppColors.purple.withValues(alpha: 0.12)
                             : AppColors.surface,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: BorderRadius.circular(rs.p(10)),
                         border: Border.all(
                           color: active ? AppColors.purple : AppColors.border,
                         ),
                       ),
                       child: Text(e.value,
                           style: AppTheme.sans(
-                              size: 12,
+                              size: rs.f(12),
                               weight: FontWeight.w600,
                               color:
                                   active ? AppColors.purple : AppColors.muted)),
@@ -437,11 +441,11 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               ),
             ],
             if (_recurring == TaskRecurring.monthly) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: rs.p(12)),
               const _FieldLabel('DAY OF MONTH'),
               Wrap(
-                spacing: 6,
-                runSpacing: 6,
+                spacing: rs.p(6),
+                runSpacing: rs.p(6),
                 children: [
                   ...List.generate(28, (i) => i + 1),
                   0,
@@ -452,21 +456,21 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                     onTap: () => setState(() => _monthlyDay = day),
                     child: AnimatedContainer(
                       duration: const Duration(milliseconds: 150),
-                      width: 44,
-                      height: 36,
+                      width: rs.s(44),
+                      height: rs.s(36),
                       alignment: Alignment.center,
                       decoration: BoxDecoration(
                         color: active
                             ? AppColors.purple.withValues(alpha: 0.12)
                             : AppColors.surface,
-                        borderRadius: BorderRadius.circular(8),
+                        borderRadius: BorderRadius.circular(rs.p(8)),
                         border: Border.all(
                           color: active ? AppColors.purple : AppColors.border,
                         ),
                       ),
                       child: Text(label,
                           style: AppTheme.mono(
-                              size: 10,
+                              size: rs.f(10),
                               weight: FontWeight.w700,
                               color:
                                   active ? AppColors.purple : AppColors.muted)),
@@ -476,10 +480,10 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
               ),
             ],
             if (_recurring != TaskRecurring.none) ...[
-              const SizedBox(height: 12),
+              SizedBox(height: rs.p(12)),
               Container(
                 padding:
-                    const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                    EdgeInsets.symmetric(horizontal: rs.p(14), vertical: rs.p(10)),
                 decoration: AppTheme.surfaceBox(
                   color: AppColors.purple.withValues(alpha: 0.06),
                   borderColor: AppColors.purple.withValues(alpha: 0.22),
@@ -488,11 +492,11 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                   children: [
                     const Icon(Icons.autorenew_rounded,
                         size: 14, color: AppColors.purple),
-                    const SizedBox(width: 8),
+                    SizedBox(width: rs.p(8)),
                     Text(
                       _recurringHint(),
                       style: AppTheme.sans(
-                          size: 12,
+                          size: rs.f(12),
                           color: AppColors.purple,
                           weight: FontWeight.w600),
                     ),
@@ -500,17 +504,17 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                 ),
               ),
             ],
-            const SizedBox(height: 48),
+            SizedBox(height: rs.p(48)),
 
             // Submit
             GestureDetector(
               onTap: _submit,
               child: Container(
                 width: double.infinity,
-                padding: const EdgeInsets.symmetric(vertical: 16),
+                padding: EdgeInsets.symmetric(vertical: rs.p(16)),
                 decoration: BoxDecoration(
                   gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(16),
+                  borderRadius: BorderRadius.circular(rs.p(16)),
                   boxShadow: [
                     BoxShadow(
                       color: AppColors.accent.withValues(alpha: 0.3),
@@ -525,10 +529,10 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                   children: [
                     const Icon(Icons.add_rounded,
                         color: AppColors.bg, size: 24),
-                    const SizedBox(width: 8),
+                    SizedBox(width: rs.p(8)),
                     Text(widget.existingTask != null ? 'SAVE CHANGES' : 'CREATE QUEST',
                         style: AppTheme.sans(
-                                size: 14,
+                                size: rs.f(14),
                                 weight: FontWeight.w900,
                                 color: AppColors.bg)
                             .copyWith(letterSpacing: 1.2)),
@@ -536,7 +540,9 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                 ),
               ),
             ),
-          ],
+              ],
+            ),
+          ),
         ),
       ),
     );

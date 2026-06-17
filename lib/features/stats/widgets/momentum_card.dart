@@ -60,8 +60,18 @@ class MomentumCard extends ConsumerWidget {
               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text('Productivity Pulse',
-                      style: AppTheme.sans(size: 13, weight: FontWeight.w800)),
+                  Row(
+                    children: [
+                      Text('Productivity Pulse',
+                          style: AppTheme.sans(size: 13, weight: FontWeight.w800)),
+                      const SizedBox(width: 6),
+                      const Tooltip(
+                        triggerMode: TooltipTriggerMode.tap,
+                        message: 'Your XP today vs your 7-day daily average. Above 1.0x means you\'re outpacing your usual rhythm.',
+                        child: Icon(Icons.info_outline, size: 12, color: AppColors.muted),
+                      ),
+                    ],
+                  ),
                   Text(isUp ? 'Generating momentum' : 'Gaining traction',
                       style: AppTheme.sans(size: 9, color: AppColors.subtle)),
                 ],

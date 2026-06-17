@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/task_model.dart';
 import '../models/activity_log_model.dart';
-import '../../../core/services/storage_service.dart';
 import '../../../core/data/seed_data.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
 import '../../auth/providers/auth_provider.dart';
@@ -104,14 +103,11 @@ class TaskNotifier extends StateNotifier<TaskState> {
 
   Future<void> _init() async {
     if (_initialized) return;
-    final user = ref.read(currentUserProvider);
-    final savedStats = await StorageService.loadProjectStats();
-    final savedHourly = await StorageService.loadHourlyData();
     state = TaskState(
-      tasks: user != null ? [] : (await StorageService.loadTasks() ?? []),
+      tasks: [],
       activityLog: [],
-      projectStats: savedStats ?? SeedData.projectStats,
-      hourlyData: savedHourly ?? SeedData.hourlyData,
+      projectStats: SeedData.projectStats,
+      hourlyData: SeedData.hourlyData,
       leaderboardOthers: List<LeaderboardEntry>.from(
           SeedData.leaderboard.where((e) => !e.isYou)),
     );
@@ -125,12 +121,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
   void dispose() {
     _recurTimer?.cancel();
     super.dispose();
-  }
-
-  void _persist() {
-    StorageService.saveTasks(state.tasks);
-    StorageService.saveProjectStats(state.projectStats);
-    StorageService.saveHourlyData(state.hourlyData);
   }
 
   void _resetDueTasks() {
@@ -147,8 +137,7 @@ class TaskNotifier extends StateNotifier<TaskState> {
     if (updated
         .any((t) => oldTasks.any((o) => o.id == t.id && o.done != t.done))) {
       state = state.copyWith(tasks: updated);
-      _persist();
-
+  
       final user = ref.read(currentUserProvider);
       if (user != null) {
         final repo = ref.read(taskRepositoryProvider);
@@ -207,7 +196,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
         repo.addActivityLog(user.id, log.toJson());
       }
     }
-    _persist();
     return found;
   }
 
@@ -249,14 +237,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
         ref.read(taskRepositoryProvider).setTaskCompletion(found!.id, false);
       }
     }
-    _persist();
   }
 
   Future<void> addTask(TaskModel task) async {
     final user = ref.read(currentUserProvider);
     // Optimistic UI update
     state = state.copyWith(tasks: [task, ...state.tasks]);
-    _persist();
 
     final scheduled = task.scheduledDateTime;
     if (scheduled != null && scheduled.isAfter(DateTime.now())) {
@@ -301,14 +287,12 @@ class TaskNotifier extends StateNotifier<TaskState> {
             : state.leaderboardOthers,
       );
     }
-    _persist();
   }
 
   Future<void> updateTask(TaskModel task) async {
     state = state.copyWith(
       tasks: state.tasks.map((t) => t.id == task.id ? task : t).toList(),
     );
-    _persist();
 
     final user = ref.read(currentUserProvider);
     if (user != null) {
@@ -322,7 +306,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
       tasks: state.tasks.where((t) => t.id != id).toList(),
       activityLog: state.activityLog.where((a) => a.taskId != id).toList(),
     );
-    _persist();
 
     final user = ref.read(currentUserProvider);
     if (user != null) {
@@ -337,7 +320,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
       tasks: state.tasks.where((t) => !idsSet.contains(t.id)).toList(),
       activityLog: state.activityLog.where((a) => !idsSet.contains(a.taskId)).toList(),
     );
-    _persist();
 
     final user = ref.read(currentUserProvider);
     if (user != null) {
@@ -362,7 +344,6 @@ class TaskNotifier extends StateNotifier<TaskState> {
       leaderboardOthers: List<LeaderboardEntry>.from(
           SeedData.leaderboard.where((e) => !e.isYou)),
     );
-    _persist();
   }
 }
 

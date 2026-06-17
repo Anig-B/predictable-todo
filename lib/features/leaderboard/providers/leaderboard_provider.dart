@@ -5,7 +5,6 @@ import '../../auth/providers/auth_provider.dart';
 import '../../profile/providers/profile_provider.dart';
 import '../../social/providers/social_provider.dart';
 
-// Provides leaderboard entries based on standard filters: weekly, all-time, friends, project
 final leaderboardListProvider = FutureProvider.family<List<LeaderboardEntry>, String>((ref, filter) async {
   final repo = ref.watch(leaderboardRepositoryProvider);
   final user = ref.watch(currentUserProvider);
@@ -19,7 +18,6 @@ final leaderboardListProvider = FutureProvider.family<List<LeaderboardEntry>, St
     case 'all-time':
       return await repo.fetchAllTimeTop(10, excludeId: user.id);
     case 'friends':
-      // Watch friends list to trigger re-fetch when it changes.
       ref.watch(socialProvider.select((s) => s.friends));
       return await repo.fetchFriends(user.id);
     case 'project':

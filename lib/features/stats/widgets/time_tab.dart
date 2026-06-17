@@ -43,36 +43,6 @@ class _TimeTabState extends ConsumerState<TimeTab> {
     return '${months[targetDate.month - 1]} ${targetDate.day}$daySuffix';
   }
 
-  String _getBossTaunt(String bossId) {
-    switch (bossId) {
-      case 'chaos_lord':
-        return "Your routine is a joke. I'll burn it down.";
-      case 'procrastination_zombie':
-        return "Sleep... scroll... repeat. One of us!";
-      case 'lazy_master':
-        return "Just 5 more minutes? Pathetic.";
-      case 'mystery_genie':
-        return "Success is a wish. Reality is my blade.";
-      default:
-        return "You're too weak to finish.";
-    }
-  }
-
-  String _getBossDeathRattle(String bossId) {
-    switch (bossId) {
-      case 'chaos_lord':
-        return "Order... returns... for now.";
-      case 'procrastination_zombie':
-        return "I'll wait... tomorrow...";
-      case 'lazy_master':
-        return "Zzz... well played...";
-      case 'mystery_genie':
-        return "Your wish is granted.";
-      default:
-        return "I'll be back.";
-    }
-  }
-
   Widget _momentumSection(MomentumData m) {
     return Container(
       padding: const EdgeInsets.all(16),
@@ -142,8 +112,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
     final heatmap = ref.watch(heatmapProvider);
     final activityData = ref.watch(hourlyActivityProvider);
     final gState = ref.watch(gamificationProvider);
-    final boss = gState.boss;
-    final isDefeated = boss.isDefeated;
+    final isDefeated = gState.boss.isDefeated;
 
     final values = activityData
         .map((d) => (d['v'] ?? d['tasks'] ?? 0) as num)
@@ -161,7 +130,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        const SectionLabel('HOURLY ACTIVITY'),
+        const SectionLabel('HOURLY ACTIVITY', tooltip: 'When you typically complete tasks, based on activity log timestamps.'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -212,81 +181,40 @@ class _TimeTabState extends ConsumerState<TimeTab> {
               ),
         ),
         const SizedBox(height: 16),
-        const SectionLabel('WORK CONTEXT & HEATMAP'),
+        const SectionLabel('WORK CONTEXT & HEATMAP', tooltip: 'Daily XP heatmap for the past 12 weeks. Tap a cell for day details.'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
           decoration: AppTheme.surfaceBox(),
           child: Column(
             children: [
-              Row(
+               Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Grid
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                         HeatmapGrid(
-                          data: heatmap,
-                          selectedWeek: _selWeek,
-                          selectedDay: _selDay,
-                          onSelect: (w, d) => setState(() {
-                            _selWeek = w;
-                            _selDay = d;
-                          }),
-                        ),
-                        if (isDefeated) ...[
-                          const SizedBox(height: 12),
-                          Row(
-                            children: [
-                              const Icon(Icons.stars, size: 14, color: AppColors.accent),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  "YOU CONQUERED THE WEEK!",
-                                  style: AppTheme.mono(size: 10, weight: FontWeight.w900, color: AppColors.accent).copyWith(letterSpacing: 1),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ],
-                      ],
-                    ),
+                   HeatmapGrid(
+                    data: heatmap,
+                    selectedWeek: _selWeek,
+                    selectedDay: _selDay,
+                    onSelect: (w, d) => setState(() {
+                      _selWeek = w;
+                      _selDay = d;
+                    }),
                   ),
-                  const SizedBox(width: 12),
-                  // Mini Boss on the right
-                  Expanded(
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
+                  if (isDefeated) ...[
+                    const SizedBox(height: 12),
+                    Row(
                       children: [
-                        const SizedBox(height: 10),
-                        ColorFiltered(
-                          colorFilter: isDefeated 
-                            ? AppColors.grayscaleFilter 
-                            : const ColorFilter.mode(Colors.transparent, BlendMode.color),
-                          child: Opacity(
-                            opacity: isDefeated ? 0.5 : 1.0,
-                            child: Text(boss.emoji, style: const TextStyle(fontSize: 48)),
-                          ),
-                        ),
-                        const SizedBox(height: 8),
-                        Padding(
-                          padding: const EdgeInsets.symmetric(horizontal: 4),
+                        const Icon(Icons.stars, size: 14, color: AppColors.accent),
+                        const SizedBox(width: 8),
+                        Expanded(
                           child: Text(
-                            isDefeated ? _getBossDeathRattle(boss.id) : _getBossTaunt(boss.id),
-                            textAlign: TextAlign.center,
-                            style: AppTheme.mono(
-                              size: 10, 
-                              color: isDefeated ? AppColors.muted : AppColors.red.withValues(alpha: 0.9), 
-                              weight: FontWeight.w800,
-                              style: isDefeated ? FontStyle.italic : FontStyle.normal,
-                            ),
+                            "YOU CONQUERED THE WEEK!",
+                            style: AppTheme.mono(size: 10, weight: FontWeight.w900, color: AppColors.accent).copyWith(letterSpacing: 1),
                           ),
                         ),
                       ],
                     ),
-                  ),
+                  ],
                 ],
               ),
               const SizedBox(height: 16),
@@ -343,7 +271,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
           ),
         ),
         const SizedBox(height: 16),
-        const SectionLabel('MOMENTUM & STREAKS'),
+        const SectionLabel('MOMENTUM & STREAKS', tooltip: 'Today\'s XP, weekly average, and your best single-day XP.'),
         const SizedBox(height: 8),
         _momentumSection(ref.watch(momentumProvider)),
       ],

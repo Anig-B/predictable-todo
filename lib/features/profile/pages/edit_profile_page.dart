@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/responsive_scale.dart';
 import '../../../core/data/seed_data.dart';
 import '../providers/profile_provider.dart';
 import '../widgets/user_avatar.dart';
@@ -50,6 +51,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
       appBar: AppBar(
@@ -57,10 +59,10 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
         elevation: 0,
         centerTitle: true,
         title: Text('MODIFY CHARACTER',
-            style: AppTheme.mono(size: 14, weight: FontWeight.w900)
+            style: AppTheme.mono(size: rs.f(14), weight: FontWeight.w900)
                 .copyWith(letterSpacing: 2)),
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, size: 18),
+          icon: Icon(Icons.arrow_back_ios_new_rounded, size: rs.f(18)),
           onPressed: () => Navigator.pop(context),
         ),
         actions: [
@@ -68,45 +70,45 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             onPressed: _save,
             child: Text('SAVE',
                 style: AppTheme.mono(
-                    size: 13,
+                    size: rs.f(13),
                     weight: FontWeight.w900,
                     color: AppColors.accent)),
           ),
-          const SizedBox(width: 8),
+          SizedBox(width: rs.p(8)),
         ],
       ),
-      body: ListView(
-        padding: const EdgeInsets.all(20),
+      body: rs.tabletCenter(600)(ListView(
+        padding: rs.all(20),
         children: [
           // ── Avatar Selector ───────────────────────────
           Center(
             child: Stack(
               children: [
-                UserAvatar(avatar: _selectedAvatar, size: 100, fontSize: 44),
+                UserAvatar(avatar: _selectedAvatar, size: rs.s(100), fontSize: rs.f(44)),
                 Positioned(
                   bottom: 0,
                   right: 0,
                   child: Container(
-                    padding: const EdgeInsets.all(6),
+                    padding: rs.all(6),
                     decoration: const BoxDecoration(
                       color: AppColors.accent,
                       shape: BoxShape.circle,
                     ),
-                    child: const Icon(Icons.edit_rounded,
-                        size: 14, color: AppColors.bg),
+                    child: Icon(Icons.edit_rounded,
+                        size: rs.f(14), color: AppColors.bg),
                   ),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: rs.p(32)),
 
           // ── Tips ─────────────────────────────────────
           Container(
-            padding: const EdgeInsets.all(16),
+            padding: rs.all(16),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(16),
+              borderRadius: BorderRadius.circular(rs.p(16)),
               border: Border.all(color: AppColors.border),
             ),
             child: Column(
@@ -114,36 +116,36 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
               children: [
                 Row(
                   children: [
-                    const Icon(Icons.info_outline_rounded,
-                        size: 14, color: AppColors.accent),
-                    const SizedBox(width: 8),
+                    Icon(Icons.info_outline_rounded,
+                        size: rs.f(14), color: AppColors.accent),
+                    SizedBox(width: rs.p(8)),
                     Text('RPG PRO TIP',
                         style: AppTheme.mono(
-                            size: 10,
+                            size: rs.f(10),
                             weight: FontWeight.w800,
                             color: AppColors.accent)),
                   ],
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: rs.p(8)),
                 Text(
                     'Your name and avatar appear in the leaderboard and notifications. Choose something that represents your leveling journey!',
-                    style: AppTheme.sans(size: 11, color: AppColors.muted)),
+                    style: AppTheme.sans(size: rs.f(11), color: AppColors.muted)),
               ],
             ),
           ),
-          const SizedBox(height: 32),
+          SizedBox(height: rs.p(32)),
 
           Text('SELECT AVATAR',
               style: AppTheme.mono(
-                  size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
-          const SizedBox(height: 12),
+                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+          SizedBox(height: rs.p(12)),
           GridView.builder(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
-            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-              crossAxisCount: 5,
-              crossAxisSpacing: 10,
-              mainAxisSpacing: 10,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: rs.isTablet ? 8 : 5,
+              crossAxisSpacing: rs.p(10),
+              mainAxisSpacing: rs.p(10),
             ),
             itemCount: SeedData.avatarEmojis.length,
             itemBuilder: (_, i) {
@@ -157,60 +159,60 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     color: active
                         ? AppColors.accent.withValues(alpha: 0.1)
                         : AppColors.surface,
-                    borderRadius: BorderRadius.circular(12),
+                    borderRadius: BorderRadius.circular(rs.p(12)),
                     border: Border.all(
                       color: active ? AppColors.accent : AppColors.border,
                       width: active ? 2 : 1,
                     ),
                   ),
                   alignment: Alignment.center,
-                  child: Text(avatar, style: const TextStyle(fontSize: 24)),
+                  child: Text(avatar, style: TextStyle(fontSize: rs.f(24))),
                 ),
               );
             },
           ),
 
-          const SizedBox(height: 32),
+          SizedBox(height: rs.p(32)),
 
           // ── Name Input ───────────────────────────────
           Text('CHARACTER NAME',
               style: AppTheme.mono(
-                  size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
-          const SizedBox(height: 12),
+                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+          SizedBox(height: rs.p(12)),
           _InputField(
             controller: _nameCtrl,
             hint: 'Enter your hero name...',
             icon: Icons.person_outline_rounded,
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: rs.p(24)),
 
           // ── Tagline Input ────────────────────────────
           Text('PERSONAL TAGLINE',
               style: AppTheme.mono(
-                  size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
-          const SizedBox(height: 12),
+                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+          SizedBox(height: rs.p(12)),
           _InputField(
             controller: _taglineCtrl,
             hint: 'e.g. Master of Logic',
             icon: Icons.auto_awesome_outlined,
           ),
 
-          const SizedBox(height: 24),
+          SizedBox(height: rs.p(24)),
 
           // ── Project Input ────────────────────────────
           Text('JOIN #PROJECT',
               style: AppTheme.mono(
-                  size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
-          const SizedBox(height: 12),
+                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+          SizedBox(height: rs.p(12)),
           _InputField(
             controller: _projectCtrl,
             hint: 'Enter #project name...',
             icon: Icons.tag_rounded,
           ),
-          const SizedBox(height: 40),
+          SizedBox(height: rs.p(40)),
         ],
-      ),
+      )),
     );
   }
 }
@@ -228,22 +230,23 @@ class _InputField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Container(
       decoration: BoxDecoration(
         color: AppColors.surface,
-        borderRadius: BorderRadius.circular(14),
+        borderRadius: BorderRadius.circular(rs.p(14)),
         border: Border.all(color: AppColors.border),
       ),
       child: TextField(
         controller: controller,
-        style: AppTheme.sans(size: 14, weight: FontWeight.w600),
+        style: AppTheme.sans(size: rs.f(14), weight: FontWeight.w600),
         decoration: InputDecoration(
           hintText: hint,
-          hintStyle: AppTheme.sans(size: 14, color: AppColors.muted),
-          prefixIcon: Icon(icon, size: 20, color: AppColors.muted),
+          hintStyle: AppTheme.sans(size: rs.f(14), color: AppColors.muted),
+          prefixIcon: Icon(icon, size: rs.f(20), color: AppColors.muted),
           border: InputBorder.none,
           contentPadding:
-              const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+              EdgeInsets.symmetric(horizontal: rs.p(16), vertical: rs.p(14)),
         ),
       ),
     );

@@ -4,6 +4,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../providers/auth_provider.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/responsive_scale.dart';
 
 class AuthPage extends ConsumerStatefulWidget {
   const AuthPage({super.key});
@@ -102,11 +103,14 @@ class _AuthPageState extends ConsumerState<AuthPage> {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
-      body: Center(
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.all(24),
+      body: LayoutBuilder(
+        builder: (_, __) => rs.tabletCenter(600)(
+          Center(
+            child: SingleChildScrollView(
+              padding: EdgeInsets.all(rs.p(24)),
           child: Form(
             key: _formKey,
             child: Column(
@@ -117,18 +121,18 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   'QuestLog',
                   textAlign: TextAlign.center,
                   style: AppTheme.mono(
-                    size: 32,
+                    size: rs.f(32),
                     weight: FontWeight.w800,
                     color: AppColors.accent,
                   ),
                 ),
-                const SizedBox(height: 8),
+                SizedBox(height: rs.p(8)),
                 Text(
                   _isLogin ? 'Welcome back, Adventurer.' : 'Begin your journey.',
                   textAlign: TextAlign.center,
                   style: const TextStyle(color: AppColors.subtle, fontSize: 16),
                 ),
-                const SizedBox(height: 48),
+                SizedBox(height: rs.p(48)),
                 AutofillGroup(
                   child: Column(
                     children: [
@@ -145,7 +149,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                           onFieldSubmitted: () =>
                               _emailFocusNode.requestFocus(),
                         ),
-                        const SizedBox(height: 16),
+                        SizedBox(height: rs.p(16)),
                       ],
                       _buildTextFormField(
                         controller: _emailController,
@@ -160,7 +164,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         onFieldSubmitted: () =>
                             _passwordFocusNode.requestFocus(),
                       ),
-                      const SizedBox(height: 16),
+                      SizedBox(height: rs.p(16)),
                       _buildTextFormField(
                         controller: _passwordController,
                         label: 'PASSWORD',
@@ -194,7 +198,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                         ),
                       ),
                       if (!_isLogin) ...[
-                        const SizedBox(height: 16),
+                        SizedBox(height: rs.p(16)),
                         _buildTextFormField(
                           controller: _confirmPasswordController,
                           label: 'CONFIRM PASSWORD',
@@ -212,31 +216,31 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   ),
                 ),
                 if (_serverError != null) ...[
-                  const SizedBox(height: 16),
+                  SizedBox(height: rs.p(16)),
                   Container(
-                    padding: const EdgeInsets.all(12),
+                    padding: EdgeInsets.all(rs.p(12)),
                     decoration: BoxDecoration(
                       color: AppColors.red.withValues(alpha: 0.1),
-                      borderRadius: BorderRadius.circular(12),
+                      borderRadius: BorderRadius.circular(rs.p(12)),
                       border: Border.all(color: AppColors.red.withValues(alpha: 0.3)),
                     ),
                     child: Row(
                       children: [
                         const Icon(Icons.error_outline, color: AppColors.red, size: 16),
-                        const SizedBox(width: 8),
+                        SizedBox(width: rs.p(8)),
                         Expanded(
                           child: Text(
                             _serverError!,
-                            style: AppTheme.sans(size: 12, color: AppColors.red),
+                            style: AppTheme.sans(size: rs.f(12), color: AppColors.red),
                           ),
                         ),
                         GestureDetector(
                           onTap: () => setState(() => _serverError = null),
                           child: Container(
-                            padding: const EdgeInsets.all(4),
+                            padding: EdgeInsets.all(rs.p(4)),
                             decoration: BoxDecoration(
                               color: AppColors.red.withValues(alpha: 0.2),
-                              borderRadius: BorderRadius.circular(6),
+                              borderRadius: BorderRadius.circular(rs.p(6)),
                             ),
                             child: const Icon(Icons.close, color: AppColors.red, size: 14),
                           ),
@@ -245,24 +249,24 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                     ),
                   ),
                 ],
-                const SizedBox(height: 32),
+                SizedBox(height: rs.p(32)),
                 ElevatedButton(
                   onPressed: _isLoading ? null : _submit,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.accent,
                     foregroundColor: AppColors.bg,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    padding: EdgeInsets.symmetric(vertical: rs.p(16)),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(rs.p(12))),
                     elevation: 0,
                   ),
                   child: _isLoading 
-                    ? const SizedBox(height: 20, width: 20, child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bg))
+                    ? SizedBox(height: rs.p(20), width: rs.p(20), child: CircularProgressIndicator(strokeWidth: 2, color: AppColors.bg))
                     : Text(
                         _isLogin ? 'LOG IN' : 'SIGN UP',
-                        style: AppTheme.sans(weight: FontWeight.w800, size: 14),
+                        style: AppTheme.sans(weight: FontWeight.w800, size: rs.f(14)),
                       ),
                 ),
-                const SizedBox(height: 16),
+                SizedBox(height: rs.p(16)),
                 TextButton(
                   onPressed: _isLoading ? null : () {
                     setState(() {
@@ -275,11 +279,11 @@ class _AuthPageState extends ConsumerState<AuthPage> {
                   child: Text.rich(
                     TextSpan(
                       text: _isLogin ? 'Need an account? ' : 'Already have an account? ',
-                      style: AppTheme.sans(size: 13, color: AppColors.muted),
+                      style: AppTheme.sans(size: rs.f(13), color: AppColors.muted),
                       children: [
                         TextSpan(
                           text: _isLogin ? 'Sign up' : 'Log in',
-                          style: AppTheme.sans(size: 13, color: AppColors.accent, weight: FontWeight.w800),
+                          style: AppTheme.sans(size: rs.f(13), color: AppColors.accent, weight: FontWeight.w800),
                         ),
                       ],
                     ),
@@ -290,7 +294,9 @@ class _AuthPageState extends ConsumerState<AuthPage> {
           ),
         ),
       ),
-    );
+      ),
+    ),
+  );
   }
 
   Widget _buildTextFormField({
@@ -307,19 +313,20 @@ class _AuthPageState extends ConsumerState<AuthPage> {
     Widget? suffix,
     List<String>? autofillHints,
   }) {
+    final rs = ResponsiveScale(context);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
           label,
           style: AppTheme.mono(
-            size: 10,
+            size: rs.f(10),
             weight: FontWeight.w700,
             color: AppColors.subtle,
             letterSpacing: 1.5,
           ),
         ),
-        const SizedBox(height: 8),
+        SizedBox(height: rs.p(8)),
         TextFormField(
           controller: controller,
           focusNode: focusNode,
@@ -339,27 +346,27 @@ class _AuthPageState extends ConsumerState<AuthPage> {
             filled: true,
             fillColor: _isLoading ? AppColors.surface.withValues(alpha: 0.5) : AppColors.surface,
             border: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(rs.p(12)),
               borderSide: const BorderSide(color: AppColors.border),
             ),
             enabledBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(rs.p(12)),
               borderSide: const BorderSide(color: AppColors.border),
             ),
             focusedBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(rs.p(12)),
               borderSide: const BorderSide(color: AppColors.accent),
             ),
             errorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(rs.p(12)),
               borderSide: const BorderSide(color: AppColors.red),
             ),
             focusedErrorBorder: OutlineInputBorder(
-              borderRadius: BorderRadius.circular(12),
+              borderRadius: BorderRadius.circular(rs.p(12)),
               borderSide: const BorderSide(color: AppColors.red),
             ),
-            errorStyle: AppTheme.sans(size: 11, color: AppColors.red),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+            errorStyle: AppTheme.sans(size: rs.f(11), color: AppColors.red),
+            contentPadding: EdgeInsets.symmetric(horizontal: rs.p(16), vertical: rs.p(14)),
           ),
           onChanged: (_) {
             if (_serverError != null) setState(() => _serverError = null);

@@ -6,10 +6,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../../profile/data/profile_repository.dart';
 import '../models/boss_model.dart';
-import '../models/skill_node_model.dart';
 import '../../../core/data/seed_data.dart';
 import '../../../core/utils/xp_calculator.dart';
-import '../../../core/services/storage_service.dart';
 import '../data/boss_data.dart';
 import '../../tasks/providers/task_provider.dart';
 
@@ -24,8 +22,7 @@ class GamificationState {
   final int totalLifetimeTasks;
   final int shields;
   final int lootCount;
-  final int skillPoints;
-  final List<SkillNodeModel> skillTree;
+  final int nightOwlCount;
   final bool spinUsed;
   final DateTime? lastSpunDate;
   final int currentStreak;
@@ -49,15 +46,14 @@ class GamificationState {
     this.totalLifetimeTasks = 0,
     this.shields = 1,
     this.lootCount = 0,
-    this.skillPoints = 0,
-    required this.skillTree,
+    this.nightOwlCount = 0,
     this.spinUsed = false,
     this.lastSpunDate,
     this.currentStreak = 0,
     this.lastActiveDate,
     this.lastBossResetDate,
     this.lastBossId,
-    this.unlockedBadges = const ['Early Adopter', '7-Day Streak', 'Perfect Week'],
+    this.unlockedBadges = const ['Early Adopter'],
     this.selectedBadges = const [],
     this.bossRewardClaimed = false,
     this.dailyQuestRewardClaimed = false,
@@ -87,8 +83,7 @@ class GamificationState {
     int? totalLifetimeTasks,
     int? shields,
     int? lootCount,
-    int? skillPoints,
-    List<SkillNodeModel>? skillTree,
+    int? nightOwlCount,
     bool? spinUsed,
     DateTime? lastSpunDate,
     int? currentStreak,
@@ -113,8 +108,7 @@ class GamificationState {
         totalLifetimeTasks: totalLifetimeTasks ?? this.totalLifetimeTasks,
         shields: shields ?? this.shields,
         lootCount: lootCount ?? this.lootCount,
-        skillPoints: skillPoints ?? this.skillPoints,
-        skillTree: skillTree ?? this.skillTree,
+        nightOwlCount: nightOwlCount ?? this.nightOwlCount,
         spinUsed: spinUsed ?? this.spinUsed,
         lastSpunDate: lastSpunDate ?? this.lastSpunDate,
         currentStreak: currentStreak ?? this.currentStreak,
@@ -130,37 +124,10 @@ class GamificationState {
         isLoading: isLoading ?? this.isLoading,
       );
 
-  Map<String, dynamic> toJson() => {
-        'totalXp': totalXp,
-        'weeklyXp': weeklyXp,
-        'bonusXp': bonusXp,
-        'comboPoints': comboPoints,
-        'comboCount': comboCount,
-        'totalLifetimeTasks': totalLifetimeTasks,
-        'shields': shields,
-        'lootCount': lootCount,
-        'skillPoints': skillPoints,
-        'spinUsed': spinUsed,
-        'lastSpunDate': lastSpunDate?.toIso8601String(),
-        'bossHp': boss.hp,
-        'bossDone': boss.tasksDone,
-        'unlockedSkills':
-            skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
-        'currentStreak': currentStreak,
-        'lastActiveDate': lastActiveDate?.toIso8601String(),
-        'lastBossResetDate': lastBossResetDate?.toIso8601String(),
-        'bossId': boss.id,
-        'lastBossId': lastBossId,
-        'unlockedBadges': unlockedBadges,
-        'selectedBadges': selectedBadges,
-        'bossRewardClaimed': bossRewardClaimed,
-        'dailyQuestRewardClaimed': dailyQuestRewardClaimed,
-      };
 }
 
 const _initialState = GamificationState(
   boss: SeedData.boss,
-  skillTree: SeedData.skillTree,
   isLoading: true,
 );
 
@@ -172,7 +139,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   GamificationNotifier(this.ref) : super(_initialState) {
     ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
-        _init().then((_) => _fetchRemoteStats(next.id));
+        _fetchRemoteStats(next.id);
         _listenToStats(next.id);
       } else {
         _stopListening();
@@ -181,13 +148,11 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _init().then((_) {
-        final user = ref.read(currentUserProvider);
-        if (user != null) {
-          _fetchRemoteStats(user.id);
-          _listenToStats(user.id);
-        }
-      });
+      final user = ref.read(currentUserProvider);
+      if (user != null) {
+        _fetchRemoteStats(user.id);
+        _listenToStats(user.id);
+      }
     });
   }
 
@@ -224,59 +189,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
   Timer? _comboTimer;
 
-  Future<void> _init() async {
-    final saved = await StorageService.loadGamification();
-    if (saved == null) return;
-
-    final cachedUserId = saved['userId'] as String?;
-    final currentUser = ref.read(currentUserProvider);
-    if (cachedUserId != null && currentUser?.id != cachedUserId) return;
-
-    final unlockedIds = (saved['unlockedSkills'] as List<dynamic>?)
-            ?.map((e) => e as String)
-            .toSet() ??
-        {};
-
-    DateTime? parseDate(String key) {
-      final s = saved[key] as String?;
-      return s != null ? DateTime.tryParse(s) : null;
-    }
-
-    state = GamificationState(
-      totalXp: saved['totalXp'] as int? ?? 0,
-      weeklyXp: saved['weeklyXp'] as int? ?? 0,
-      bonusXp: saved['bonusXp'] as int? ?? 0,
-      comboPoints: saved['comboPoints'] as int? ?? 0,
-      comboCount: saved['comboCount'] as int? ?? 0,
-      totalLifetimeTasks: saved['totalLifetimeTasks'] as int? ?? 0,
-      shields: saved['shields'] as int? ?? 1,
-      lootCount: saved['lootCount'] as int? ?? 0,
-      skillPoints: saved['skillPoints'] as int? ?? 0,
-      spinUsed: saved['spinUsed'] as bool? ?? false,
-      lastSpunDate: parseDate('lastSpunDate'),
-      currentStreak: saved['currentStreak'] as int? ?? 0,
-      lastActiveDate: parseDate('lastActiveDate'),
-      lastBossResetDate: parseDate('lastBossResetDate'),
-      lastBossId: saved['lastBossId'] as String?,
-      unlockedBadges: (saved['unlockedBadges'] as List<dynamic>?)?.cast<String>() ?? 
-          ['Early Adopter', '7-Day Streak', 'Perfect Week'],
-      selectedBadges: (saved['selectedBadges'] as List<dynamic>?)?.cast<String>() ?? [],
-      bossRewardClaimed: saved['bossRewardClaimed'] as bool? ?? false,
-      boss: BossData.getById(saved['bossId'] as String? ?? 'chaos_lord').copyWith(
-        hp: saved['bossHp'] as int? ?? SeedData.boss.hp,
-        tasksDone: saved['bossDone'] as int? ?? 0,
-      ),
-      skillTree: SeedData.skillTree
-          .map((s) =>
-              s.copyWith(unlocked: unlockedIds.contains(s.id) || s.unlocked))
-          .toList(),
-      isLoading: false,
-    );
-
-    _checkComboExpiry();
-    _checkWeeklyBossReset();
-  }
-
   void _checkComboExpiry() {
     final last = state.lastActiveDate;
     if (last != null && DateTime.now().difference(last).inHours >= 24 && state.comboPoints > 0) {
@@ -287,8 +199,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   Future<void> _fetchRemoteStats(String userId) async {
     final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
     if (stats != null) {
-      final unlockedSkills = (stats['unlocked_skills'] as List<dynamic>?)?.cast<String>().toSet() ?? {};
-      
       state = state.copyWith(
         currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
         totalXp: stats['xp'] as int? ?? state.totalXp,
@@ -298,7 +208,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         comboCount: stats['combo_count'] as int? ?? state.comboCount,
         shields: stats['shields'] as int? ?? state.shields,
         lootCount: stats['loot_count'] as int? ?? state.lootCount,
-        skillPoints: stats['skill_points'] as int? ?? state.skillPoints,
         spinUsed: stats['spin_used'] as bool? ?? state.spinUsed,
         lastSpunDate: stats['last_spun_date'] != null
             ? DateTime.tryParse(stats['last_spun_date'] as String)
@@ -318,13 +227,12 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         bossRewardClaimed: stats['boss_reward_claimed'] ?? false,
         dailyQuestRewardClaimed: stats['daily_quest_reward_claimed'] ?? false,
         totalLifetimeTasks: stats['total_lifetime_tasks'] ?? state.totalLifetimeTasks,
-        skillTree: state.skillTree.map((s) => s.copyWith(
-          unlocked: unlockedSkills.contains(s.id) || s.unlocked
-        )).toList(),
+        nightOwlCount: stats['night_owl_count'] as int? ?? state.nightOwlCount,
+        multiplier: stats['multiplier'] as int? ?? state.multiplier,
         isLoading: false,
       );
       _checkComboExpiry();
-      _persist();
+      _checkWeeklyBossReset();
     } else {
       state = state.copyWith(isLoading: false);
     }
@@ -343,10 +251,8 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       'shields': state.shields,
       'loot_count': state.lootCount,
       'current_streak': state.currentStreak,
-      'skill_points': state.skillPoints,
       'spin_used': state.spinUsed,
       'last_spun_date': state.lastSpunDate?.toIso8601String(),
-      'unlocked_skills': state.skillTree.where((s) => s.unlocked).map((s) => s.id).toList(),
       'boss_id': state.boss.id,
       'boss_hp': state.boss.hp,
       'boss_tasks_done': state.boss.tasksDone,
@@ -358,13 +264,44 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       'daily_quest_reward_claimed': state.dailyQuestRewardClaimed,
       'last_active_at': state.lastActiveDate?.toIso8601String(),
       'total_lifetime_tasks': state.totalLifetimeTasks,
+      'night_owl_count': state.nightOwlCount,
+      'multiplier': state.multiplier,
     });
   }
 
-  void _persist() {
-    final data = state.toJson();
-    data['userId'] = ref.read(currentUserProvider)?.id;
-    StorageService.saveGamification(data);
+  GamificationState _checkBadgeUnlocks(GamificationState s) {
+    final newBadges = List<String>.from(s.unlockedBadges);
+
+    if (s.currentStreak >= 7 && !newBadges.contains('7-Day Streak')) {
+      newBadges.add('7-Day Streak');
+    }
+    if (s.boss.isDefeated && !newBadges.contains('Boss Slayer')) {
+      newBadges.add('Boss Slayer');
+    }
+    if (s.totalLifetimeTasks >= 100 && !newBadges.contains('Gem Collector')) {
+      newBadges.add('Gem Collector');
+    }
+    if (s.totalLifetimeTasks >= 50 && !newBadges.contains('Perfect Week')) {
+      newBadges.add('Perfect Week');
+    }
+    if (s.nightOwlCount >= 10 && !newBadges.contains('Night Owl')) {
+      newBadges.add('Night Owl');
+    }
+    if (s.boss.id == 'mystery_genie' && s.boss.isDefeated && !newBadges.contains('Mystery Genie')) {
+      newBadges.add('Mystery Genie');
+    }
+    if (s.comboCount >= 5 && !newBadges.contains('Focus Master')) {
+      newBadges.add('Focus Master');
+    }
+    if (s.totalXp >= 5000 && !newBadges.contains('Peak Performer')) {
+      newBadges.add('Peak Performer');
+    }
+    if (s.totalLifetimeTasks >= 200 && !newBadges.contains('Weekend Warrior')) {
+      newBadges.add('Weekend Warrior');
+    }
+
+    if (newBadges.length == s.unlockedBadges.length) return s;
+    return s.copyWith(unlockedBadges: newBadges);
   }
 
   int _updatedStreak() {
@@ -400,8 +337,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         bossRewardClaimed: false,
         dailyQuestRewardClaimed: false,
       );
-      _persist();
-      _syncToRemote();
+        _syncToRemote();
     }
   }
 
@@ -457,7 +393,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     _comboTimer = Timer(const Duration(hours: 24), () {
       if (mounted) {
         state = state.copyWith(comboPoints: 0, comboCount: 0);
-        _persist();
       }
     });
 
@@ -469,29 +404,32 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     );
 
     final earnedXp = basePoints + bonus + companionXp;
-    final spGained = earnedXp ~/ 10;
-    
-    // Achievement Logic: Unlock 'Mystery Achievement' if Mystery Genie is defeated
-    List<String> newBadges = List.from(state.unlockedBadges);
-    if (newBoss.id == 'mystery_genie' && newBoss.isDefeated && !newBadges.contains('Mystery Genie')) {
-       newBadges.add('Mystery Genie');
-    }
+    final hour = DateTime.now().hour;
+    final isNightOwl = hour >= 20;
+    final newNightOwlCount = isNightOwl ? state.nightOwlCount + 1 : state.nightOwlCount;
+
+    final now = DateTime.now();
+    final thisMonday = now.subtract(Duration(days: now.weekday - 1));
+    final lastActiveDay = state.lastActiveDate;
+    final sameWeek = lastActiveDay != null &&
+        lastActiveDay.isAfter(thisMonday.subtract(const Duration(days: 1)));
+    final newWeeklyXp = sameWeek ? state.weeklyXp + earnedXp : earnedXp;
 
     state = state.copyWith(
       totalXp: state.totalXp + earnedXp,
+      weeklyXp: newWeeklyXp,
       comboPoints: newComboPoints,
+      bonusXp: state.bonusXp + bonus,
       comboCount: newComboCount,
       multiplier: multi > 1 ? 1 : state.multiplier,
-      bonusXp: state.bonusXp + bonus,
       boss: newBoss,
       totalLifetimeTasks: state.totalLifetimeTasks + 1,
       lootCount: state.lootCount + 1,
+      nightOwlCount: newNightOwlCount,
       currentStreak: _updatedStreak(),
       lastActiveDate: DateTime.now(),
-      skillPoints: state.skillPoints + spGained,
-      unlockedBadges: newBadges,
     );
-    _persist();
+    state = _checkBadgeUnlocks(state);
     _syncToRemote();
 
     return bonus + companionXp;
@@ -514,6 +452,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
     state = state.copyWith(
       totalXp: (state.totalXp - lostXp).clamp(0, 9999999),
+      weeklyXp: (state.weeklyXp - lostXp).clamp(0, 9999999),
       bonusXp: (state.bonusXp - bonusEarned).clamp(0, 999999),
       comboPoints: (state.comboPoints - basePoints).clamp(0, 999999),
       comboCount: (state.comboCount - 1).clamp(0, 999),
@@ -528,7 +467,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       _comboTimer?.cancel();
       state = state.copyWith(comboPoints: 0);
     }
-    _persist();
     _syncToRemote();
   }
 
@@ -541,19 +479,15 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
           hp: newHp,
         ),
       );
-      _persist();
-      _syncToRemote();
+        _syncToRemote();
     }
   }
 
   void onQuestCompleted(int rewardXp) {
-    final spGained = rewardXp ~/ 10;
     state = state.copyWith(
       totalXp: state.totalXp + rewardXp,
       bonusXp: state.bonusXp + rewardXp,
-      skillPoints: state.skillPoints + spGained,
     );
-    _persist();
     _syncToRemote();
   }
 
@@ -563,46 +497,37 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       totalXp: state.totalXp + amount,
       bonusXp: state.bonusXp + amount,
     );
-    _persist();
     _syncToRemote();
   }
 
   void applySpinResult(Map<String, dynamic> seg) {
     final type = seg['type'] as String;
     final value = seg['value'] as int;
-    if (type == 'xp') state = state.copyWith(bonusXp: state.bonusXp + value);
+    if (type == 'xp') {
+      state = state.copyWith(
+        totalXp: state.totalXp + value,
+        bonusXp: state.bonusXp + value,
+      );
+    }
     if (type == 'multi') state = state.copyWith(multiplier: value);
     if (type == 'shield') state = state.copyWith(shields: state.shields + 1);
     state = state.copyWith(spinUsed: true, lastSpunDate: DateTime.now());
-    _persist();
     _syncToRemote();
   }
 
   void applyLootItem(String itemName) {
-    if (itemName.contains('XP')) {
-      state = state.copyWith(bonusXp: state.bonusXp + 150);
+    switch (itemName) {
+      case 'Focus Potion':
+        state = state.copyWith(
+          totalXp: state.totalXp + 150,
+          bonusXp: state.bonusXp + 150,
+        );
+      case 'Golden Ticket':
+        state = state.copyWith(multiplier: 3);
+      case 'Chaos Shield':
+        state = state.copyWith(shields: state.shields + 1);
     }
-    if (itemName.contains('Shield')) {
-      state = state.copyWith(shields: state.shields + 1);
-    }
-    if (itemName.contains('Multiplier')) state = state.copyWith(multiplier: 3);
-    _persist();
     _syncToRemote();
-  }
-
-  bool unlockSkill(String id) {
-    final node = state.skillTree
-        .firstWhere((s) => s.id == id, orElse: () => state.skillTree.first);
-    if (node.unlocked || state.skillPoints < node.cost) return false;
-    state = state.copyWith(
-      skillPoints: state.skillPoints - node.cost,
-      skillTree: state.skillTree
-          .map((s) => s.id == id ? s.copyWith(unlocked: true) : s)
-          .toList(),
-    );
-    _persist();
-    _syncToRemote();
-    return true;
   }
 
   void resetBossForTesting() {
@@ -616,20 +541,23 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       boss: BossData.getById(nextBossId),
       lastBossResetDate: DateTime.now(), // Force reset current week
     );
-    _persist();
     _syncToRemote();
   }
 
   Future<void> reset() async {
     _comboTimer?.cancel();
     state = _initialState;
-    _persist();
+    _syncToRemote();
     final user = ref.read(currentUserProvider);
     if (user != null) {
-      await _fetchRemoteStats(user.id);
-    } else {
-      state = state.copyWith(isLoading: false);
+      await _supabase.from('user_stats').update({
+        'last_spun_date': null,
+        'spin_used': false,
+        'night_owl_count': 0,
+        'multiplier': 1,
+      }).eq('user_id', user.id);
     }
+    state = state.copyWith(isLoading: false);
   }
 
   void toggleBadgeSelection(String badgeName) {
@@ -643,7 +571,6 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       current.add(badgeName);
     }
     state = state.copyWith(selectedBadges: current);
-    _persist();
     _syncToRemote();
   }
 
@@ -652,22 +579,17 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     try {
       final response = await _supabase.rpc('claim_boss_reward');
       if (response != null && response['success'] == true) {
-        state = state.copyWith(bossRewardClaimed: true);
-        // Stats will implicitly fetch real-time updates for XP/badges
-        return true;
+        state = _checkBadgeUnlocks(state.copyWith(bossRewardClaimed: true));
+            return true;
       }
     } catch (e) {
        // Silently fail or handle error appropriately in production
     }
     // Optimistic fallback for local UI if offline
-    state = state.copyWith(
+    state = _checkBadgeUnlocks(state.copyWith(
       totalXp: state.totalXp + state.boss.reward,
       bossRewardClaimed: true,
-      unlockedBadges: state.unlockedBadges.contains('Boss Slayer') 
-          ? state.unlockedBadges 
-          : [...state.unlockedBadges, 'Boss Slayer']
-    );
-    _persist();
+    ));
     return true;
   }
 
@@ -675,13 +597,11 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
 
   void claimDailyQuestReward() {
     state = state.copyWith(dailyQuestRewardClaimed: true);
-    _persist();
     _syncToRemote();
   }
 
   void resetDailyQuestReward() {
     state = state.copyWith(dailyQuestRewardClaimed: false);
-    _persist();
     _syncToRemote();
   }
 }

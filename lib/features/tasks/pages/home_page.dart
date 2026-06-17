@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
+import '../../../core/utils/responsive_scale.dart';
 import '../../../shared/widgets/rainbow_glimmer.dart';
 import '../../../core/data/seed_data.dart';
 import '../providers/task_provider.dart';
@@ -34,7 +35,11 @@ class TasksPage extends ConsumerStatefulWidget {
 class _TasksPageState extends ConsumerState<TasksPage> {
   TaskFilter _activeFilter = TaskFilter.today;
   bool _selectMode = false;
+  bool _celebrationLock = false;
   final Set<String> _selectedIds = {};
+
+  void _onCelebrationStart() => setState(() => _celebrationLock = true);
+  void _onCelebrationEnd() => setState(() => _celebrationLock = false);
 
   void _enterSelectMode() {
     setState(() {
@@ -65,12 +70,16 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     final tState = ref.watch(taskProvider);
     final gState = ref.watch(gamificationProvider);
     final unread = ref.watch(unreadCountProvider);
-    final pendingChallenges =
-        ref.watch(challengeProvider).where((c) => !c.done).length;
+    final remainingForReward =
+        (3 - ref.watch(challengeProvider).where((c) => c.done).length).clamp(0, 3);
 
     final totalXp = gState.totalXp;
     final level = XpCalculator.level(totalXp);
     final lvlProgress = XpCalculator.levelProgress(totalXp);
+    final filteredTasks = _filteredTasks(tState.tasks);
+    final filteredDone = filteredTasks.where((t) => t.done).length;
+
+    final rs = ResponsiveScale(context);
 
     if (gState.isLoading) {
       return const Scaffold(
@@ -86,8 +95,8 @@ class _TasksPageState extends ConsumerState<TasksPage> {
       bottomNavigationBar: _selectMode
           ? Container(
               padding: EdgeInsets.only(
-                left: 16, right: 16, top: 12,
-                bottom: MediaQuery.of(context).padding.bottom + 12,
+                left: rs.p(16), right: rs.p(16), top: rs.p(12),
+                bottom: MediaQuery.of(context).padding.bottom + rs.p(12),
               ),
               decoration: BoxDecoration(
                 color: AppColors.surface,
@@ -110,11 +119,11 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     child: Text(
                       _selectedIds.length == _filteredTasks(tState.tasks).length
                           ? 'Deselect All' : 'Select All',
-                      style: AppTheme.sans(size: 11, color: AppColors.accent, weight: FontWeight.w700),
+                      style: AppTheme.sans(size: rs.f(11), color: AppColors.accent, weight: FontWeight.w700),
                     ),
                   ),
                   Text('${_selectedIds.length}',
-                      style: AppTheme.mono(size: 10, color: AppColors.subtle)),
+                      style: AppTheme.mono(size: rs.f(10), color: AppColors.subtle)),
                   const Spacer(),
                   GestureDetector(
                     onTap: _selectedIds.isEmpty ? null : () async {
@@ -141,17 +150,17 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                       _exitSelectMode();
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      padding: rs.symH(14) + rs.symV(10),
                       decoration: BoxDecoration(
                         color: _selectedIds.isEmpty ? AppColors.surface2 : AppColors.accent,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: rs.circ(10),
                       ),
                       child: Text('Undo',
-                          style: AppTheme.sans(size: 12, weight: FontWeight.w700,
+                          style: AppTheme.sans(size: rs.f(12), weight: FontWeight.w700,
                               color: _selectedIds.isEmpty ? AppColors.muted : Colors.white)),
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: rs.p(8)),
                   GestureDetector(
                     onTap: _selectedIds.isEmpty ? null : () {
                       final count = _selectedIds.length;
@@ -160,14 +169,14 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                         builder: (ctx) => AlertDialog(
                           backgroundColor: AppColors.surface,
                           title: Text('Delete $count quests?',
-                              style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
+                              style: AppTheme.sans(size: rs.f(15), weight: FontWeight.w700, color: AppColors.text)),
                           content: Text('This cannot be undone.',
-                              style: AppTheme.sans(size: 12, color: AppColors.muted)),
+                              style: AppTheme.sans(size: rs.f(12), color: AppColors.muted)),
                           actions: [
                             TextButton(
                               onPressed: () => Navigator.of(ctx).pop(),
                               child: Text('Cancel',
-                                  style: AppTheme.sans(size: 11, color: AppColors.subtle)),
+                                  style: AppTheme.sans(size: rs.f(11), color: AppColors.subtle)),
                             ),
                             TextButton(
                               onPressed: () {
@@ -176,20 +185,20 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                                 Navigator.of(ctx).pop();
                               },
                               child: Text('Delete All',
-                                  style: AppTheme.sans(size: 11, color: AppColors.red)),
+                                  style: AppTheme.sans(size: rs.f(11), color: AppColors.red)),
                             ),
                           ],
                         ),
                       );
                     },
                     child: Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+                      padding: rs.symH(16) + rs.symV(10),
                       decoration: BoxDecoration(
                         color: _selectedIds.isEmpty ? AppColors.surface2 : AppColors.red,
-                        borderRadius: BorderRadius.circular(10),
+                        borderRadius: rs.circ(10),
                       ),
                       child: Text('Delete',
-                          style: AppTheme.sans(size: 12, weight: FontWeight.w700,
+                          style: AppTheme.sans(size: rs.f(12), weight: FontWeight.w700,
                               color: _selectedIds.isEmpty ? AppColors.muted : Colors.white)),
                     ),
                   ),
@@ -197,116 +206,122 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               ),
             )
           : null,
-      body: SafeArea(
-        bottom: false,
-        child: Column(
-          children: [
-            _Header(
-              level: level,
-              lvlProgress: lvlProgress,
-              unread: unread,
-              pendingChallenges: pendingChallenges,
-              onNotif: () => context.push('/notifications'),
-              onChallenges: () => context.push('/challenges'),
-              isSpinAvailable: gState.isSpinAvailable,
-              onSpin: () {
-                if (gState.isSpinAvailable) {
-                  showModalBottomSheet(
-                    context: context,
-                    isScrollControlled: true,
-                    useRootNavigator: true,
-                    useSafeArea: true,
-                    backgroundColor: Colors.transparent,
-                    builder: (_) => SpinWheelModal(
-                      onResult: (seg) => ref
-                          .read(gamificationProvider.notifier)
-                          .applySpinResult(seg),
-                    ),
-                  );
-                } else {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text('Come back tomorrow for your next spin!',
-                          style: AppTheme.sans(size: 12)),
-                      backgroundColor: AppColors.surface2,
-                      duration: const Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-            TaskFilterBar(
-              selected: _activeFilter,
-              onChanged: (v) => setState(() {
-                _activeFilter = v;
-                _selectedIds.clear();
-                _selectMode = false;
-              }),
-            ),
-            Expanded(
-              child: RefreshIndicator(
-                onRefresh: () async {
-                  ref.read(taskProvider.notifier).refresh();
-                  setState(() {});
-                },
-                color: AppColors.accent,
-                backgroundColor: AppColors.surface,
-                child: ListView(
-                padding: const EdgeInsets.fromLTRB(16, 0, 16, 130),
-                children: [
-                  // Combo & multiplier banners
-                  if (gState.comboPoints >= 100) ...[
-                    ComboBanner(
-                        comboPoints: gState.comboPoints,
-                        comboMulti: gState.comboMulti),
-                    const SizedBox(height: 7),
-                  ],
-                  if (gState.multiplier > 1) ...[
-                    MultiplierBanner(multiplier: gState.multiplier),
-                    const SizedBox(height: 7),
-                  ],
+      body: LayoutBuilder(
+        builder: (context, constraints) => rs.tabletCenter(600)(
+          SafeArea(
+            bottom: false,
+            child: Column(
+              children: [
+                _Header(
+                  level: level,
+                  lvlProgress: lvlProgress,
+                  unread: unread,
+                  pendingChallenges: remainingForReward,
+                  onNotif: () => context.push('/notifications'),
+                  onChallenges: () => context.push('/challenges'),
+                  isSpinAvailable: gState.isSpinAvailable,
+                  onSpin: () {
+                    if (gState.isSpinAvailable) {
+                      showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        useRootNavigator: true,
+                        useSafeArea: true,
+                        backgroundColor: Colors.transparent,
+                        builder: (_) => SpinWheelModal(
+                          onResult: (seg) => ref
+                              .read(gamificationProvider.notifier)
+                              .applySpinResult(seg),
+                        ),
+                      );
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('Come back tomorrow for your next spin!',
+                              style: AppTheme.sans(size: rs.f(12))),
+                          backgroundColor: AppColors.surface2,
+                          duration: const Duration(seconds: 2),
+                        ),
+                      );
+                    }
+                  },
+                ),
+                TaskFilterBar(
+                  selected: _activeFilter,
+                  onChanged: (v) => setState(() {
+                    _activeFilter = v;
+                    _selectedIds.clear();
+                    _selectMode = false;
+                  }),
+                ),
+                Expanded(
+                  child: RefreshIndicator(
+                    onRefresh: () async {
+                      ref.read(taskProvider.notifier).refresh();
+                      setState(() {});
+                    },
+                    color: AppColors.accent,
+                    backgroundColor: AppColors.surface,
+                    child: ListView(
+                      padding: rs.fromLTRB(16, 0, 16, 24),
+                      children: [
+                        // Combo & multiplier banners
+                        if (gState.comboPoints >= 100) ...[
+                          ComboBanner(
+                              comboPoints: gState.comboPoints,
+                              comboMulti: gState.comboMulti),
+                          SizedBox(height: rs.p(7)),
+                        ],
+                        if (gState.multiplier > 1) ...[
+                          MultiplierBanner(multiplier: gState.multiplier),
+                          SizedBox(height: rs.p(7)),
+                        ],
 
-                  // Boss card
-                  BossCard(boss: gState.boss),
-                  const SizedBox(height: 10),
+                        // Boss card
+                        BossCard(boss: gState.boss),
+                        SizedBox(height: rs.p(10)),
 
-                  // Counter row
-                  // Counter row
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('${tState.doneCount}/${tState.totalCount} DONE',
-                          style:
-                              AppTheme.mono(size: 10, color: AppColors.subtle)),
-                      Text('+$totalXp XP',
-                          style:
-                              AppTheme.mono(size: 10, color: AppColors.accent)),
-                    ],
+                        // Counter row
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Text('${filteredDone}/${filteredTasks.length} DONE',
+                                style:
+                                    AppTheme.mono(size: rs.f(10), color: AppColors.subtle)),
+                            Text('+$totalXp XP',
+                                style:
+                                    AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
+                          ],
+                        ),
+                        SizedBox(height: rs.p(8)),
+
+                        // Task list
+                        ...filteredTasks.map((task) => TaskCard(
+                              task: task,
+                              effectiveMulti: gState.effectiveMulti,
+                              celebrationLocked: _celebrationLock,
+                              onCelebrationStart: _onCelebrationStart,
+                              onCelebrationEnd: _onCelebrationEnd,
+                              onToggle: () => _handleToggle(context, ref, task),
+                              onQuickToggle: () =>
+                                  _handleQuickToggle(context, ref, task),
+                              onLongPress: _selectMode
+                                  ? null
+                                  : () => _handleLongPress(context, ref, task),
+                              selectMode: _selectMode,
+                              isSelected: _selectedIds.contains(task.id),
+                              onSelect: () => _toggleSelect(task.id),
+                            )),
+
+                        if (filteredTasks.isEmpty)
+                          _EmptyState(filter: _activeFilter, ref: ref),
+                      ],
+                    ),
                   ),
-                  const SizedBox(height: 8),
-
-                  // Task list
-                  ..._filteredTasks(tState.tasks).map((task) => TaskCard(
-                        task: task,
-                        effectiveMulti: gState.effectiveMulti,
-                        onToggle: () => _handleToggle(context, ref, task),
-                        onQuickToggle: () =>
-                            _handleQuickToggle(context, ref, task),
-                        onLongPress: _selectMode
-                            ? null
-                            : () => _handleLongPress(context, ref, task),
-                        selectMode: _selectMode,
-                        isSelected: _selectedIds.contains(task.id),
-                        onSelect: () => _toggleSelect(task.id),
-                      )),
-
-                  if (_filteredTasks(tState.tasks).isEmpty)
-                    _EmptyState(filter: _activeFilter, ref: ref),
-                ],
-              ),
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -320,9 +335,10 @@ class _TasksPageState extends ConsumerState<TasksPage> {
 
   List<TaskModel> _filteredTasks(List<TaskModel> tasks) {
     final now = DateTime.now();
+    List<TaskModel> result;
     switch (_activeFilter) {
       case TaskFilter.today:
-        return tasks.where((t) {
+        result = tasks.where((t) {
           if (t.done && !_isRecent(t.lastCompletedAt)) return false;
           if (t.done && _isRecent(t.lastCompletedAt)) return true;
 
@@ -339,18 +355,19 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           return false;
         }).toList();
       case TaskFilter.weekly:
-        return tasks.where((t) => t.recurring == TaskRecurring.weekly).toList();
+        result = tasks.where((t) => t.recurring == TaskRecurring.weekly).toList();
       case TaskFilter.monthly:
-        return tasks
+        result = tasks
             .where((t) => t.recurring == TaskRecurring.monthly)
             .toList();
       case TaskFilter.cleared:
-        return tasks
+        result = tasks
             .where((t) => t.done && !_isRecent(t.lastCompletedAt))
             .toList();
       case TaskFilter.notes:
         return [];
     }
+    return result;
   }
 
   Future<bool> _confirmUndo(BuildContext context, TaskModel task) async {
@@ -366,23 +383,24 @@ class _TasksPageState extends ConsumerState<TasksPage> {
         ? 'This task was cleared over 24 hours ago. Reverting it will remove it from your history and deduct XP.'
         : 'This task has proof notes or a photo attached. Unchecking will remove them and revert the bonus XP.';
 
+    final rs = ResponsiveScale(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text(isOld ? 'Undo Old Task?' : 'Undo Completion?',
-            style: AppTheme.mono(size: 14)),
+            style: AppTheme.mono(size: rs.f(14))),
         content: Text(warningMsg,
-            style: AppTheme.sans(size: 13, color: AppColors.muted)),
+            style: AppTheme.sans(size: rs.f(13), color: AppColors.muted)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: AppTheme.sans(size: 13)),
+            child: Text('Cancel', style: AppTheme.sans(size: rs.f(13))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Uncheck',
-                style: AppTheme.sans(size: 13, color: AppColors.red)),
+                style: AppTheme.sans(size: rs.f(13), color: AppColors.red)),
           ),
         ],
       ),
@@ -398,24 +416,25 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     if (hasOld) parts.add('${tasks.where((t) => !_isRecent(t.lastCompletedAt)).length} cleared quest(s)');
     if (hasProof) parts.add('${tasks.where((t) => t.proofNotes != null || t.proofImage != null).length} quest(s) with proof');
 
+    final rs = ResponsiveScale(context);
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (ctx) => AlertDialog(
         backgroundColor: AppColors.surface,
         title: Text('Undo Multiple?',
-            style: AppTheme.mono(size: 14)),
+            style: AppTheme.mono(size: rs.f(14))),
         content: Text(
           '${parts.join(' and ')} will be reverted, removing them from history and deducting XP.',
-          style: AppTheme.sans(size: 13, color: AppColors.muted)),
+          style: AppTheme.sans(size: rs.f(13), color: AppColors.muted)),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Cancel', style: AppTheme.sans(size: 13)),
+            child: Text('Cancel', style: AppTheme.sans(size: rs.f(13))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Uncheck All',
-                style: AppTheme.sans(size: 13, color: AppColors.red)),
+                style: AppTheme.sans(size: rs.f(13), color: AppColors.red)),
           ),
         ],
       ),
@@ -424,29 +443,30 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   }
 
   void _handleLongPress(BuildContext context, WidgetRef ref, TaskModel task) {
+    final rs = ResponsiveScale(context);
     showModalBottomSheet(
       context: context,
       backgroundColor: AppColors.surface,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(16)),
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(rs.p(16))),
       ),
       builder: (ctx) => Padding(
-        padding: const EdgeInsets.symmetric(vertical: 16),
+        padding: rs.symV(16),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 32, height: 4,
+              width: rs.s(32), height: rs.s(4),
               decoration: BoxDecoration(
                 color: AppColors.border,
-                borderRadius: BorderRadius.circular(2),
+                borderRadius: rs.circ(2),
               ),
             ),
-            const SizedBox(height: 8),
+            SizedBox(height: rs.p(8)),
             ListTile(
-              leading: const Icon(Icons.edit_rounded, color: AppColors.accent, size: 20),
+              leading: Icon(Icons.edit_rounded, color: AppColors.accent, size: rs.s(20)),
               title: Text('Edit Quest',
-                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+                  style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 Navigator.push(
@@ -458,16 +478,16 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               },
             ),
             ListTile(
-              leading: const Icon(Icons.checklist_rounded, color: AppColors.blue, size: 20),
+              leading: Icon(Icons.checklist_rounded, color: AppColors.blue, size: rs.s(20)),
               title: Text('Select Multiple',
-                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.text)),
+                  style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
               onTap: () {
                 Navigator.of(ctx).pop();
                 _enterSelectMode();
               },
             ),
             ListTile(
-              leading: const Icon(Icons.delete_rounded, color: AppColors.red, size: 20),
+              leading: Icon(Icons.delete_rounded, color: AppColors.red, size: rs.s(20)),
               title: Text('Delete Quest',
                   style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
               onTap: () {
@@ -476,25 +496,25 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                   context: context,
                   builder: (ctx) => AlertDialog(
                     backgroundColor: AppColors.surface,
-                    title: Text('Delete Quest',
-                        style: AppTheme.sans(size: 15, weight: FontWeight.w700, color: AppColors.text)),
-                    content: Text('Delete "${task.title}" permanently?',
-                        style: AppTheme.sans(size: 12, color: AppColors.muted)),
-                    actions: [
-                      TextButton(
-                        onPressed: () => Navigator.of(ctx).pop(),
-                        child: Text('Cancel',
-                            style: AppTheme.sans(size: 11, color: AppColors.subtle)),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          ref.read(taskProvider.notifier).deleteTask(task.id);
-                          Navigator.of(ctx).pop();
-                        },
-                        child: Text('Delete',
-                            style: AppTheme.sans(size: 11, color: AppColors.red)),
-                      ),
-                    ],
+              title: Text('Delete Quest',
+                          style: AppTheme.sans(size: rs.f(15), weight: FontWeight.w700, color: AppColors.text)),
+                      content: Text('Delete "${task.title}" permanently?',
+                          style: AppTheme.sans(size: rs.f(12), color: AppColors.muted)),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: Text('Cancel',
+                              style: AppTheme.sans(size: rs.f(11), color: AppColors.subtle)),
+                        ),
+                        TextButton(
+                          onPressed: () {
+                            ref.read(taskProvider.notifier).deleteTask(task.id);
+                            Navigator.of(ctx).pop();
+                          },
+                          child: Text('Delete',
+                              style: AppTheme.sans(size: rs.f(11), color: AppColors.red)),
+                        ),
+                      ],
                   ),
                 );
               },
@@ -606,7 +626,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           icon: '⚡', title: 'ULTRA COMBO!', desc: '4× XP multiplier!');
     }
 
-    // Streak milestone toasts (optional? They are handled somewhere else)
     final streak = gState.currentStreak;
     if (streak == 3 || streak == 7 || streak == 14 || streak == 30) {
       // Could show toast here if we want
@@ -653,11 +672,12 @@ class _EmptyState extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Column(
       children: [
-        const SizedBox(height: 60),
-        const Text('🎉', style: TextStyle(fontSize: 48)),
-        const SizedBox(height: 8),
+        SizedBox(height: rs.p(60)),
+        Text('🎉', style: TextStyle(fontSize: rs.f(48))),
+        SizedBox(height: rs.p(8)),
         Text(
           filter == TaskFilter.notes
               ? 'NO SCROLLS ETCHED'
@@ -665,14 +685,14 @@ class _EmptyState extends StatelessWidget {
                   ? 'NO CLEARED QUESTS'
                   : 'ALL QUESTS CLEARED!'),
           style: AppTheme.mono(
-                  size: 14, weight: FontWeight.w900, color: AppColors.accent)
+                  size: rs.f(14), weight: FontWeight.w900, color: AppColors.accent)
               .copyWith(letterSpacing: 2),
         ),
         if (filter == TaskFilter.today) ...[
-          const SizedBox(height: 32),
+          SizedBox(height: rs.p(32)),
           Container(
             width: double.infinity,
-            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 12),
+            padding: rs.symH(4) + rs.symV(12),
             decoration: BoxDecoration(
               border: Border(
                   top: BorderSide(
@@ -681,12 +701,12 @@ class _EmptyState extends StatelessWidget {
             child: Text('OR IMPORT A MISSION PACK',
                 textAlign: TextAlign.center,
                 style: AppTheme.mono(
-                        size: 10,
+                        size: rs.f(10),
                         weight: FontWeight.w800,
                         color: AppColors.subtle)
                     .copyWith(letterSpacing: 1.5)),
           ),
-          const SizedBox(height: 12),
+          SizedBox(height: rs.p(12)),
           ...SeedData.demoSets.map((demo) => _DemoPackCard(
                 demo: demo,
                 onTap: () {
@@ -716,44 +736,45 @@ class _DemoPackCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return GestureDetector(
       onTap: onTap,
       child: Container(
-        margin: const EdgeInsets.only(bottom: 10),
-        padding: const EdgeInsets.all(12),
+        margin: EdgeInsets.only(bottom: rs.p(10)),
+        padding: rs.all(12),
         decoration: BoxDecoration(
           color: AppColors.surface,
-          borderRadius: BorderRadius.circular(16),
+          borderRadius: rs.circ(16),
           border: Border.all(color: demo.color.withValues(alpha: 0.25)),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: rs.s(44),
+              height: rs.s(44),
               decoration: BoxDecoration(
                 color: demo.color.withValues(alpha: 0.1),
-                borderRadius: BorderRadius.circular(12),
+                borderRadius: rs.circ(12),
               ),
               alignment: Alignment.center,
-              child: Text(demo.icon, style: const TextStyle(fontSize: 22)),
+              child: Text(demo.icon, style: TextStyle(fontSize: rs.f(22))),
             ),
-            const SizedBox(width: 14),
+            SizedBox(width: rs.p(14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(demo.name,
-                      style: AppTheme.sans(size: 14, weight: FontWeight.w800)),
+                      style: AppTheme.sans(size: rs.f(14), weight: FontWeight.w800)),
                   Text(demo.desc,
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
-                      style: AppTheme.sans(size: 10, color: AppColors.subtle)),
+                      style: AppTheme.sans(size: rs.f(10), color: AppColors.subtle)),
                 ],
               ),
             ),
-            const Icon(Icons.add_circle_outline_rounded,
-                size: 20, color: AppColors.muted),
+            Icon(Icons.add_circle_outline_rounded,
+                size: rs.s(20), color: AppColors.muted),
           ],
         ),
       ),
@@ -784,8 +805,9 @@ class _Header extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return Container(
-      padding: const EdgeInsets.fromLTRB(16, 14, 16, 8),
+      padding: rs.fromLTRB(16, 14, 16, 8),
       decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
@@ -807,17 +829,17 @@ class _Header extends StatelessWidget {
                   child: Text(
                     _todayLabel(),
                     style: AppTheme.mono(
-                        size: 20, weight: FontWeight.w800, color: Colors.white),
+                        size: rs.f(20), weight: FontWeight.w800, color: Colors.white),
                   ),
                 ),
-                const SizedBox(height: 5),
+                SizedBox(height: rs.p(5)),
                 Row(
                   children: [
                     SizedBox(
-                      width: 96,
-                      height: 3,
+                      width: rs.s(96),
+                      height: rs.s(3),
                       child: ClipRRect(
-                        borderRadius: BorderRadius.circular(4),
+                        borderRadius: rs.circ(4),
                         child: LinearProgressIndicator(
                           value: lvlProgress,
                           backgroundColor: AppColors.surface3,
@@ -826,9 +848,9 @@ class _Header extends StatelessWidget {
                         ),
                       ),
                     ),
-                    const SizedBox(width: 6),
+                    SizedBox(width: rs.p(6)),
                     Text('LVL $level',
-                        style: AppTheme.mono(size: 9, color: AppColors.accent)),
+                        style: AppTheme.mono(size: rs.f(9), color: AppColors.accent)),
                   ],
                 ),
               ],
@@ -851,26 +873,26 @@ class _Header extends StatelessWidget {
                           : AppColors.grayscaleFilter,
                       child: Opacity(
                         opacity: isSpinAvailable ? 1.0 : 0.5,
-                        child: const Text('🎰', style: TextStyle(fontSize: 15)),
+                        child: Text('🎰', style: TextStyle(fontSize: rs.f(15))),
                       ),
                     ),
                   );
                 }),
-                const SizedBox(width: 7),
+                SizedBox(width: rs.p(7)),
               ],
               _IconBtn(
                 onTap: onChallenges,
                 borderColor: AppColors.purple.withValues(alpha: 0.35),
                 badge: pendingChallenges > 0 ? pendingChallenges : null,
                 badgeColor: AppColors.purple,
-                child: const Text('📜', style: TextStyle(fontSize: 15)),
+                child: Text('📜', style: TextStyle(fontSize: rs.f(15))),
               ),
-              const SizedBox(width: 7),
+              SizedBox(width: rs.p(7)),
               _IconBtn(
                 onTap: onNotif,
                 badge: unread > 0 ? unread : null,
-                child: const Icon(Icons.notifications_none,
-                    size: 16, color: AppColors.muted),
+                child: Icon(Icons.notifications_none,
+                    size: rs.s(16), color: AppColors.muted),
               ),
             ],
           ),
@@ -919,6 +941,7 @@ class _IconBtn extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final rs = ResponsiveScale(context);
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
@@ -931,18 +954,18 @@ class _IconBtn extends StatelessWidget {
                 duration: const Duration(milliseconds: 2000),
                 child: Container(
                   decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(11),
+                    borderRadius: rs.circ(11),
                     border: Border.all(color: Colors.white, width: 2),
                   ),
                 ),
               ),
             ),
           Container(
-            width: 38,
-            height: 38,
+            width: rs.s(38),
+            height: rs.s(38),
             decoration: BoxDecoration(
               color: AppColors.surface,
-              borderRadius: BorderRadius.circular(11),
+              borderRadius: rs.circ(11),
               border: Border.all(color: isRainbow ? Colors.transparent : borderColor),
             ),
             alignment: Alignment.center,
@@ -950,21 +973,21 @@ class _IconBtn extends StatelessWidget {
           ),
           if (badge != null)
             Positioned(
-              top: -3,
-              right: -3,
+              top: rs.p(-3),
+              right: rs.p(-3),
               child: IgnorePointer(
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 3),
+                  padding: rs.symH(3),
                   constraints:
-                      const BoxConstraints(minWidth: 15, minHeight: 15),
+                      BoxConstraints(minWidth: rs.s(15), minHeight: rs.s(15)),
                   decoration: BoxDecoration(
                     color: badgeColor,
-                    borderRadius: BorderRadius.circular(8),
+                    borderRadius: rs.circ(8),
                   ),
                   alignment: Alignment.center,
                   child: Text('$badge',
                       style: AppTheme.mono(
-                          size: 8,
+                          size: rs.f(8),
                           color: Colors.white,
                           weight: FontWeight.w800)),
                 ),

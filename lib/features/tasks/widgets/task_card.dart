@@ -7,6 +7,9 @@ import '../../../shared/widgets/rainbow_glimmer.dart';
 class TaskCard extends StatefulWidget {
   final TaskModel task;
   final int effectiveMulti;
+  final bool celebrationLocked;
+  final VoidCallback onCelebrationStart;
+  final VoidCallback onCelebrationEnd;
   final VoidCallback onToggle;
   final VoidCallback onQuickToggle;
   final VoidCallback? onLongPress;
@@ -18,6 +21,9 @@ class TaskCard extends StatefulWidget {
     super.key,
     required this.task,
     required this.effectiveMulti,
+    this.celebrationLocked = false,
+    required this.onCelebrationStart,
+    required this.onCelebrationEnd,
     required this.onToggle,
     required this.onQuickToggle,
     this.onLongPress,
@@ -56,11 +62,16 @@ class _TaskCardState extends State<TaskCard>
   }
 
   void _handleQuickToggle() {
+    if (widget.celebrationLocked) return;
     if (!widget.task.done) {
+      widget.onCelebrationStart();
       _checkCtrl.forward(from: 0);
       setState(() => _showCelebration = true);
       Future.delayed(const Duration(milliseconds: 1500), () {
-        if (mounted) setState(() => _showCelebration = false);
+        if (mounted) {
+          setState(() => _showCelebration = false);
+          widget.onCelebrationEnd();
+        }
       });
     }
     widget.onQuickToggle();

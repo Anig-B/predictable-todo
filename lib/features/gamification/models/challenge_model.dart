@@ -6,7 +6,9 @@ enum ChallengeType {
   socialScout,
   proofProvider,
   consistency,
-  projectFocus
+  projectFocus,
+  workFocus,
+  learningFocus
 }
 
 class ChallengeModel {

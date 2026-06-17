@@ -1,7 +1,6 @@
 import '../../features/tasks/models/task_model.dart';
 import '../../features/gamification/models/boss_model.dart';
 import '../../features/gamification/models/challenge_model.dart';
-import '../../features/gamification/models/skill_node_model.dart';
 import '../../features/leaderboard/models/leaderboard_entry_model.dart';
 import '../../features/tasks/models/activity_log_model.dart';
 import '../../features/gamification/models/loot_item_model.dart';
@@ -32,84 +31,56 @@ class SeedData {
     tasksNeeded: 20,
   );
 
+  static const int questPoolVersion = 3;
+
   static const List<ChallengeModel> questPool = [
     ChallengeModel(
-      id: 1, 
-      type: ChallengeType.earlyBird, 
-      title: 'Morning Hustle',
-      desc: 'Complete 3 tasks before 10 AM',
-      reward: 350,
-      icon: '🌅',
+      id: 1,
+      type: ChallengeType.learningFocus,
+      title: 'Quick Learner',
+      desc: 'Complete 2 Learning tasks',
+      reward: 200,
+      icon: '📚',
       done: false,
-      target: 3,
+      target: 2,
     ),
     ChallengeModel(
       id: 2,
-      type: ChallengeType.tripleThreat,
-      title: 'Momentum',
-      desc: 'Complete 3 tasks in a row today',
-      reward: 500,
-      icon: '🔥',
+      type: ChallengeType.consistency,
+      title: 'Task Crusher',
+      desc: 'Complete 4 tasks today',
+      reward: 200,
+      icon: '✅',
       done: false,
-      target: 3,
+      target: 4,
     ),
     ChallengeModel(
       id: 3,
       type: ChallengeType.healthHero,
-      title: 'Body & Mind',
-      desc: 'Complete 2 health category tasks',
-      reward: 400,
+      title: 'Wellness Check',
+      desc: 'Complete 2 Wellness tasks',
+      reward: 200,
       icon: '💪',
       done: false,
       target: 2,
     ),
     ChallengeModel(
       id: 4,
-      type: ChallengeType.bossDamage,
-      title: 'Boss Battler',
-      desc: 'Damage the current boss 5 times',
-      reward: 600,
-      icon: '⚔️',
-      done: false,
-      target: 5,
-    ),
-    ChallengeModel(
-      id: 5,
-      type: ChallengeType.socialScout,
-      title: 'Social Scout',
-      desc: 'View 3 other player profiles',
+      type: ChallengeType.tripleThreat,
+      title: 'Triple Threat',
+      desc: 'Complete 3 tasks in a row',
       reward: 200,
-      icon: '🕵️',
+      icon: '🔥',
       done: false,
       target: 3,
     ),
     ChallengeModel(
-      id: 6,
-      type: ChallengeType.proofProvider,
-      title: 'Show Your Work',
-      desc: 'Provide proof notes or an image for 2 tasks',
-      reward: 800,
-      icon: '📸',
-      done: false,
-      target: 2,
-    ),
-    ChallengeModel(
-      id: 7,
-      type: ChallengeType.consistency,
-      title: 'Steady Hand',
-      desc: 'Complete 5 total tasks today',
-      reward: 750,
-      icon: '🎯',
-      done: false,
-      target: 5,
-    ),
-    ChallengeModel(
-      id: 8,
-      type: ChallengeType.projectFocus,
-      title: 'Project Pusher',
-      desc: 'Complete 3 tasks in a single project',
-      reward: 450,
-      icon: '📁',
+      id: 5,
+      type: ChallengeType.workFocus,
+      title: 'Work Mode',
+      desc: 'Complete 3 Work tasks',
+      reward: 200,
+      icon: '💼',
       done: false,
       target: 3,
     ),
@@ -117,57 +88,6 @@ class SeedData {
   static const List<String> avatarEmojis = [
     '👤', '🧑‍🚀', '🦊', '🦁', '🦉', '🦋', '🍀', '🍎', '🧩', '🎨', 
     '🎮', '🎸', '⚽', '🌌', '🍦', '🍩', '🤖', '👾', '👻', '🎃'
-  ];
-
-  static const List<SkillNodeModel> skillTree = [
-    SkillNodeModel(
-      id: 's1',
-      name: 'Focus',
-      desc: 'Increase deep work efficiency',
-      icon: '🎯',
-      cost: 100,
-      unlocked: true,
-    ),
-    SkillNodeModel(
-      id: 's2',
-      name: 'Strategy',
-      desc: 'Higher points for planned tasks',
-      icon: '♟️',
-      cost: 200,
-      unlocked: true,
-    ),
-    SkillNodeModel(
-      id: 's3',
-      name: 'Endurance',
-      desc: 'Reduces streak loss penalty',
-      icon: '🔋',
-      cost: 300,
-      unlocked: false,
-    ),
-    SkillNodeModel(
-      id: 's4',
-      name: 'Efficiency',
-      desc: 'Tasks take 10% less time',
-      icon: '⚡',
-      cost: 400,
-      unlocked: false,
-    ),
-    SkillNodeModel(
-      id: 's5',
-      name: 'Mindfulness',
-      desc: 'Bonus XP for consistent ratings',
-      icon: '🧘',
-      cost: 500,
-      unlocked: false,
-    ),
-    SkillNodeModel(
-      id: 's6',
-      name: 'Prioritization',
-      desc: 'Double XP for high priority',
-      icon: '🔝',
-      cost: 600,
-      unlocked: false,
-    ),
   ];
 
   static const List<LeaderboardEntry> leaderboard = [
@@ -256,21 +176,21 @@ class SeedData {
   static const List<LootItemModel> lootPool = [
     LootItemModel(
       name: 'Focus Potion',
-      desc: '2x points for next 30 mins',
+      desc: '+150 bonus XP',
       rarity: LootRarity.rare,
       color: AppColors.purple,
       icon: '🧪',
     ),
     LootItemModel(
       name: 'Golden Ticket',
-      desc: 'Skip any task without penalty',
+      desc: '3x XP multiplier',
       rarity: LootRarity.epic,
       color: AppColors.gold,
       icon: '🎫',
     ),
     LootItemModel(
       name: 'Chaos Shield',
-      desc: 'Protection from boss attacks',
+      desc: '+1 shield',
       rarity: LootRarity.legendary,
       color: AppColors.accent,
       icon: '🛡️',
@@ -300,60 +220,70 @@ class SeedData {
     {
       'icon': '🚀',
       'name': 'Early Adopter',
+      'desc': 'Always unlocked',
       'unlocked': true,
       'color': AppColors.purple
     },
     {
       'icon': '🔥',
       'name': '7-Day Streak',
-      'unlocked': true,
+      'desc': 'Reach a 7-day streak',
+      'unlocked': false,
       'color': AppColors.red
     },
     {
       'icon': '⚔️',
       'name': 'Boss Slayer',
+      'desc': 'Defeat a boss',
       'unlocked': false,
       'color': AppColors.accent
     },
     {
       'icon': '💎',
       'name': 'Gem Collector',
+      'desc': 'Complete 100 tasks',
       'unlocked': false,
       'color': AppColors.gold
     },
     {
       'icon': '🎯',
       'name': 'Perfect Week',
-      'unlocked': true,
+      'desc': 'Complete 50 tasks',
+      'unlocked': false,
       'color': AppColors.blue
     },
     {
       'icon': '🦉',
       'name': 'Night Owl',
+      'desc': '10 tasks after 8 PM',
       'unlocked': false,
       'color': AppColors.purple
     },
     {
       'icon': '🧞',
       'name': 'Mystery Genie',
+      'desc': 'Defeat Mystery Genie',
       'unlocked': false,
       'color': AppColors.gold
     },
     {
       'icon': '🧘',
       'name': 'Focus Master',
+      'desc': '5 tasks in a row',
       'unlocked': false,
       'color': AppColors.accent
     },
     {
       'icon': '🧗',
       'name': 'Peak Performer',
+      'desc': 'Reach 5,000 XP',
       'unlocked': false,
       'color': AppColors.blue
     },
     {
       'icon': '💪',
       'name': 'Weekend Warrior',
+      'desc': 'Complete 200 tasks',
       'unlocked': false,
       'color': AppColors.red
     },

@@ -1,7 +1,5 @@
-import 'dart:math';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:async';
 import 'dart:convert';
@@ -30,7 +28,6 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _init();
       final user = ref.read(currentUserProvider);
       if (user != null) {
         _syncFromRemote(user.id);
@@ -41,17 +38,6 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
 
   int get doneCount => state.where((c) => c.done).length;
   bool get allDone => state.isNotEmpty && state.every((c) => c.done);
-
-  Future<void> _init() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedStr = prefs.getString('challenges_data');
-    if (savedStr != null) {
-      try {
-        final List decoded = jsonDecode(savedStr);
-        state = decoded.map((e) => ChallengeModel.fromJson(e)).toList();
-      } catch (_) {}
-    }
-  }
 
   void _listenToRemote(String userId) {
     _stopListening();
@@ -79,7 +65,10 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
 
   Future<void> _syncFromRemote(String userId) async {
     final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
-    if (stats == null) return;
+    if (stats == null) {
+      _rollNewQuests(userId);
+      return;
+    }
 
     final questsRaw = stats['daily_quests'] as List<dynamic>?;
     final lastResetStr = stats['quests_last_reset_at'] as String?;
@@ -102,25 +91,20 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
       _rollNewQuests(userId);
     } else if (questsRaw != null) {
       final remoteQuests = questsRaw.map((e) => ChallengeModel.fromJson(e)).toList();
-      if (jsonEncode(remoteQuests) != jsonEncode(state)) {
+      final hasRemovedTypes = remoteQuests.any((q) =>
+          q.type == ChallengeType.bossDamage || q.type == ChallengeType.socialScout);
+      if (hasRemovedTypes || remoteQuests.length != SeedData.questPool.length) {
+        _rollNewQuests(userId);
+      } else if (jsonEncode(remoteQuests) != jsonEncode(state)) {
         state = remoteQuests;
-        _persist();
       }
     }
   }
 
   void _rollNewQuests(String userId) {
-    final pool = List<ChallengeModel>.from(SeedData.questPool);
-    pool.shuffle(Random());
-    state = pool.take(3).toList();
-    _persist();
+    state = SeedData.questPool.map((q) => q.copyWith()).toList();
     _syncToRemote(userId, isReset: true);
     ref.read(gamificationProvider.notifier).resetDailyQuestReward();
-  }
-
-  Future<void> _persist() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.setString('challenges_data', jsonEncode(state.map((c) => c.toJson()).toList()));
   }
 
   void _syncToRemote(String userId, {bool isReset = false}) {
@@ -145,8 +129,6 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
       }
       return c;
     }).toList();
-    
-    _persist();
 
     final user = ref.read(currentUserProvider);
     if (user != null) {
@@ -154,29 +136,32 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
     }
     
     if (isDone) {
-      ref.read(gamificationProvider.notifier).onQuestCompleted(ch.reward);
+      final completedCount = state.where((c) => c.done).length;
+      if (completedCount <= 3) {
+        ref.read(gamificationProvider.notifier).onQuestCompleted(ch.reward);
+      }
       _showCompletionToast();
     }
   }
 
   void _showCompletionToast() {
     final count = state.where((c) => c.done).length;
-    final total = state.length;
-    if (total == 0) return;
+    const goal = 3;
+    if (state.isEmpty) return;
 
     String icon = '📜';
-    String title = '$count/$total Daily Quests!';
+    String title = '${count.clamp(0, goal)}/$goal Daily Quests!';
     String desc = '';
 
     if (count == 1) {
-      desc = '1 daily task complete! Complete remaining 2 for bonus prizes. 🎁';
+      desc = '1 quest done! 2 more for your reward chest! 🎁';
     } else if (count == 2) {
       icon = '✨';
-      desc = '2 daily tasks complete! Only 1 left for your bonus chest! 🎁';
-    } else if (count == 3) {
+      desc = '2 quests done! 1 more for your reward chest! 🎁';
+    } else if (count >= 3) {
       icon = '🏆';
-      title = 'All Quests Cleared!';
-      desc = 'Claim your bonus reward in the Scrolls section! ✨';
+      title = 'Reward Ready!';
+      desc = 'Claim your bonus in the Scrolls section! ✨';
     }
 
     if (desc.isNotEmpty) {
@@ -214,6 +199,12 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
         case ChallengeType.projectFocus:
           if (task.project.isNotEmpty) _progressQuest(ch);
           break;
+        case ChallengeType.workFocus:
+          if (task.category == TaskCategory.work) _progressQuest(ch);
+          break;
+        case ChallengeType.learningFocus:
+          if (task.category == TaskCategory.learning) _progressQuest(ch);
+          break;
         default: break;
       }
     }
@@ -232,6 +223,17 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
       if (!ch.done && ch.type == ChallengeType.socialScout) {
         _progressQuest(ch);
       }
+    }
+  }
+
+  Future<void> reset() async {
+    state = state.map((c) => c.copyWith(progress: 0, done: false)).toList();
+    final user = ref.read(currentUserProvider);
+    if (user != null) {
+      await ref.read(profileRepositoryProvider).updateUserStats(user.id, {
+        'daily_quests': state.map((c) => c.toJson()).toList(),
+        'quests_last_reset_at': null,
+      });
     }
   }
 

@@ -59,79 +59,94 @@ class HeatmapGrid extends StatelessWidget {
   }
 
   Color _cellColor(int v) {
-    if (v == 0) return Colors.white.withValues(alpha: 0.03);
-    if (v <= 100) return AppColors.accent.withValues(alpha: 0.15);
-    if (v <= 300) return AppColors.accent.withValues(alpha: 0.35);
-    if (v <= 500) return AppColors.accent.withValues(alpha: 0.6);
-    if (v <= 1000) return AppColors.accent.withValues(alpha: 0.8);
-    return AppColors.accent.withValues(alpha: 1.0);
+    if (v == 0) return AppColors.surface2;
+    if (v <= 100) return AppColors.accent.withValues(alpha: 0.25);
+    if (v <= 300) return AppColors.accent.withValues(alpha: 0.45);
+    if (v <= 500) return AppColors.accent.withValues(alpha: 0.65);
+    if (v <= 1000) return AppColors.accent.withValues(alpha: 0.85);
+    return AppColors.accent;
   }
 
   @override
   Widget build(BuildContext context) {
     const days = ['M', 'T', 'W', 'T', 'F', 'S', 'S'];
+    const cellSize = 18.0;
 
-    return Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        // Day labels
-        Column(
-          children: days
-              .map((d) => SizedBox(
-                    width: 12,
-                    height: 17,
-                    child: Center(
-                      child: Text(d,
-                          style:
-                              AppTheme.mono(size: 8, color: AppColors.subtle)),
-                    ),
-                  ))
-              .toList(),
-        ),
-        const SizedBox(width: 3),
-        // Grid
-        Expanded(
-          child: SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: data.asMap().entries.map((weekEntry) {
-                final weekIdx = weekEntry.key;
-                final week = weekEntry.value;
-                return Padding(
-                  padding: const EdgeInsets.only(right: 3),
-                  child: Column(
-                    children: week.asMap().entries.map((dayEntry) {
-                      final dayIdx = dayEntry.key;
-                      final val = dayEntry.value;
-                      final isSelected =
-                          selectedWeek == weekIdx && selectedDay == dayIdx;
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        const labelW = 12.0;
+        const labelGap = 3.0;
+        final gridW = constraints.maxWidth - labelW - labelGap;
+        // Distribute extra space as gaps between weeks (3–12px range)
+        final gap = (gridW - data.length * cellSize) / (data.length - 1);
+        final weekGap = gap.clamp(3.0, 12.0);
 
-                      return GestureDetector(
-                        onTap: () => onSelect?.call(weekIdx, dayIdx),
-                        child: Padding(
-                          padding: const EdgeInsets.only(bottom: 3),
-                          child: Container(
-                            width: 14,
-                            height: 14,
-                            decoration: BoxDecoration(
-                              color: _cellColor(val.xp),
-                              borderRadius: BorderRadius.circular(3),
-                              border: isSelected
-                                  ? Border.all(color: Colors.white, width: 1.5)
-                                  : null,
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Day labels
+            Column(
+              children: days
+                  .map((d) => SizedBox(
+                        width: labelW,
+                        height: 21,
+                        child: Center(
+                          child: Text(d,
+                              style: AppTheme.mono(
+                                  size: 8, color: AppColors.subtle)),
+                        ),
+                      ))
+                  .toList(),
+            ),
+            const SizedBox(width: labelGap),
+            // Grid
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: data.asMap().entries.map((weekEntry) {
+                  final weekIdx = weekEntry.key;
+                  final week = weekEntry.value;
+                  return Padding(
+                    padding: EdgeInsets.only(
+                        right: weekIdx < data.length - 1 ? weekGap : 0),
+                    child: Column(
+                      children: week.asMap().entries.map((dayEntry) {
+                        final dayIdx = dayEntry.key;
+                        final val = dayEntry.value;
+                        final isSelected =
+                            selectedWeek == weekIdx && selectedDay == dayIdx;
+
+                        return GestureDetector(
+                          onTap: () => onSelect?.call(weekIdx, dayIdx),
+                          child: Padding(
+                            padding: const EdgeInsets.only(bottom: 3),
+                            child: Container(
+                              width: cellSize,
+                              height: cellSize,
+                              decoration: BoxDecoration(
+                                color: _cellColor(val.xp),
+                                borderRadius: BorderRadius.circular(4),
+                                border: isSelected
+                                    ? Border.all(color: Colors.white, width: 2)
+                                    : val.xp == 0
+                                        ? Border.all(
+                                            color: AppColors.border,
+                                            width: 0.5)
+                                        : null,
+                              ),
                             ),
                           ),
-                        ),
-                      );
-                    }).toList(),
-                  ),
-                );
-              }).toList(),
+                        );
+                      }).toList(),
+                    ),
+                  );
+                }).toList(),
+              ),
             ),
-          ),
-        ),
-      ],
+          ],
+        );
+      },
     );
   }
 }
