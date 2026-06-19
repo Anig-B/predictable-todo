@@ -124,7 +124,8 @@ class TaskModel {
       final now = DateTime.now();
       int hour = 0;
       int minute = 0;
-      bool isPm = t.contains('pm');
+      final hasAm = t.contains('am');
+      final hasPm = t.contains('pm');
       
       final clean = t.replaceAll('am', '').replaceAll('pm', '').trim();
       final parts = clean.split(':');
@@ -132,12 +133,13 @@ class TaskModel {
       if (parts.isNotEmpty) hour = int.parse(parts[0]);
       if (parts.length > 1) minute = int.parse(parts[1]);
 
-      if (isPm && hour < 12) hour += 12;
-      if (!isPm && hour == 12) hour = 0;
+      if (hasPm && hour < 12) hour += 12;
+      if (hasAm && hour == 12) hour = 0;
 
-      final scheduled = DateTime(now.year, now.month, now.day, hour, minute);
-      // If it's already past for today and recurring, schedule for tomorrow?
-      // Since tasks refresh daily, leaving it as is for now.
+      var scheduled = DateTime(now.year, now.month, now.day, hour, minute);
+      if (scheduled.isBefore(now)) {
+        scheduled = scheduled.add(const Duration(days: 1));
+      }
       return scheduled;
     } catch (_) {
       return null;

@@ -16,17 +16,18 @@ import '../../features/leaderboard/models/leaderboard_entry_model.dart';
 
 final appRouterProvider = Provider<GoRouter>((ref) {
   final authState = ref.watch(authStateProvider);
+  final user = ref.watch(currentUserProvider);
 
   return GoRouter(
     initialLocation: '/tasks',
     redirect: (context, state) {
       final isAuthPage = state.matchedLocation == '/auth';
       
-      // Wait for auth to be initialized
-      if (authState.isLoading) return null;
+      // Wait for auth stream to emit before deciding
+      if (authState.isLoading && user == null) return null;
 
-      final session = authState.value?.session;
-      final isAuthenticated = session != null;
+      // Use stream value if available; fall back to currentUser (works even if stream errored)
+      final isAuthenticated = authState.value?.session != null || user != null;
 
       if (!isAuthenticated && !isAuthPage) {
         return '/auth';

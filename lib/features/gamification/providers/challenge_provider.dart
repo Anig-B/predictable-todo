@@ -41,21 +41,25 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
 
   void _listenToRemote(String userId) {
     _stopListening();
-    _subscription = _supabase
-        .channel('public:user_stats:quests:$userId')
-        .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'user_stats',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'user_id',
-              value: userId,
-            ),
-            callback: (payload) {
-              _syncFromRemote(userId);
-            })
-        .subscribe();
+    try {
+      _subscription = _supabase
+          .channel('public:user_stats:quests:$userId')
+          .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'user_stats',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'user_id',
+                value: userId,
+              ),
+              callback: (payload) {
+                _syncFromRemote(userId);
+              })
+          .subscribe();
+    } catch (e) {
+      debugPrint('[Challenge] Realtime subscribe error: $e');
+    }
   }
 
   void _stopListening() {
@@ -64,40 +68,44 @@ class ChallengeNotifier extends StateNotifier<List<ChallengeModel>> {
   }
 
   Future<void> _syncFromRemote(String userId) async {
-    final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
-    if (stats == null) {
-      _rollNewQuests(userId);
-      return;
-    }
-
-    final questsRaw = stats['daily_quests'] as List<dynamic>?;
-    final lastResetStr = stats['quests_last_reset_at'] as String?;
-    final lastReset = lastResetStr != null ? DateTime.tryParse(lastResetStr) : null;
-    
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    
-    bool needsReset = false;
-    if (lastReset == null) {
-      needsReset = true;
-    } else {
-      final lastResetDate = DateTime(lastReset.year, lastReset.month, lastReset.day);
-      if (today.isAfter(lastResetDate)) {
-        needsReset = true;
-      }
-    }
-
-    if (needsReset) {
-      _rollNewQuests(userId);
-    } else if (questsRaw != null) {
-      final remoteQuests = questsRaw.map((e) => ChallengeModel.fromJson(e)).toList();
-      final hasRemovedTypes = remoteQuests.any((q) =>
-          q.type == ChallengeType.bossDamage || q.type == ChallengeType.socialScout);
-      if (hasRemovedTypes || remoteQuests.length != SeedData.questPool.length) {
+    try {
+      final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
+      if (stats == null) {
         _rollNewQuests(userId);
-      } else if (jsonEncode(remoteQuests) != jsonEncode(state)) {
-        state = remoteQuests;
+        return;
       }
+
+      final questsRaw = stats['daily_quests'] as List<dynamic>?;
+      final lastResetStr = stats['quests_last_reset_at'] as String?;
+      final lastReset = lastResetStr != null ? DateTime.tryParse(lastResetStr) : null;
+      
+      final now = DateTime.now();
+      final today = DateTime(now.year, now.month, now.day);
+      
+      bool needsReset = false;
+      if (lastReset == null) {
+        needsReset = true;
+      } else {
+        final lastResetDate = DateTime(lastReset.year, lastReset.month, lastReset.day);
+        if (today.isAfter(lastResetDate)) {
+          needsReset = true;
+        }
+      }
+
+      if (needsReset) {
+        _rollNewQuests(userId);
+      } else if (questsRaw != null) {
+        final remoteQuests = questsRaw.map((e) => ChallengeModel.fromJson(e)).toList();
+        final hasRemovedTypes = remoteQuests.any((q) =>
+            q.type == ChallengeType.bossDamage || q.type == ChallengeType.socialScout);
+        if (hasRemovedTypes || remoteQuests.length != SeedData.questPool.length) {
+          _rollNewQuests(userId);
+        } else if (jsonEncode(remoteQuests) != jsonEncode(state)) {
+          state = remoteQuests;
+        }
+      }
+    } catch (e) {
+      debugPrint('[Challenge] Failed to sync from remote: $e');
     }
   }
 

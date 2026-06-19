@@ -1,8 +1,9 @@
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import '../../auth/providers/auth_provider.dart';
-import 'package:flutter/widgets.dart';
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationModel>>(
@@ -18,6 +19,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
   final _supabase = Supabase.instance.client;
   RealtimeChannel? _subscription;
   bool _initialized = false;
+  Timer? _refreshTimer;
 
   NotificationNotifier(Ref ref) : super([]) {
     ref.listen(currentUserProvider, (previous, next) {
@@ -27,6 +29,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
           _initialized = true;
           fetchNotifications();
           listenToNotifications();
+          _startRefreshTimer();
         }
       } else {
         userId = null;
@@ -41,6 +44,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         fetchNotifications();
         listenToNotifications();
+        _startRefreshTimer();
       });
     }
   }
@@ -48,21 +52,29 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
   @override
   void dispose() {
     _subscription?.unsubscribe();
+    _refreshTimer?.cancel();
     super.dispose();
+  }
+
+  void _startRefreshTimer() {
+    _refreshTimer?.cancel();
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      fetchNotifications();
+    });
   }
 
   Future<void> fetchNotifications() async {
     if (userId == null) return;
     try {
-      debugPrint('DEBUG: Fetching notifications for user: $userId');
+      final now = DateTime.now().toUtc().toIso8601String();
       final data = await _supabase
           .from('notifications')
           .select()
           .eq('user_id', userId!)
+          .lte('created_at', now)
           .order('created_at', ascending: false);
 
       if (!mounted) return;
-      debugPrint('DEBUG: Found ${data.length} notifications');
       state = data.map((map) => NotificationModel.fromMap(map)).toList();
     } catch (e) {
       debugPrint('Error fetching notifications: $e');
@@ -72,21 +84,25 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
   void listenToNotifications() {
     if (userId == null) return;
 
-    _subscription = _supabase
-        .channel('public:notifications:user_id=eq.$userId')
-        .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'notifications',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'user_id',
-              value: userId,
-            ),
-            callback: (payload) {
-              fetchNotifications();
-            })
-        .subscribe();
+    try {
+      _subscription = _supabase
+          .channel('public:notifications:user_id=eq.$userId')
+          .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'notifications',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'user_id',
+                value: userId,
+              ),
+              callback: (payload) {
+                fetchNotifications();
+              })
+          .subscribe();
+    } catch (e) {
+      debugPrint('[Notifications] Realtime subscribe error: $e');
+    }
   }
 
   int get unreadCount => state.where((n) => !n.read).length;

@@ -127,7 +127,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
     }
   }
 
-  void _submit() {
+  Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
     final points = switch (_recurring) {
       TaskRecurring.weekly => 50,
@@ -151,8 +151,10 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
       monthlyDay: _recurring == TaskRecurring.monthly ? _monthlyDay : null,
     );
     if (existing != null) {
+      debugPrint('[AddTask] Updating existing task: ${task.title}');
       ref.read(taskProvider.notifier).updateTask(task);
     } else {
+      debugPrint('[AddTask] Creating new task: ${task.title} time="${task.time}" scheduledDateTime=${task.scheduledDateTime}');
       ref.read(taskProvider.notifier).addTask(task);
     }
     Navigator.of(context).pop();

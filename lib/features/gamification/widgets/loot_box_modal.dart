@@ -40,33 +40,40 @@ class _LootBoxModalState extends State<LootBoxModal>
     final item = SeedData.lootPool[Random().nextInt(SeedData.lootPool.length)];
     setState(() => _loot = item);
     _ctrl.forward(from: 0);
-    widget.onCollect(item);
+  }
+
+  void _collect() {
+    if (_loot != null) widget.onCollect(_loot!);
+    Navigator.of(context).pop();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      decoration: AppTheme.sheetBox,
-      padding: const EdgeInsets.fromLTRB(18, 20, 18, 36),
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          AppTheme.handleBar,
-          const SizedBox(height: 24),
-          AnimatedSwitcher(
-            duration: const Duration(milliseconds: 300),
-            child: _loot == null
-                ? _ClosedChest(key: const ValueKey('closed'), onOpen: _open)
-                : _OpenedLoot(
-                    key: const ValueKey('opened'),
-                    loot: _loot!,
-                    scale: _scale,
-                    onCollect: () {
-                      Navigator.of(context).pop();
-                    },
-                  ),
-          ),
-        ],
+    return Center(
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 32),
+        decoration: BoxDecoration(
+          color: AppColors.bg,
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(color: AppColors.border),
+        ),
+        padding: const EdgeInsets.fromLTRB(24, 24, 24, 32),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 300),
+              child: _loot == null
+                  ? _ClosedChest(key: const ValueKey('closed'), onOpen: _open)
+                  : _OpenedLoot(
+                      key: const ValueKey('opened'),
+                      loot: _loot!,
+                      scale: _scale,
+                      onCollect: _collect,
+                    ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -85,7 +92,7 @@ class _ClosedChest extends StatelessWidget {
         Text('Treasure Chest!',
             style: AppTheme.mono(size: 14, weight: FontWeight.w700)),
         const SizedBox(height: 6),
-        Text('Earned by completing a task set.',
+        Text('Earned by completing tasks.',
             style: AppTheme.sans(size: 11, color: AppColors.muted)),
         const SizedBox(height: 20),
         GestureDetector(

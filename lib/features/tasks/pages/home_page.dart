@@ -646,12 +646,10 @@ class _TasksPageState extends ConsumerState<TasksPage> {
     if (showLoot) {
       Future.delayed(const Duration(milliseconds: 800), () {
         if (context.mounted) {
-          showModalBottomSheet(
+          showDialog(
             context: context,
-            isScrollControlled: true,
-            useRootNavigator: false,
-            useSafeArea: true,
-            backgroundColor: Colors.transparent,
+            barrierDismissible: false,
+            barrierColor: Colors.black54,
             builder: (_) => LootBoxModal(
               onCollect: (item) => ref
                   .read(gamificationProvider.notifier)

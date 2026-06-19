@@ -143,7 +143,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         _listenToStats(next.id);
       } else {
         _stopListening();
-        state = _initialState;
+        state = _initialState.copyWith(isLoading: false);
       }
     });
 
@@ -152,27 +152,33 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
       if (user != null) {
         _fetchRemoteStats(user.id);
         _listenToStats(user.id);
+      } else {
+        state = state.copyWith(isLoading: false);
       }
     });
   }
 
   void _listenToStats(String userId) {
     _stopListening();
-    _subscription = _supabase
-        .channel('public:user_stats:user_id=eq.$userId')
-        .onPostgresChanges(
-            event: PostgresChangeEvent.all,
-            schema: 'public',
-            table: 'user_stats',
-            filter: PostgresChangeFilter(
-              type: PostgresChangeFilterType.eq,
-              column: 'user_id',
-              value: userId,
-            ),
-            callback: (payload) {
-              _fetchRemoteStats(userId);
-            })
-        .subscribe();
+    try {
+      _subscription = _supabase
+          .channel('public:user_stats:user_id=eq.$userId')
+          .onPostgresChanges(
+              event: PostgresChangeEvent.all,
+              schema: 'public',
+              table: 'user_stats',
+              filter: PostgresChangeFilter(
+                type: PostgresChangeFilterType.eq,
+                column: 'user_id',
+                value: userId,
+              ),
+              callback: (payload) {
+                _fetchRemoteStats(userId);
+              })
+          .subscribe();
+    } catch (e) {
+      debugPrint('[Gamification] Realtime subscribe error: $e');
+    }
   }
 
   void _stopListening() {
@@ -197,43 +203,54 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
   }
 
   Future<void> _fetchRemoteStats(String userId) async {
-    final stats = await ref.read(profileRepositoryProvider).fetchUserStats(userId);
-    if (stats != null) {
-      state = state.copyWith(
-        currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
-        totalXp: stats['xp'] as int? ?? state.totalXp,
-        weeklyXp: stats['weekly_xp'] as int? ?? state.weeklyXp,
-        bonusXp: stats['bonus_xp'] as int? ?? state.bonusXp,
-        comboPoints: stats['combo_points'] as int? ?? state.comboPoints,
-        comboCount: stats['combo_count'] as int? ?? state.comboCount,
-        shields: stats['shields'] as int? ?? state.shields,
-        lootCount: stats['loot_count'] as int? ?? state.lootCount,
-        spinUsed: stats['spin_used'] as bool? ?? state.spinUsed,
-        lastSpunDate: stats['last_spun_date'] != null
-            ? DateTime.tryParse(stats['last_spun_date'] as String)
-            : state.lastSpunDate,
-        lastBossResetDate: stats['last_boss_reset_at'] != null 
-            ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
-            : state.lastBossResetDate,
-        boss: BossData.getById(stats['boss_id'] as String? ?? state.boss.id).copyWith(
-          hp: stats['boss_hp'] as int? ?? state.boss.hp,
-          tasksDone: stats['boss_tasks_done'] as int? ?? state.boss.tasksDone,
-        ),
-        lastBossId: stats['last_boss_id'] as String? ?? state.lastBossId,
-        unlockedBadges: (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? 
-            state.unlockedBadges,
-        selectedBadges: (stats['selected_badges'] as List<dynamic>?)?.cast<String>() ?? 
-            state.selectedBadges,
-        bossRewardClaimed: stats['boss_reward_claimed'] ?? false,
-        dailyQuestRewardClaimed: stats['daily_quest_reward_claimed'] ?? false,
-        totalLifetimeTasks: stats['total_lifetime_tasks'] ?? state.totalLifetimeTasks,
-        nightOwlCount: stats['night_owl_count'] as int? ?? state.nightOwlCount,
-        multiplier: stats['multiplier'] as int? ?? state.multiplier,
-        isLoading: false,
-      );
-      _checkComboExpiry();
-      _checkWeeklyBossReset();
-    } else {
+    try {
+      debugPrint('[Gamification] Fetching stats for user $userId...');
+      final stats = await ref
+          .read(profileRepositoryProvider)
+          .fetchUserStats(userId)
+          .timeout(const Duration(seconds: 10));
+      debugPrint('[Gamification] Stats result: ${stats != null ? "found" : "null"}');
+      if (stats != null) {
+        state = state.copyWith(
+          currentStreak: stats['current_streak'] as int? ?? state.currentStreak,
+          totalXp: stats['xp'] as int? ?? state.totalXp,
+          weeklyXp: stats['weekly_xp'] as int? ?? state.weeklyXp,
+          bonusXp: stats['bonus_xp'] as int? ?? state.bonusXp,
+          comboPoints: stats['combo_points'] as int? ?? state.comboPoints,
+          comboCount: stats['combo_count'] as int? ?? state.comboCount,
+          shields: stats['shields'] as int? ?? state.shields,
+          lootCount: stats['loot_count'] as int? ?? state.lootCount,
+          spinUsed: stats['spin_used'] as bool? ?? state.spinUsed,
+          lastSpunDate: stats['last_spun_date'] != null
+              ? DateTime.tryParse(stats['last_spun_date'] as String)
+              : state.lastSpunDate,
+          lastBossResetDate: stats['last_boss_reset_at'] != null 
+              ? DateTime.tryParse(stats['last_boss_reset_at'] as String) 
+              : state.lastBossResetDate,
+          boss: BossData.getById(stats['boss_id'] as String? ?? state.boss.id).copyWith(
+            hp: stats['boss_hp'] as int? ?? state.boss.hp,
+            tasksDone: stats['boss_tasks_done'] as int? ?? state.boss.tasksDone,
+          ),
+          lastBossId: stats['last_boss_id'] as String? ?? state.lastBossId,
+          unlockedBadges: (stats['unlocked_badges'] as List<dynamic>?)?.cast<String>() ?? 
+              state.unlockedBadges,
+          selectedBadges: (stats['selected_badges'] as List<dynamic>?)?.cast<String>() ?? 
+              state.selectedBadges,
+          bossRewardClaimed: stats['boss_reward_claimed'] ?? false,
+          dailyQuestRewardClaimed: stats['daily_quest_reward_claimed'] ?? false,
+          totalLifetimeTasks: stats['total_lifetime_tasks'] ?? state.totalLifetimeTasks,
+          nightOwlCount: stats['night_owl_count'] as int? ?? state.nightOwlCount,
+          multiplier: stats['multiplier'] as int? ?? state.multiplier,
+          isLoading: false,
+        );
+        _checkComboExpiry();
+        _checkWeeklyBossReset();
+      } else {
+        debugPrint('[Gamification] Stats null — using defaults');
+        state = state.copyWith(isLoading: false);
+      }
+    } catch (e) {
+      debugPrint('[Gamification] Failed to fetch stats: $e');
       state = state.copyWith(isLoading: false);
     }
   }
@@ -326,9 +343,22 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
     final lastMonday = today.subtract(Duration(days: daysSinceMonday));
 
     final lastReset = state.lastBossResetDate;
-    final isNewWeek = lastReset == null || lastReset.isBefore(lastMonday);
 
-    if (isNewWeek) {
+    // First run: pick the right boss based on activity, then lock the week
+    if (lastReset == null) {
+      final newBossId = _determineWeeklyBoss();
+      state = state.copyWith(
+        lastBossId: state.boss.id,
+        boss: BossData.getById(newBossId),
+        lastBossResetDate: lastMonday,
+        bossRewardClaimed: false,
+        dailyQuestRewardClaimed: false,
+      );
+      _syncToRemote();
+      return;
+    }
+
+    if (lastReset.isBefore(lastMonday)) {
       final newBossId = _determineWeeklyBoss();
       state = state.copyWith(
         lastBossId: state.boss.id,
@@ -461,6 +491,7 @@ class GamificationNotifier extends StateNotifier<GamificationState> {
         tasksDone: newTasksDone,
       ),
       totalLifetimeTasks: (state.totalLifetimeTasks - 1).clamp(0, 999999),
+      lootCount: (state.lootCount - 1).clamp(0, 999999),
     );
 
     if (state.comboCount == 0) {
