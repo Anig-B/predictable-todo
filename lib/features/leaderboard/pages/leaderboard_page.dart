@@ -102,12 +102,11 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                   Text('Leaderboard',
                       style: AppTheme.mono(size: rs.f(20), weight: FontWeight.w800)),
                   Row(
-                    children: ['weekly', 'all-time', 'friends', 'project'].map((f) {
+                    children: ['weekly', 'all-time', 'friends'].map((f) {
                       final active = _filter == f;
                       String tabName = f;
                       if (f == 'all-time') tabName = 'All';
                       if (f == 'friends') tabName = 'Friends';
-                      if (f == 'project') tabName = 'Project';
                       if (f == 'weekly') tabName = 'Weekly';
                       return GestureDetector(
                         onTap: () => setState(() => _filter = f),

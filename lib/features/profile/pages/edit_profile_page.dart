@@ -17,7 +17,6 @@ class EditProfilePage extends ConsumerStatefulWidget {
 class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   late TextEditingController _nameCtrl;
   late TextEditingController _taglineCtrl;
-  late TextEditingController _projectCtrl;
   late String _selectedAvatar;
 
 
@@ -27,7 +26,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
     final profile = ref.read(profileProvider);
     _nameCtrl = TextEditingController(text: profile.name);
     _taglineCtrl = TextEditingController(text: profile.tagline);
-    _projectCtrl = TextEditingController(text: profile.project);
     _selectedAvatar = profile.avatar;
   }
 
@@ -35,7 +33,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
   void dispose() {
     _nameCtrl.dispose();
     _taglineCtrl.dispose();
-    _projectCtrl.dispose();
     super.dispose();
   }
 
@@ -44,7 +41,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           name: _nameCtrl.text,
           tagline: _taglineCtrl.text,
           avatar: _selectedAvatar,
-          project: _projectCtrl.text,
         );
     if (mounted) Navigator.pop(context);
   }
@@ -198,18 +194,6 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
             icon: Icons.auto_awesome_outlined,
           ),
 
-          SizedBox(height: rs.p(24)),
-
-          // ── Project Input ────────────────────────────
-          Text('JOIN #PROJECT',
-              style: AppTheme.mono(
-                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
-          SizedBox(height: rs.p(12)),
-          _InputField(
-            controller: _projectCtrl,
-            hint: 'Enter #project name...',
-            icon: Icons.tag_rounded,
-          ),
           SizedBox(height: rs.p(40)),
         ],
       )),

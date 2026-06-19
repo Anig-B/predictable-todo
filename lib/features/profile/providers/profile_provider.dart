@@ -10,7 +10,6 @@ class ProfileNotifier extends StateNotifier<ProfileModel> {
     name: 'Quest Master',
     avatar: '👤',
     tagline: '#QUESTLOG',
-    project: '',
   );
 
   ProfileNotifier(this.ref) : super(_defaultProfile) {
@@ -35,8 +34,8 @@ class ProfileNotifier extends StateNotifier<ProfileModel> {
     }
   }
 
-  Future<void> updateProfile({String? name, String? avatar, String? tagline, String? project}) async {
-    state = state.copyWith(name: name, avatar: avatar, tagline: tagline, project: project);
+  Future<void> updateProfile({String? name, String? avatar, String? tagline}) async {
+    state = state.copyWith(name: name, avatar: avatar, tagline: tagline);
 
     final user = ref.read(currentUserProvider);
     if (user != null) {

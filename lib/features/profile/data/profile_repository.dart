@@ -21,7 +21,6 @@ class ProfileRepository {
       avatar: response['avatar_url'] ?? '🧑‍💻',
       shortId: response['short_id'] ?? '',
       tagline: response['tagline'] ?? '#QUESTLOG',
-      project: response['project'] ?? '',
     );
   }
 
@@ -41,7 +40,6 @@ class ProfileRepository {
       'username': profile.name,
       'avatar_url': profile.avatar,
       'tagline': profile.tagline,
-      'project': profile.project,
       'updated_at': DateTime.now().toIso8601String(),
     });
   }

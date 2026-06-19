@@ -72,26 +72,6 @@ class LeaderboardRepository {
         .toList();
   }
 
-  // Fetch project members
-  Future<List<LeaderboardEntry>> fetchProjectMembers(String projectId,
-      {String? excludeId}) async {
-    if (projectId.isEmpty) return [];
-
-    final response = await _supabase
-        .from('leaderboard_view')
-        .select()
-        .eq('project', projectId)
-        .order('xp', ascending: false);
-
-    final List<LeaderboardEntry> list = (response as List)
-        .map((json) => LeaderboardEntry.fromJson(json))
-        .toList();
-    if (excludeId != null) {
-      return list.where((e) => e.id != excludeId).toList();
-    }
-    return list;
-  }
-
   // Fetch true rank by XP
   Future<int> fetchRankByField(String userId, String field, int value) async {
     final response = await _supabase
