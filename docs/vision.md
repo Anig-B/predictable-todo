@@ -14,7 +14,6 @@ QuestLog is a **gamified todo app published on the Play Store** for anyone to do
 - Paid features unlock per-user only when their manager's subscription is active
 
 
-
 ## Mission Flow
 
 1. Manager signs up on the web app and subscribes
@@ -58,14 +57,6 @@ Proof system is gated to cover **Supabase Storage costs** (bandwidth + storage).
 |-------|--------|-------|
 | **Push notifications** | ❌ Not implemented | `NotificationService` is an empty stub. Reminders for scheduled tasks exist in-app but no push delivery. Must be built before Play Store launch. |
 | **Streak shield logic** | ⚠️ Partial | Shield count stored in DB but no "auto-use shield when streak would break" logic. |
-| **Skills system** | ⚠️ Stub only | `unlocked_skills` + `skill_points` columns exist in DB, but zero UI or logic in the app. |
-| **Multi-platform polish** | ⚠️ Minimal | android/, ios/, web/, linux/, macos/, windows/ directories exist but no platform-specific optimization. |
 
----
 
-## Implementation Notes
 
-- Add a `managed_by` or subscription check on the user profile to determine proof access
-- Proof gating at UI level (hide/mark proof modal) + optionally at the repository level
-- Manager's subscription status (active/cancelled) determines whether their invited users retain proof access
-- The app checks eligibility on launch or when opening the completion modal
