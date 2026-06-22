@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "265688750795",
+    "project_id": "gamified-todo-a8882",
+    "storage_bucket": "gamified-todo-a8882.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:265688750795:android:4a8ee98c04792c8f3a194e",
+        "android_client_info": {
+          "package_name": "com.questlog.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDCc9nt2X3dBj7lhBN2LGFEUsj-hVCC424"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

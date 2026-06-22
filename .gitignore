@@ -50,6 +50,9 @@ app.*.map.json
 .metadata
 cortex_*/
 
+# Service account (contains private key, never commit)
+assets/service_account.json
+
 # Common build artifacts
 /Runner.app/
 *.app/
@@ -58,3 +61,5 @@ cortex_*/
 *.xcarchive/
 *.dSYM/
 /macos/flutter/
+
+service_account.json

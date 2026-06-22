@@ -8,7 +8,7 @@
 PRODUCT_NAME = gtodo
 
 // The application's bundle identifier
-PRODUCT_BUNDLE_IDENTIFIER = com.example.gtodo
+PRODUCT_BUNDLE_IDENTIFIER = com.questlog.app
 
 // The copyright displayed in application information
-PRODUCT_COPYRIGHT = Copyright © 2026 com.example. All rights reserved.
+PRODUCT_COPYRIGHT = Copyright © 2026 com.questlog.app. All rights reserved.

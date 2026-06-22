@@ -1,14 +1,15 @@
 import 'dart:async';
+import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/task_model.dart';
 import '../models/activity_log_model.dart';
-import '../../../core/data/seed_data.dart';
+import '../data/task_repository.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../data/task_repository.dart';
-import 'dart:math';
-import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/services/notification_service.dart';
+import '../../../core/data/seed_data.dart';
 
 class TaskState {
   final List<TaskModel> tasks;
@@ -305,6 +306,8 @@ class TaskNotifier extends StateNotifier<TaskState> {
       final scheduled = task.scheduledDateTime;
       if (scheduled != null) {
         await _insertReminder(user.id, task, scheduled);
+        final now = DateTime.now();
+        _notifiedDate[task.id] = '${now.year}-${now.month}-${now.day}';
       }
 
       debugPrint('[Tasks] Inserting task into Supabase...');
