@@ -97,10 +97,27 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                           await ref.read(profileProvider.notifier).reset();
                           messenger.showSnackBar(
                             SnackBar(
-                              content: Text('All data cleared from server',
-                                  style: AppTheme.sans(size: rs.f(12))),
-                              backgroundColor:
-                                  AppColors.red.withValues(alpha: 0.2),
+                              content: Row(
+                                children: [
+                                  Icon(Icons.check_circle_rounded,
+                                      size: rs.f(16), color: AppColors.red),
+                                  SizedBox(width: rs.p(8)),
+                                  Text('All data cleared',
+                                      style: AppTheme.sans(
+                                          size: rs.f(12),
+                                          weight: FontWeight.w600)),
+                                ],
+                              ),
+                              backgroundColor: AppColors.surface2,
+                              behavior: SnackBarBehavior.floating,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(rs.p(12)),
+                                side: BorderSide(
+                                    color:
+                                        AppColors.red.withValues(alpha: 0.25)),
+                              ),
+                              duration: const Duration(seconds: 2),
+                              margin: rs.fromLTRB(16, 0, 16, 16),
                             ),
                           );
                         }

@@ -13,10 +13,38 @@ class ProjectsTab extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final projectStats = ref.watch(projectProgressProvider);
 
+    if (projectStats.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 32),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(Icons.folder_open_rounded,
+                  size: 48, color: AppColors.muted.withValues(alpha: 0.5)),
+              const SizedBox(height: 16),
+              Text('No Projects Yet',
+                  style: AppTheme.sans(
+                      size: 16,
+                      weight: FontWeight.w700,
+                      color: AppColors.muted)),
+              const SizedBox(height: 8),
+              Text(
+                'Your project breakdown will appear here once you add quests.',
+                textAlign: TextAlign.center,
+                style: AppTheme.sans(size: 12, color: AppColors.subtle),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
     return ListView(
       padding: const EdgeInsets.fromLTRB(16, 8, 16, 130),
       children: [
-        const SectionLabel('PROJECT PROGRESS', tooltip: 'Task completion breakdown by project.'),
+        const SectionLabel('PROJECT PROGRESS',
+            tooltip: 'Task completion breakdown by project.'),
         const SizedBox(height: 8),
         Container(
           padding: const EdgeInsets.all(12),
@@ -24,10 +52,11 @@ class ProjectsTab extends ConsumerWidget {
           child: HorizontalBarChart(data: projectStats),
         ),
         const SizedBox(height: 16),
-        const SectionLabel('PROJECT DETAILS', tooltip: 'Individual task completion per project.'),
+        const SectionLabel('PROJECT DETAILS',
+            tooltip: 'Individual task completion per project.'),
         const SizedBox(height: 8),
         ...projectStats.map((p) {
-          final pct = (p['total'] as int) > 0 
+          final pct = (p['total'] as int) > 0
               ? (p['completed'] as int) / (p['total'] as int)
               : 0.0;
           return Container(

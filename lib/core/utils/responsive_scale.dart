@@ -4,8 +4,8 @@ class ResponsiveScale {
   ResponsiveScale(this.context);
   final BuildContext context;
 
-  double get width => MediaQuery.of(context).size.width;
-  double get height => MediaQuery.of(context).size.height;
+  double get width => MediaQuery.sizeOf(context).width;
+  double get height => MediaQuery.sizeOf(context).height;
   bool get isTablet => width >= 600;
   bool get isLandscape => width > height;
 

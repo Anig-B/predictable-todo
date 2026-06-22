@@ -44,7 +44,8 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
       final parts = existing.time.split(':');
       if (parts.length == 2) {
         final hour = int.tryParse(parts[0].trim()) ?? 9;
-        final minute = int.tryParse(parts[1].replaceAll(RegExp(r'\D'), '').trim()) ?? 0;
+        final minute =
+            int.tryParse(parts[1].replaceAll(RegExp(r'\D'), '').trim()) ?? 0;
         _time = TimeOfDay(hour: hour, minute: minute);
       }
     }
@@ -154,7 +155,8 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
       debugPrint('[AddTask] Updating existing task: ${task.title}');
       ref.read(taskProvider.notifier).updateTask(task);
     } else {
-      debugPrint('[AddTask] Creating new task: ${task.title} time="${task.time}" scheduledDateTime=${task.scheduledDateTime}');
+      debugPrint(
+          '[AddTask] Creating new task: ${task.title} time="${task.time}" scheduledDateTime=${task.scheduledDateTime}');
       ref.read(taskProvider.notifier).addTask(task);
     }
     Navigator.of(context).pop();
@@ -165,6 +167,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
     final rs = ResponsiveScale(context);
     return Scaffold(
       backgroundColor: AppColors.bg,
+      resizeToAvoidBottomInset: false,
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
@@ -186,364 +189,375 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
           ),
         ],
       ),
-      body: LayoutBuilder(
-        builder: (_, __) => rs.tabletCenter(600)(
-          SingleChildScrollView(
-            padding: EdgeInsets.symmetric(horizontal: rs.p(20), vertical: rs.p(10)),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-            if (_showDemoPicker) ...[
-              SizedBox(height: rs.p(10)),
-              Container(
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(rs.p(16)),
-                  border: Border.all(
-                      color: AppColors.purple.withValues(alpha: 0.25)),
-                  color: AppColors.surface,
+      body: rs.tabletCenter(600)(
+        SingleChildScrollView(
+          padding: EdgeInsets.symmetric(
+            horizontal: rs.p(20),
+            vertical: rs.p(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (_showDemoPicker) ...[
+                SizedBox(height: rs.p(10)),
+                Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(rs.p(16)),
+                    border: Border.all(
+                        color: AppColors.purple.withValues(alpha: 0.25)),
+                    color: AppColors.surface,
+                  ),
+                  clipBehavior: Clip.hardEdge,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Container(
+                        width: double.infinity,
+                        padding: EdgeInsets.symmetric(
+                            horizontal: rs.p(16), vertical: rs.p(10)),
+                        color: AppColors.purple.withValues(alpha: 0.08),
+                        child: Text('SELECT A MISSION PACK',
+                            style: AppTheme.mono(
+                                    size: rs.f(10),
+                                    weight: FontWeight.w700,
+                                    color: AppColors.purple)
+                                .copyWith(letterSpacing: 1.5)),
+                      ),
+                      ...SeedData.demoSets.map((demo) => GestureDetector(
+                            onTap: () => _importDemo(demo),
+                            child: Container(
+                              width: double.infinity,
+                              decoration: BoxDecoration(
+                                border: Border(
+                                  bottom: BorderSide(
+                                      color: AppColors.border
+                                          .withValues(alpha: 0.5)),
+                                ),
+                              ),
+                              padding: EdgeInsets.symmetric(
+                                  horizontal: rs.p(16), vertical: rs.p(14)),
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: rs.s(44),
+                                    height: rs.s(44),
+                                    decoration: BoxDecoration(
+                                      color: demo.color.withValues(alpha: 0.1),
+                                      borderRadius:
+                                          BorderRadius.circular(rs.p(12)),
+                                      border: Border.all(
+                                          color: demo.color
+                                              .withValues(alpha: 0.25)),
+                                    ),
+                                    child: Center(
+                                      child: Text(demo.icon,
+                                          style: const TextStyle(fontSize: 22)),
+                                    ),
+                                  ),
+                                  SizedBox(width: rs.p(14)),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.start,
+                                      children: [
+                                        Text(demo.name,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTheme.sans(
+                                                size: rs.f(14),
+                                                weight: FontWeight.w800)),
+                                        SizedBox(height: rs.p(3)),
+                                        Text(demo.desc,
+                                            maxLines: 1,
+                                            overflow: TextOverflow.ellipsis,
+                                            style: AppTheme.sans(
+                                                size: rs.f(10),
+                                                color: AppColors.subtle)),
+                                      ],
+                                    ),
+                                  ),
+                                  SizedBox(width: rs.p(8)),
+                                  Container(
+                                    padding: EdgeInsets.symmetric(
+                                        horizontal: rs.p(8), vertical: rs.p(4)),
+                                    decoration: BoxDecoration(
+                                      color: demo.color.withValues(alpha: 0.1),
+                                      borderRadius:
+                                          BorderRadius.circular(rs.p(8)),
+                                    ),
+                                    child: Text(
+                                        '${demo.tasks.length} tasks · ${demo.notes.length} scrolls',
+                                        style: AppTheme.mono(
+                                            size: rs.f(9),
+                                            weight: FontWeight.w700,
+                                            color: demo.color)),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          )),
+                    ],
+                  ),
                 ),
-                clipBehavior: Clip.hardEdge,
+                SizedBox(height: rs.p(24)),
+              ],
+
+              Form(
+                key: _formKey,
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Container(
-                      width: double.infinity,
-                      padding: EdgeInsets.symmetric(
-                          horizontal: rs.p(16), vertical: rs.p(10)),
-                      color: AppColors.purple.withValues(alpha: 0.08),
-                      child: Text('SELECT A MISSION PACK',
-                          style: AppTheme.mono(
-                                  size: rs.f(10),
-                                  weight: FontWeight.w700,
-                                  color: AppColors.purple)
-                              .copyWith(letterSpacing: 1.5)),
+                    // Title
+                    const _FieldLabel('TITLE'),
+                    TextFormField(
+                      controller: _titleCtrl,
+                      autofocus: true,
+                      style: AppTheme.sans(
+                          size: rs.f(15), weight: FontWeight.w600),
+                      decoration: AppTheme.inputDecoration(
+                        hint: 'What is your next mission?',
+                      ),
+                      validator: (v) => v == null || v.trim().isEmpty
+                          ? 'Title is required'
+                          : null,
                     ),
-                    ...SeedData.demoSets.map((demo) => GestureDetector(
-                          onTap: () => _importDemo(demo),
-                          child: Container(
-                            width: double.infinity,
-                            decoration: BoxDecoration(
-                              border: Border(
-                                bottom: BorderSide(
-                                    color: AppColors.border
-                                        .withValues(alpha: 0.5)),
-                              ),
-                            ),
-                            padding: EdgeInsets.symmetric(
-                                horizontal: rs.p(16), vertical: rs.p(14)),
-                            child: Row(
-                              children: [
-                                Container(
-                                  width: rs.s(44),
-                                  height: rs.s(44),
-                                  decoration: BoxDecoration(
-                                    color: demo.color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(rs.p(12)),
-                                    border: Border.all(
-                                        color:
-                                            demo.color.withValues(alpha: 0.25)),
-                                  ),
-                                  child: Center(
-                                    child: Text(demo.icon,
-                                        style: const TextStyle(fontSize: 22)),
-                                  ),
-                                ),
-                                SizedBox(width: rs.p(14)),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(demo.name,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTheme.sans(
-                                              size: rs.f(14),
-                                              weight: FontWeight.w800)),
-                                      SizedBox(height: rs.p(3)),
-                                      Text(demo.desc,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: AppTheme.sans(
-                                              size: rs.f(10),
-                                              color: AppColors.subtle)),
-                                    ],
-                                  ),
-                                ),
-                                SizedBox(width: rs.p(8)),
-                                Container(
-                                  padding: EdgeInsets.symmetric(
-                                      horizontal: rs.p(8), vertical: rs.p(4)),
-                                  decoration: BoxDecoration(
-                                    color: demo.color.withValues(alpha: 0.1),
-                                    borderRadius: BorderRadius.circular(rs.p(8)),
-                                  ),
-                                  child: Text(
-                                      '${demo.tasks.length} tasks · ${demo.notes.length} scrolls',
-                                      style: AppTheme.mono(
-                                          size: rs.f(9),
-                                          weight: FontWeight.w700,
-                                          color: demo.color)),
-                                ),
-                              ],
-                            ),
-                          ),
-                        )),
+                    SizedBox(height: rs.p(20)),
+
+                    // Description
+                    const _FieldLabel('DESCRIPTION', optional: true),
+                    TextFormField(
+                      controller: _descCtrl,
+                      style: AppTheme.sans(size: rs.f(14)),
+                      maxLines: 3,
+                      decoration: AppTheme.inputDecoration(
+                        hint: 'Add objectives or details...',
+                      ),
+                    ),
                   ],
                 ),
-              ),
-              SizedBox(height: rs.p(24)),
-            ],
-
-            Form(
-              key: _formKey,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-              // Title
-              const _FieldLabel('TITLE'),
-              TextFormField(
-                controller: _titleCtrl,
-                autofocus: true,
-                style: AppTheme.sans(size: rs.f(15), weight: FontWeight.w600),
-                decoration: AppTheme.inputDecoration(
-                  hint: 'What is your next mission?',
-                ),
-                validator: (v) =>
-                    v == null || v.trim().isEmpty ? 'Title is required' : null,
               ),
               SizedBox(height: rs.p(20)),
 
-              // Description
-              const _FieldLabel('DESCRIPTION', optional: true),
-              TextFormField(
-                controller: _descCtrl,
-                style: AppTheme.sans(size: rs.f(14)),
-                maxLines: 3,
-                decoration: AppTheme.inputDecoration(
-                  hint: 'Add objectives or details...',
-                ),
-              ),
-                ],
-              ),
-            ),
-            SizedBox(height: rs.p(20)),
-
-            Row(
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _FieldLabel('PRIORITY'),
-                      _PriorityButtons(
-                        selected: _priority,
-                        onSelect: (v) => setState(() => _priority = v),
-                      ),
-                    ],
+              Row(
+                children: [
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _FieldLabel('PRIORITY'),
+                        _PriorityButtons(
+                          selected: _priority,
+                          onSelect: (v) => setState(() => _priority = v),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                SizedBox(width: rs.p(16)),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const _FieldLabel('TIME'),
-                      GestureDetector(
-                        onTap: () async {
-                          final picked = await showTimePicker(
-                            context: context,
-                            initialTime: _time,
-                          );
-                          if (picked != null) setState(() => _time = picked);
-                        },
-                        child: Container(
-                          width: double.infinity,
-                          padding: EdgeInsets.symmetric(
-                              horizontal: rs.p(16), vertical: rs.p(12)),
-                          decoration: AppTheme.surfaceBox(),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.access_time_rounded,
-                                  size: 16, color: AppColors.muted),
-                              SizedBox(width: rs.p(8)),
-                              Text(_time.format(context),
-                                  style: AppTheme.sans(
-                                      size: rs.f(14), weight: FontWeight.w600)),
-                            ],
+                  SizedBox(width: rs.p(16)),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        const _FieldLabel('TIME'),
+                        GestureDetector(
+                          onTap: () async {
+                            final picked = await showTimePicker(
+                              context: context,
+                              initialTime: _time,
+                            );
+                            if (picked != null) setState(() => _time = picked);
+                          },
+                          child: Container(
+                            width: double.infinity,
+                            padding: EdgeInsets.symmetric(
+                                horizontal: rs.p(16), vertical: rs.p(12)),
+                            decoration: AppTheme.surfaceBox(),
+                            child: Row(
+                              children: [
+                                const Icon(Icons.access_time_rounded,
+                                    size: 16, color: AppColors.muted),
+                                SizedBox(width: rs.p(8)),
+                                Text(_time.format(context),
+                                    style: AppTheme.sans(
+                                        size: rs.f(14),
+                                        weight: FontWeight.w600)),
+                              ],
+                            ),
                           ),
                         ),
+                      ],
+                    ),
+                  ),
+                ],
+              ),
+              SizedBox(height: rs.p(24)),
+
+              // Category
+              const _FieldLabel('CATEGORY'),
+              _PillGroup<TaskCategory>(
+                values: TaskCategory.values,
+                selected: _category,
+                label: (v) => v.label,
+                onSelect: (v) => setState(() => _category = v),
+              ),
+              SizedBox(height: rs.p(24)),
+
+              // Recurring
+              const _FieldLabel('RECURRING'),
+              _PillGroup<TaskRecurring>(
+                values: TaskRecurring.values,
+                selected: _recurring,
+                label: (v) => v.label,
+                onSelect: (v) => setState(() => _recurring = v),
+              ),
+              if (_recurring == TaskRecurring.weekly) ...[
+                SizedBox(height: rs.p(12)),
+                const _FieldLabel('ACTIVE DAYS'),
+                Wrap(
+                  spacing: rs.p(8),
+                  runSpacing: rs.p(8),
+                  children: const [
+                    'Mon',
+                    'Tue',
+                    'Wed',
+                    'Thu',
+                    'Fri',
+                    'Sat',
+                    'Sun'
+                  ].asMap().entries.map((e) {
+                    final day = e.key + 1;
+                    final active = _weeklyDay == day;
+                    return GestureDetector(
+                      onTap: () => setState(() => _weeklyDay = day),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        padding: EdgeInsets.symmetric(
+                            horizontal: rs.p(14), vertical: rs.p(8)),
+                        decoration: BoxDecoration(
+                          color: active
+                              ? AppColors.purple.withValues(alpha: 0.12)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(rs.p(10)),
+                          border: Border.all(
+                            color: active ? AppColors.purple : AppColors.border,
+                          ),
+                        ),
+                        child: Text(e.value,
+                            style: AppTheme.sans(
+                                size: rs.f(12),
+                                weight: FontWeight.w600,
+                                color: active
+                                    ? AppColors.purple
+                                    : AppColors.muted)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              if (_recurring == TaskRecurring.monthly) ...[
+                SizedBox(height: rs.p(12)),
+                const _FieldLabel('DAY OF MONTH'),
+                Wrap(
+                  spacing: rs.p(6),
+                  runSpacing: rs.p(6),
+                  children: [
+                    ...List.generate(28, (i) => i + 1),
+                    0,
+                  ].map((day) {
+                    final active = _monthlyDay == day;
+                    final label = day == 0 ? 'Last' : _ordinal(day);
+                    return GestureDetector(
+                      onTap: () => setState(() => _monthlyDay = day),
+                      child: AnimatedContainer(
+                        duration: const Duration(milliseconds: 150),
+                        width: rs.s(44),
+                        height: rs.s(36),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          color: active
+                              ? AppColors.purple.withValues(alpha: 0.12)
+                              : AppColors.surface,
+                          borderRadius: BorderRadius.circular(rs.p(8)),
+                          border: Border.all(
+                            color: active ? AppColors.purple : AppColors.border,
+                          ),
+                        ),
+                        child: Text(label,
+                            style: AppTheme.mono(
+                                size: rs.f(10),
+                                weight: FontWeight.w700,
+                                color: active
+                                    ? AppColors.purple
+                                    : AppColors.muted)),
+                      ),
+                    );
+                  }).toList(),
+                ),
+              ],
+              if (_recurring != TaskRecurring.none) ...[
+                SizedBox(height: rs.p(12)),
+                Container(
+                  padding: EdgeInsets.symmetric(
+                      horizontal: rs.p(14), vertical: rs.p(10)),
+                  decoration: AppTheme.surfaceBox(
+                    color: AppColors.purple.withValues(alpha: 0.06),
+                    borderColor: AppColors.purple.withValues(alpha: 0.22),
+                  ),
+                  child: Row(
+                    children: [
+                      const Icon(Icons.autorenew_rounded,
+                          size: 14, color: AppColors.purple),
+                      SizedBox(width: rs.p(8)),
+                      Text(
+                        _recurringHint(),
+                        style: AppTheme.sans(
+                            size: rs.f(12),
+                            color: AppColors.purple,
+                            weight: FontWeight.w600),
                       ),
                     ],
                   ),
                 ),
               ],
-            ),
-            SizedBox(height: rs.p(24)),
+              SizedBox(height: rs.p(48)),
 
-            // Category
-            const _FieldLabel('CATEGORY'),
-            _PillGroup<TaskCategory>(
-              values: TaskCategory.values,
-              selected: _category,
-              label: (v) => v.label,
-              onSelect: (v) => setState(() => _category = v),
-            ),
-            SizedBox(height: rs.p(24)),
-
-            // Recurring
-            const _FieldLabel('RECURRING'),
-            _PillGroup<TaskRecurring>(
-              values: TaskRecurring.values,
-              selected: _recurring,
-              label: (v) => v.label,
-              onSelect: (v) => setState(() => _recurring = v),
-            ),
-            if (_recurring == TaskRecurring.weekly) ...[
-              SizedBox(height: rs.p(12)),
-              const _FieldLabel('ACTIVE DAYS'),
-              Wrap(
-                spacing: rs.p(8),
-                runSpacing: rs.p(8),
-                children: const [
-                  'Mon',
-                  'Tue',
-                  'Wed',
-                  'Thu',
-                  'Fri',
-                  'Sat',
-                  'Sun'
-                ].asMap().entries.map((e) {
-                  final day = e.key + 1;
-                  final active = _weeklyDay == day;
-                  return GestureDetector(
-                    onTap: () => setState(() => _weeklyDay = day),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      padding: EdgeInsets.symmetric(
-                          horizontal: rs.p(14), vertical: rs.p(8)),
-                      decoration: BoxDecoration(
-                        color: active
-                            ? AppColors.purple.withValues(alpha: 0.12)
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(rs.p(10)),
-                        border: Border.all(
-                          color: active ? AppColors.purple : AppColors.border,
-                        ),
+              // Submit
+              GestureDetector(
+                onTap: _submit,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: rs.p(16)),
+                  decoration: BoxDecoration(
+                    gradient: AppColors.primaryGradient,
+                    borderRadius: BorderRadius.circular(rs.p(16)),
+                    boxShadow: [
+                      BoxShadow(
+                        color: AppColors.accent.withValues(alpha: 0.3),
+                        blurRadius: 20,
+                        offset: const Offset(0, 8),
                       ),
-                      child: Text(e.value,
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      const Icon(Icons.add_rounded,
+                          color: AppColors.bg, size: 24),
+                      SizedBox(width: rs.p(8)),
+                      Text(
+                          widget.existingTask != null
+                              ? 'SAVE CHANGES'
+                              : 'CREATE QUEST',
                           style: AppTheme.sans(
-                              size: rs.f(12),
-                              weight: FontWeight.w600,
-                              color:
-                                  active ? AppColors.purple : AppColors.muted)),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-            if (_recurring == TaskRecurring.monthly) ...[
-              SizedBox(height: rs.p(12)),
-              const _FieldLabel('DAY OF MONTH'),
-              Wrap(
-                spacing: rs.p(6),
-                runSpacing: rs.p(6),
-                children: [
-                  ...List.generate(28, (i) => i + 1),
-                  0,
-                ].map((day) {
-                  final active = _monthlyDay == day;
-                  final label = day == 0 ? 'Last' : _ordinal(day);
-                  return GestureDetector(
-                    onTap: () => setState(() => _monthlyDay = day),
-                    child: AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: rs.s(44),
-                      height: rs.s(36),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        color: active
-                            ? AppColors.purple.withValues(alpha: 0.12)
-                            : AppColors.surface,
-                        borderRadius: BorderRadius.circular(rs.p(8)),
-                        border: Border.all(
-                          color: active ? AppColors.purple : AppColors.border,
-                        ),
-                      ),
-                      child: Text(label,
-                          style: AppTheme.mono(
-                              size: rs.f(10),
-                              weight: FontWeight.w700,
-                              color:
-                                  active ? AppColors.purple : AppColors.muted)),
-                    ),
-                  );
-                }).toList(),
-              ),
-            ],
-            if (_recurring != TaskRecurring.none) ...[
-              SizedBox(height: rs.p(12)),
-              Container(
-                padding:
-                    EdgeInsets.symmetric(horizontal: rs.p(14), vertical: rs.p(10)),
-                decoration: AppTheme.surfaceBox(
-                  color: AppColors.purple.withValues(alpha: 0.06),
-                  borderColor: AppColors.purple.withValues(alpha: 0.22),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.autorenew_rounded,
-                        size: 14, color: AppColors.purple),
-                    SizedBox(width: rs.p(8)),
-                    Text(
-                      _recurringHint(),
-                      style: AppTheme.sans(
-                          size: rs.f(12),
-                          color: AppColors.purple,
-                          weight: FontWeight.w600),
-                    ),
-                  ],
+                                  size: rs.f(14),
+                                  weight: FontWeight.w900,
+                                  color: AppColors.bg)
+                              .copyWith(letterSpacing: 1.2)),
+                    ],
+                  ),
                 ),
               ),
             ],
-            SizedBox(height: rs.p(48)),
-
-            // Submit
-            GestureDetector(
-              onTap: _submit,
-              child: Container(
-                width: double.infinity,
-                padding: EdgeInsets.symmetric(vertical: rs.p(16)),
-                decoration: BoxDecoration(
-                  gradient: AppColors.primaryGradient,
-                  borderRadius: BorderRadius.circular(rs.p(16)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: AppColors.accent.withValues(alpha: 0.3),
-                      blurRadius: 20,
-                      offset: const Offset(0, 8),
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    const Icon(Icons.add_rounded,
-                        color: AppColors.bg, size: 24),
-                    SizedBox(width: rs.p(8)),
-                    Text(widget.existingTask != null ? 'SAVE CHANGES' : 'CREATE QUEST',
-                        style: AppTheme.sans(
-                                size: rs.f(14),
-                                weight: FontWeight.w900,
-                                color: AppColors.bg)
-                            .copyWith(letterSpacing: 1.2)),
-                  ],
-                ),
-              ),
-            ),
-              ],
-            ),
           ),
         ),
       ),
