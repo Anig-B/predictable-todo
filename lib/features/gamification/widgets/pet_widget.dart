@@ -31,12 +31,12 @@ class PetWidget extends StatelessWidget {
                   children: [
                     Text(pet.name,
                         style:
-                            AppTheme.sans(size: 10, weight: FontWeight.w800)),
+                            AppTheme.sans(size: 11, weight: FontWeight.w800)),
                     const SizedBox(width: 4),
                     Expanded(
                       child: Text(nextLabel,
                           style:
-                              AppTheme.sans(size: 8, color: AppColors.subtle),
+                              AppTheme.sans(size: 9, color: AppColors.subtle),
                           overflow: TextOverflow.ellipsis),
                     ),
                   ],
@@ -56,7 +56,7 @@ class PetWidget extends StatelessWidget {
                   const SizedBox(height: 3),
                   Text(
                     '${pet.xpBonus > 0 ? '+${pet.xpBonus} XP per task ' : ''}${pet.bossDmgBonus > 0 ? '+${pet.bossDmgBonus} boss dmg per task' : ''}',
-                    style: AppTheme.sans(size: 8, color: AppColors.gold),
+                    style: AppTheme.sans(size: 9, color: AppColors.gold),
                   ),
                 ],
               ],

@@ -93,7 +93,7 @@ class HeatmapGrid extends StatelessWidget {
                         child: Center(
                           child: Text(d,
                               style: AppTheme.mono(
-                                  size: 8, color: AppColors.subtle)),
+                                  size: 9, color: AppColors.subtle)),
                         ),
                       ))
                   .toList(),

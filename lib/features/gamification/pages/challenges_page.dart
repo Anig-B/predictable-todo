@@ -60,7 +60,7 @@ class ChallengesPage extends ConsumerWidget {
                     children: [
                       Text('${doneCount.clamp(0, rewardGoal)}/$rewardGoal done',
                           style:
-                              AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
+                              AppTheme.mono(size: rs.f(11), color: AppColors.accent)),
                     ],
                   ),
                 ],
@@ -105,11 +105,11 @@ class ChallengesPage extends ConsumerWidget {
                               SizedBox(height: rs.p(2)),
                               Text('Resets in 08:14:32',
                                   style: AppTheme.sans(
-                                      size: rs.f(10), color: AppColors.subtle)),
+                                      size: rs.f(11), color: AppColors.subtle)),
                               SizedBox(height: rs.p(4)),
                               Text('Complete any 3 of 5 quests for a reward 🎁',
                                   style: AppTheme.sans(
-                                      size: rs.f(9), color: AppColors.subtle)),
+                                      size: rs.f(10), color: AppColors.subtle)),
                             ],
                           ),
                         ),
@@ -150,7 +150,7 @@ class ChallengesPage extends ConsumerWidget {
                                       ? 'Collected! Come back tomorrow.'
                                       : 'Complete any 3 daily quests for a reward box',
                                   style: AppTheme.sans(
-                                      size: rs.f(10), color: AppColors.subtle)),
+                                      size: rs.f(11), color: AppColors.subtle)),
                               ],
                             ),
                           ),
@@ -197,7 +197,7 @@ class ChallengesPage extends ConsumerWidget {
                                       ? 'CLAIMED'
                                       : (allDone ? 'RECLAIM' : 'LOCKED'),
                                   style: AppTheme.mono(
-                                      size: rs.f(9),
+                                      size: rs.f(10),
                                       weight: FontWeight.w700,
                                       color: gState.dailyQuestRewardClaimed
                                           ? AppColors.muted
@@ -229,7 +229,7 @@ class _SectionLabel extends StatelessWidget {
   Widget build(BuildContext context) {
     return Text(text,
         style: AppTheme.mono(
-                size: 9, color: AppColors.subtle, weight: FontWeight.w700)
+                size: 10, color: AppColors.subtle, weight: FontWeight.w700)
             .copyWith(letterSpacing: 2));
   }
 }

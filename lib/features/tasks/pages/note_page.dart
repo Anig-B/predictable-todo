@@ -3,7 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/data/seed_data.dart';
+
 import '../../../core/utils/responsive_scale.dart';
 import '../providers/note_provider.dart';
 import '../models/note_model.dart';
@@ -74,47 +74,6 @@ class _NotePageState extends ConsumerState<NotePage> {
                 borderRadius: BorderRadius.circular(rs.p(2)),
               ),
             ),
-            SizedBox(height: rs.p(20)),
-            Text('CHOOSE MISSION PACK',
-                style: AppTheme.mono(size: rs.f(12), weight: FontWeight.w900)
-                    .copyWith(letterSpacing: 2)),
-            SizedBox(height: rs.p(10)),
-            Text('Import strategic scrolls into your wisdom wall',
-                style: AppTheme.sans(size: rs.f(11), color: AppColors.subtle)),
-            SizedBox(height: rs.p(24)),
-            ...SeedData.demoSets.map((demo) => ListTile(
-                  contentPadding: EdgeInsets.symmetric(horizontal: rs.p(24)),
-                  leading:
-                      Text(demo.icon, style: const TextStyle(fontSize: 24)),
-                  title: Text(demo.name,
-                      style: AppTheme.sans(size: rs.f(14), weight: FontWeight.w700)),
-                  subtitle: Text('${demo.notes.length} scrolls available',
-                      style: AppTheme.sans(size: rs.f(11), color: AppColors.muted)),
-                  trailing: const Icon(Icons.download_rounded,
-                      size: 20, color: AppColors.muted),
-                  onTap: () {
-                    final base = DateTime.now().millisecondsSinceEpoch;
-                    final notes = demo.notes.asMap().entries.map((e) {
-                      return e.value.copyWith(
-                        id: 'demo-${base + e.key}',
-                        createdAt: DateTime.now()
-                            .subtract(Duration(minutes: e.key * 5)),
-                      );
-                    }).toList();
-                    ref.read(noteProvider.notifier).loadDemo(notes);
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('IMPORTED ${notes.length} SCROLLS',
-                            style:
-                                AppTheme.mono(size: rs.f(10), color: AppColors.bg)),
-                        backgroundColor: AppColors.purple,
-                        duration: const Duration(seconds: 2),
-                        behavior: SnackBarBehavior.floating,
-                      ),
-                    );
-                  },
-                )),
           ],
         ),
       ),
@@ -218,7 +177,7 @@ class _NotePageState extends ConsumerState<NotePage> {
                                         Text(
                                           _formatDate(note.createdAt),
                                           style: AppTheme.mono(
-                                              size: rs.f(9), color: AppColors.subtle),
+                                              size: rs.f(10), color: AppColors.subtle),
                                         ),
                                         Row(
                                           children: [
@@ -237,7 +196,7 @@ class _NotePageState extends ConsumerState<NotePage> {
                                                     content: Text(
                                                         'SCROLL CONTENT COPIED',
                                                         style: AppTheme.mono(
-                                                            size: rs.f(10),
+                                                            size: rs.f(11),
                                                             color: AppColors.bg)),
                                                     backgroundColor:
                                                         AppColors.accent,

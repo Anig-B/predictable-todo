@@ -115,6 +115,7 @@ class TaskRepository {
       'rating': log['rating'],
       'notes': log['notes'],
       'image_url': log['imageUrl'],
+      'quest_id': log['questId'],
       'created_at': log['createdAt'],
     };
     await _supabase.from('activity_logs').insert(data);

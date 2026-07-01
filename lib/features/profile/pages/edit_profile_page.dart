@@ -117,7 +117,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
                     SizedBox(width: rs.p(8)),
                     Text('RPG PRO TIP',
                         style: AppTheme.mono(
-                            size: rs.f(10),
+                            size: rs.f(11),
                             weight: FontWeight.w800,
                             color: AppColors.accent)),
                   ],
@@ -133,7 +133,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
 
           Text('SELECT AVATAR',
               style: AppTheme.mono(
-                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+                  size: rs.f(11), color: AppColors.subtle, weight: FontWeight.w800)),
           SizedBox(height: rs.p(12)),
           GridView.builder(
             shrinkWrap: true,
@@ -173,7 +173,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           // ── Name Input ───────────────────────────────
           Text('CHARACTER NAME',
               style: AppTheme.mono(
-                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+                  size: rs.f(11), color: AppColors.subtle, weight: FontWeight.w800)),
           SizedBox(height: rs.p(12)),
           _InputField(
             controller: _nameCtrl,
@@ -186,7 +186,7 @@ class _EditProfilePageState extends ConsumerState<EditProfilePage> {
           // ── Tagline Input ────────────────────────────
           Text('PERSONAL TAGLINE',
               style: AppTheme.mono(
-                  size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w800)),
+                  size: rs.f(11), color: AppColors.subtle, weight: FontWeight.w800)),
           SizedBox(height: rs.p(12)),
           _InputField(
             controller: _taglineCtrl,

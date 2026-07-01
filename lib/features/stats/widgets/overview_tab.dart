@@ -77,7 +77,7 @@ class OverviewTab extends ConsumerWidget {
                                   ),
                                   Text('${d['value']}%',
                                       style: AppTheme.mono(
-                                          size: 9, color: AppColors.muted)),
+                                          size: 10, color: AppColors.muted)),
                                 ],
                               ),
                             ))
@@ -114,7 +114,7 @@ class OverviewTab extends ConsumerWidget {
                         .map((d) => Text(
                               d['day'] as String,
                               style:
-                                  AppTheme.mono(size: 8, color: AppColors.subtle),
+                                  AppTheme.mono(size: 9, color: AppColors.subtle),
                             ))
                         .toList(),
                   ),

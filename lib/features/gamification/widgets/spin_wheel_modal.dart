@@ -130,7 +130,7 @@ class _SpinWheelModalState extends State<SpinWheelModal>
                                 ? '${_result!['value']}× multiplier on your next task!'
                                 : 'Bonus XP added!',
                         style:
-                            AppTheme.sans(size: 10, color: AppColors.muted)),
+                            AppTheme.sans(size: 11, color: AppColors.muted)),
                   ],
                 ),
               ),
@@ -216,7 +216,7 @@ class _WheelPainter extends CustomPainter {
           text: segs[i]['label'] as String,
           style: const TextStyle(
             color: Colors.white,
-            fontSize: 9,
+            fontSize: 10,
             fontWeight: FontWeight.w700,
           ),
         ),

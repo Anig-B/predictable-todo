@@ -35,7 +35,7 @@ class ComboBanner extends StatelessWidget {
                         weight: FontWeight.w800,
                         color: AppColors.red)),
                 Text('Keep going!',
-                    style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+                    style: AppTheme.sans(size: 9, color: AppColors.subtle)),
               ],
             ),
           ),
@@ -69,12 +69,12 @@ class MultiplierBanner extends StatelessWidget {
           Expanded(
             child: Text('$multiplier× Multiplier Active',
                 style: AppTheme.sans(
-                    size: 10,
+                    size: 11,
                     weight: FontWeight.w700,
                     color: AppColors.purple)),
           ),
           Text('Next task',
-              style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+              style: AppTheme.sans(size: 9, color: AppColors.subtle)),
         ],
       ),
     );

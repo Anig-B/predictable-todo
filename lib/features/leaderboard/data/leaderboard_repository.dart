@@ -109,6 +109,13 @@ class LeaderboardRepository {
       'status': 'pending',
       'reward': 0, // Assigned on completion
     });
+
+    NotificationService().sendPush(
+      userId: toId,
+      title: 'New Challenge!',
+      body: 'Someone has challenged you to a duel.',
+      data: {'route': '/challenges'},
+    );
   }
 
   // Fetch pending challenges for a user (sent or received)

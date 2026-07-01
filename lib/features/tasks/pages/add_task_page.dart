@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
-import '../../../core/data/seed_data.dart';
+
 import '../../../core/utils/responsive_scale.dart';
 import '../models/task_model.dart';
 import '../providers/task_provider.dart';
-import '../providers/note_provider.dart';
 
 class AddTaskPage extends ConsumerStatefulWidget {
   final TaskModel? existingTask;
@@ -25,7 +24,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
   TaskPriority _priority = TaskPriority.medium;
   TaskRecurring _recurring = TaskRecurring.none;
   TimeOfDay _time = const TimeOfDay(hour: 9, minute: 0);
-  bool _showDemoPicker = false;
+
   int _weeklyDay = DateTime.now().weekday;
   int _monthlyDay = 1;
 
@@ -56,37 +55,6 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
     _titleCtrl.dispose();
     _descCtrl.dispose();
     super.dispose();
-  }
-
-  void _importDemo(DemoSet demo) {
-    final base = DateTime.now().millisecondsSinceEpoch;
-
-    // Import Tasks
-    final tasks = demo.tasks.asMap().entries.map((e) {
-      return e.value.copyWith(
-          id: (base + e.key).toString(),
-          streak: 0,
-          done: false,
-          bonusEarned: 0,
-          clearLastCompleted: true);
-    }).toList();
-
-    // Import Notes with unique IDs
-    final notes = demo.notes.asMap().entries.map((e) {
-      return e.value.copyWith(
-        id: 'demo-${base + e.key}',
-        createdAt: DateTime.now().subtract(Duration(minutes: e.key * 5)),
-      );
-    }).toList();
-
-    ref.read(taskProvider.notifier).loadDemo(
-          tasks,
-          projectStats: demo.projectStats,
-          hourlyData: demo.hourlyData,
-        );
-    ref.read(noteProvider.notifier).loadDemo(notes);
-
-    Navigator.of(context).pop();
   }
 
   static const _weekDayNames = [
@@ -180,14 +148,6 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
             style: AppTheme.mono(size: rs.f(14), weight: FontWeight.w700)
                 .copyWith(letterSpacing: 2)),
         centerTitle: true,
-        actions: [
-          IconButton(
-            icon: Icon(Icons.download_rounded,
-                size: 20,
-                color: _showDemoPicker ? AppColors.purple : AppColors.muted),
-            onPressed: () => setState(() => _showDemoPicker = !_showDemoPicker),
-          ),
-        ],
       ),
       body: rs.tabletCenter(600)(
         SingleChildScrollView(
@@ -198,110 +158,6 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              if (_showDemoPicker) ...[
-                SizedBox(height: rs.p(10)),
-                Container(
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(rs.p(16)),
-                    border: Border.all(
-                        color: AppColors.purple.withValues(alpha: 0.25)),
-                    color: AppColors.surface,
-                  ),
-                  clipBehavior: Clip.hardEdge,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Container(
-                        width: double.infinity,
-                        padding: EdgeInsets.symmetric(
-                            horizontal: rs.p(16), vertical: rs.p(10)),
-                        color: AppColors.purple.withValues(alpha: 0.08),
-                        child: Text('SELECT A MISSION PACK',
-                            style: AppTheme.mono(
-                                    size: rs.f(10),
-                                    weight: FontWeight.w700,
-                                    color: AppColors.purple)
-                                .copyWith(letterSpacing: 1.5)),
-                      ),
-                      ...SeedData.demoSets.map((demo) => GestureDetector(
-                            onTap: () => _importDemo(demo),
-                            child: Container(
-                              width: double.infinity,
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                      color: AppColors.border
-                                          .withValues(alpha: 0.5)),
-                                ),
-                              ),
-                              padding: EdgeInsets.symmetric(
-                                  horizontal: rs.p(16), vertical: rs.p(14)),
-                              child: Row(
-                                children: [
-                                  Container(
-                                    width: rs.s(44),
-                                    height: rs.s(44),
-                                    decoration: BoxDecoration(
-                                      color: demo.color.withValues(alpha: 0.1),
-                                      borderRadius:
-                                          BorderRadius.circular(rs.p(12)),
-                                      border: Border.all(
-                                          color: demo.color
-                                              .withValues(alpha: 0.25)),
-                                    ),
-                                    child: Center(
-                                      child: Text(demo.icon,
-                                          style: const TextStyle(fontSize: 22)),
-                                    ),
-                                  ),
-                                  SizedBox(width: rs.p(14)),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(demo.name,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppTheme.sans(
-                                                size: rs.f(14),
-                                                weight: FontWeight.w800)),
-                                        SizedBox(height: rs.p(3)),
-                                        Text(demo.desc,
-                                            maxLines: 1,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: AppTheme.sans(
-                                                size: rs.f(10),
-                                                color: AppColors.subtle)),
-                                      ],
-                                    ),
-                                  ),
-                                  SizedBox(width: rs.p(8)),
-                                  Container(
-                                    padding: EdgeInsets.symmetric(
-                                        horizontal: rs.p(8), vertical: rs.p(4)),
-                                    decoration: BoxDecoration(
-                                      color: demo.color.withValues(alpha: 0.1),
-                                      borderRadius:
-                                          BorderRadius.circular(rs.p(8)),
-                                    ),
-                                    child: Text(
-                                        '${demo.tasks.length} tasks · ${demo.notes.length} scrolls',
-                                        style: AppTheme.mono(
-                                            size: rs.f(9),
-                                            weight: FontWeight.w700,
-                                            color: demo.color)),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          )),
-                    ],
-                  ),
-                ),
-                SizedBox(height: rs.p(24)),
-              ],
-
               Form(
                 key: _formKey,
                 child: Column(
@@ -483,7 +339,7 @@ class _AddTaskPageState extends ConsumerState<AddTaskPage> {
                         ),
                         child: Text(label,
                             style: AppTheme.mono(
-                                size: rs.f(10),
+                                size: rs.f(11),
                                 weight: FontWeight.w700,
                                 color: active
                                     ? AppColors.purple
@@ -578,11 +434,11 @@ class _FieldLabel extends StatelessWidget {
         children: [
           Text(text,
               style: AppTheme.mono(
-                  size: 10, color: AppColors.subtle, weight: FontWeight.w800)),
+                  size: 11, color: AppColors.subtle, weight: FontWeight.w800)),
           if (optional) ...[
             const SizedBox(width: 6),
             Text('OPTIONAL',
-                style: AppTheme.mono(size: 9, color: AppColors.muted)),
+                style: AppTheme.mono(size: 10, color: AppColors.muted)),
           ],
         ],
       ),
@@ -633,7 +489,7 @@ class _PriorityButtons extends StatelessWidget {
               alignment: Alignment.center,
               child: Text(v.label.toUpperCase(),
                   style: AppTheme.mono(
-                      size: 9,
+                      size: 10,
                       weight: FontWeight.w800,
                       color: active ? color : AppColors.muted)),
             ),

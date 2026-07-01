@@ -4,6 +4,7 @@ import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import '../../auth/providers/auth_provider.dart';
+import '../../missions/providers/mission_provider.dart';
 
 final notificationProvider =
     StateNotifierProvider<NotificationNotifier, List<NotificationModel>>(
@@ -17,12 +18,13 @@ final unreadCountProvider = Provider<int>((ref) {
 class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
   String? userId;
   final _supabase = Supabase.instance.client;
+  final Ref _ref;
   RealtimeChannel? _subscription;
   bool _initialized = false;
   Timer? _refreshTimer;
 
-  NotificationNotifier(Ref ref) : super([]) {
-    ref.listen(currentUserProvider, (previous, next) {
+  NotificationNotifier(this._ref) : super([]) {
+    _ref.listen(currentUserProvider, (previous, next) {
       if (next != null) {
         userId = next.id;
         if (!_initialized) {
@@ -37,7 +39,7 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
       }
     });
 
-    final user = ref.read(currentUserProvider);
+    final user = _ref.read(currentUserProvider);
     if (user != null && !_initialized) {
       _initialized = true;
       userId = user.id;
@@ -175,6 +177,38 @@ class NotificationNotifier extends StateNotifier<List<NotificationModel>> {
     } catch (e) {
       debugPrint('Error declining challenge: $e');
       fetchNotifications(); // Recover on error
+    }
+  }
+
+  Future<void> acceptMissionInvite(
+      String notificationId, String missionId) async {
+    state = state.where((n) => n.id != notificationId).toList();
+    try {
+      await _supabase.rpc('accept_mission_invite', params: {
+        'p_mission_id': missionId,
+        'p_user_id': userId,
+      });
+      await _supabase.from('notifications').delete().eq('id', notificationId);
+      _ref.invalidate(missionsProvider);
+    } catch (e) {
+      debugPrint('Error accepting mission invite: $e');
+      fetchNotifications();
+    }
+  }
+
+  Future<void> declineMissionInvite(
+      String notificationId, String missionId) async {
+    state = state.where((n) => n.id != notificationId).toList();
+    try {
+      await _supabase.rpc('decline_mission_invite', params: {
+        'p_mission_id': missionId,
+        'p_user_id': userId,
+      });
+      await _supabase.from('notifications').delete().eq('id', notificationId);
+      _ref.invalidate(missionsProvider);
+    } catch (e) {
+      debugPrint('Error declining mission invite: $e');
+      fetchNotifications();
     }
   }
 

@@ -29,9 +29,9 @@ class RankBar extends StatelessWidget {
               children: [
                 Text(rank.name,
                     style: AppTheme.mono(
-                        size: 10, weight: FontWeight.w800, color: rank.color)),
+                        size: 11, weight: FontWeight.w800, color: rank.color)),
                 Text(toNext,
-                    style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+                    style: AppTheme.sans(size: 9, color: AppColors.subtle)),
                 if (next != null) ...[
                   const SizedBox(height: 3),
                   ClipRRect(

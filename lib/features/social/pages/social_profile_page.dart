@@ -190,7 +190,7 @@ class _StatItem extends StatelessWidget {
         children: [
           Text(value, style: AppTheme.mono(size: rs.f(18), weight: FontWeight.w800)),
           SizedBox(height: rs.p(4)),
-          Text(label, style: AppTheme.mono(size: rs.f(9), color: AppColors.subtle, weight: FontWeight.w700)),
+          Text(label, style: AppTheme.mono(size: rs.f(10), color: AppColors.subtle, weight: FontWeight.w700)),
         ],
       ),
     );
@@ -241,7 +241,7 @@ class _ActivityTile extends StatelessWidget {
                   children: [
                     Icon(Icons.verified, size: rs.f(12), color: AppColors.accent),
                     SizedBox(width: rs.p(4)),
-                    Text('PROOF', style: AppTheme.mono(size: rs.f(9), weight: FontWeight.w800, color: AppColors.accent)),
+                    Text('PROOF', style: AppTheme.mono(size: rs.f(10), weight: FontWeight.w800, color: AppColors.accent)),
                   ],
                 ),
               ),
@@ -281,7 +281,7 @@ class _ActivityTile extends StatelessWidget {
             ),
             SizedBox(height: rs.p(24)),
             if (log.notes != null && log.notes!.isNotEmpty) ...[
-              Text('USER NOTES', style: AppTheme.mono(size: rs.f(10), weight: FontWeight.w700, color: AppColors.subtle)),
+              Text('USER NOTES', style: AppTheme.mono(size: rs.f(11), weight: FontWeight.w700, color: AppColors.subtle)),
               SizedBox(height: rs.p(8)),
               Container(
                 width: double.infinity,
@@ -296,7 +296,7 @@ class _ActivityTile extends StatelessWidget {
               SizedBox(height: rs.p(24)),
             ],
             if (log.imageUrl != null && log.imageUrl!.isNotEmpty) ...[
-              Text('EVIDENCE', style: AppTheme.mono(size: rs.f(10), weight: FontWeight.w700, color: AppColors.subtle)),
+              Text('EVIDENCE', style: AppTheme.mono(size: rs.f(11), weight: FontWeight.w700, color: AppColors.subtle)),
               SizedBox(height: rs.p(8)),
               ClipRRect(
                 borderRadius: BorderRadius.circular(rs.p(16)),

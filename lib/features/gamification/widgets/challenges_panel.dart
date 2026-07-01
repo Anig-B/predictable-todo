@@ -41,7 +41,7 @@ class ChallengesPanel extends ConsumerWidget {
                   children: [
                     Text('${doneCount.clamp(0, rewardGoal)}/$rewardGoal done',
                         style:
-                            AppTheme.mono(size: 10, color: AppColors.accent)),
+                            AppTheme.mono(size: 11, color: AppColors.accent)),
                     const SizedBox(width: 12),
                     GestureDetector(
                       onTap: () => Navigator.of(context).pop(),
@@ -105,11 +105,11 @@ class ChallengesPanel extends ConsumerWidget {
                             const SizedBox(height: 2),
                             Text('Resets in 08:14:32',
                                 style: AppTheme.sans(
-                                    size: 10, color: AppColors.subtle)),
+                                    size: 11, color: AppColors.subtle)),
                             const SizedBox(height: 4),
                             Text('Complete any 3 of 5 quests for a reward 🎁',
                                 style: AppTheme.sans(
-                                    size: 9, color: AppColors.subtle)),
+                                    size: 10, color: AppColors.subtle)),
                           ],
                         ),
                       ),
@@ -144,7 +144,7 @@ class ChallengesPanel extends ConsumerWidget {
                             const SizedBox(height: 1),
                             Text('Earn a mystery loot box',
                                 style: AppTheme.sans(
-                                    size: 9, color: AppColors.subtle)),
+                                    size: 10, color: AppColors.subtle)),
                           ],
                         ),
                       ),
@@ -160,7 +160,7 @@ class ChallengesPanel extends ConsumerWidget {
                         child: Text(
                           allDone ? '✓ Claim' : '🔒 Locked',
                           style: AppTheme.mono(
-                              size: 10,
+                              size: 11,
                               color:
                                   allDone ? AppColors.accent : AppColors.gold),
                         ),

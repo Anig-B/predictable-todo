@@ -188,7 +188,9 @@ class _TaskCardState extends State<TaskCard>
                         opacity: t.done ? 0.45 : 1.0,
                         duration: const Duration(milliseconds: 250),
                         child: GestureDetector(
-                          onTap: widget.selectMode ? widget.onSelect : widget.onToggle,
+                          onTap: widget.selectMode
+                              ? widget.onSelect
+                              : (t.missionId != null ? null : widget.onQuickToggle),
                           behavior: HitTestBehavior.opaque,
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
@@ -295,7 +297,7 @@ class _TaskCardState extends State<TaskCard>
                           children: [
                             Text('PROOF NOTE',
                                 style: AppTheme.mono(
-                                    size: 8,
+                                    size: 9,
                                     color: AppColors.accent,
                                     weight: FontWeight.w700)),
                             const SizedBox(height: 4),
@@ -324,7 +326,7 @@ class _TaskCardState extends State<TaskCard>
                             ),
                             child: Text('Image unavailable',
                                 style: AppTheme.sans(
-                                    size: 10, color: AppColors.muted)),
+                                    size: 11, color: AppColors.muted)),
                           ),
                           loadingBuilder: (_, child, progress) =>
                               progress == null
@@ -374,8 +376,8 @@ class _Chip extends StatelessWidget {
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
         style: mono
-            ? AppTheme.mono(size: 9, weight: FontWeight.w600, color: color)
-            : AppTheme.sans(size: 9, weight: FontWeight.w600, color: color),
+            ? AppTheme.mono(size: 10, weight: FontWeight.w600, color: color)
+            : AppTheme.sans(size: 10, weight: FontWeight.w600, color: color),
       ),
     );
   }

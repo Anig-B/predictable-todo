@@ -38,7 +38,7 @@ class GaugeChart extends StatelessWidget {
                       style: AppTheme.mono(
                           size: 13, weight: FontWeight.w800, color: AppColors.text)),
                   Text(label,
-                      style: AppTheme.mono(size: 7, color: AppColors.subtle)),
+                      style: AppTheme.mono(size: 8, color: AppColors.subtle)),
                 ],
               ),
             ),

@@ -8,7 +8,6 @@ import '../models/activity_log_model.dart';
 import '../data/task_repository.dart';
 import '../../leaderboard/models/leaderboard_entry_model.dart';
 import '../../auth/providers/auth_provider.dart';
-import '../../../core/services/notification_service.dart';
 import '../../../core/data/seed_data.dart';
 
 class TaskState {

@@ -159,7 +159,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
                           child: Text(label,
                               textAlign: TextAlign.right,
                               style:
-                                  AppTheme.mono(size: 9, color: AppColors.muted)),
+                                  AppTheme.mono(size: 10, color: AppColors.muted)),
                         ),
                         const SizedBox(width: 8),
                         Expanded(
@@ -209,7 +209,7 @@ class _TimeTabState extends ConsumerState<TimeTab> {
                         Expanded(
                           child: Text(
                             "YOU CONQUERED THE WEEK!",
-                            style: AppTheme.mono(size: 10, weight: FontWeight.w900, color: AppColors.accent).copyWith(letterSpacing: 1),
+                            style: AppTheme.mono(size: 11, weight: FontWeight.w900, color: AppColors.accent).copyWith(letterSpacing: 1),
                           ),
                         ),
                       ],
@@ -302,7 +302,7 @@ class _StatMini extends StatelessWidget {
         Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(label, style: AppTheme.sans(size: 10, color: AppColors.muted)),
+            Text(label, style: AppTheme.sans(size: 11, color: AppColors.muted)),
             Text(value, style: AppTheme.mono(size: 13, weight: FontWeight.w700)),
           ],
         ),

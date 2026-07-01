@@ -54,7 +54,7 @@ class _StatsPageState extends ConsumerState<StatsPage>
                         style: AppTheme.mono(size: rs.f(20), weight: FontWeight.w800)),
                     const Spacer(),
                     Text('$totalXp XP total',
-                        style: AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
+                        style: AppTheme.mono(size: rs.f(11), color: AppColors.accent)),
                   ],
                 ),
               ),

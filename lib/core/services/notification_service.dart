@@ -4,6 +4,7 @@ import 'package:dart_jsonwebtoken/dart_jsonwebtoken.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:http/http.dart' as http;
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -21,6 +22,8 @@ class NotificationService {
   static final NotificationService _instance = NotificationService._();
   factory NotificationService() => _instance;
   NotificationService._();
+
+  static final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
   final _firebaseMessaging = FirebaseMessaging.instance;
   final _localNotifications = FlutterLocalNotificationsPlugin();
@@ -162,7 +165,13 @@ class NotificationService {
     _handleNavigation(message.data['route']);
   }
 
-  void _handleNavigation(String? route) {}
+  void _handleNavigation(String? route) {
+    if (route == null) return;
+    final nav = navigatorKey.currentState;
+    if (nav != null && nav.mounted) {
+      nav.pushNamed(route);
+    }
+  }
 
   Future<void> _ensureAccessToken() async {
     if (_accessToken != null && _tokenExpiry != null && DateTime.now().isBefore(_tokenExpiry!)) return;

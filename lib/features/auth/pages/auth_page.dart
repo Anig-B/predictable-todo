@@ -320,7 +320,7 @@ class _AuthPageState extends ConsumerState<AuthPage> {
         Text(
           label,
           style: AppTheme.mono(
-            size: rs.f(10),
+            size: rs.f(11),
             weight: FontWeight.w700,
             color: AppColors.subtle,
             letterSpacing: 1.5,

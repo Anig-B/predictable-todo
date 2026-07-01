@@ -73,7 +73,7 @@ class MomentumCard extends ConsumerWidget {
                     ],
                   ),
                   Text(isUp ? 'Generating momentum' : 'Gaining traction',
-                      style: AppTheme.sans(size: 9, color: AppColors.subtle)),
+                      style: AppTheme.sans(size: 10, color: AppColors.subtle)),
                 ],
               ),
               const Spacer(),
@@ -86,7 +86,7 @@ class MomentumCard extends ConsumerWidget {
                           weight: FontWeight.w900,
                           color: isUp ? AppColors.accent : AppColors.red)),
                   Text('Velocity',
-                      style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+                      style: AppTheme.mono(size: 9, color: AppColors.subtle)),
                 ],
               ),
             ],
@@ -127,7 +127,7 @@ class MomentumStat extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+        Text(label, style: AppTheme.mono(size: 9, color: AppColors.subtle)),
         const SizedBox(height: 2),
         Text(value,
             style:

@@ -11,6 +11,7 @@ import '../../gamification/providers/challenge_provider.dart';
 import '../../gamification/models/challenge_model.dart';
 import '../../../core/utils/xp_calculator.dart';
 import '../../../core/data/seed_data.dart';
+import '../../missions/widgets/missions_tab.dart';
 import '../providers/profile_provider.dart';
 import '../../auth/providers/auth_provider.dart';
 import '../widgets/user_avatar.dart';
@@ -37,7 +38,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
   @override
   void initState() {
     super.initState();
-    _tabCtrl = TabController(length: 2, vsync: this);
+    _tabCtrl = TabController(length: 3, vsync: this);
   }
 
   @override
@@ -167,7 +168,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('USER ID: ${profile.shortId}',
                         style: AppTheme.mono(
-                            size: rs.f(10),
+                            size: rs.f(11),
                             color: AppColors.muted,
                             weight: FontWeight.w700)),
                     SizedBox(width: rs.p(6)),
@@ -190,7 +191,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ),
                 SizedBox(height: rs.p(4)),
                 Text(profile.tagline,
-                    style: AppTheme.mono(size: rs.f(9), color: AppColors.accent)),
+                    style: AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
               ],
             ),
             SizedBox(height: rs.p(16)),
@@ -214,7 +215,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                       // Show XP within current level, not cumulative total
                       Text('$xpInLevel / ${XpCalculator.xpPerLevel} XP',
                           style:
-                              AppTheme.mono(size: rs.f(10), color: AppColors.subtle)),
+                              AppTheme.mono(size: rs.f(11), color: AppColors.subtle)),
                     ],
                   ),
                   SizedBox(height: rs.p(6)),
@@ -269,14 +270,15 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 ),
                 indicatorSize: TabBarIndicatorSize.tab,
                 dividerColor: Colors.transparent,
-                labelStyle: AppTheme.sans(size: rs.f(10), weight: FontWeight.w700),
+                labelStyle: AppTheme.sans(size: rs.f(11), weight: FontWeight.w700),
                 unselectedLabelStyle:
-                    AppTheme.sans(size: rs.f(10), color: AppColors.muted),
+                    AppTheme.sans(size: rs.f(11), color: AppColors.muted),
                 labelColor: AppColors.bg,
                 unselectedLabelColor: AppColors.muted,
                 tabs: const [
                   Tab(text: 'Activity'),
                   Tab(text: 'Badges'),
+                  Tab(text: 'Missions'),
                 ],
               ),
             ),
@@ -294,6 +296,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         .read(gamificationProvider.notifier)
                         .toggleBadgeSelection(badge),
                   ),
+                  const MissionsTab(),
                 ],
               ),
             ),
@@ -447,7 +450,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('YOUR COMPANION',
                         style: AppTheme.mono(
-                            size: rs.f(8),
+                            size: rs.f(9),
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
                     SizedBox(height: rs.p(1)),
@@ -459,7 +462,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                     if (bonusLabel.isNotEmpty) ...[
                       SizedBox(height: rs.p(1)),
                       Text(bonusLabel,
-                          style: AppTheme.mono(size: rs.f(8), color: pet.color)),
+                          style: AppTheme.mono(size: rs.f(9), color: pet.color)),
                     ],
                   ],
                 ),
@@ -470,13 +473,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('NEXT',
                         style: AppTheme.mono(
-                            size: rs.f(7),
+                            size: rs.f(8),
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
                     Text(next.emoji, style: const TextStyle(fontSize: 18)),
                     Text(next.name,
                         style: AppTheme.sans(
-                            size: rs.f(9),
+                            size: rs.f(10),
                             color: AppColors.subtle,
                             weight: FontWeight.w600)),
                   ],
@@ -499,10 +502,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${pet.minTasks} tasks',
-                    style: AppTheme.mono(size: rs.f(8), color: AppColors.subtle)),
+                    style: AppTheme.mono(size: rs.f(9), color: AppColors.subtle)),
                 Text(
                     '${totalLifetimeTasks - pet.minTasks} / ${next.minTasks - pet.minTasks} tasks to ${next.emoji}',
-                    style: AppTheme.mono(size: rs.f(8), color: pet.color)),
+                    style: AppTheme.mono(size: rs.f(9), color: pet.color)),
               ],
             ),
           ],
@@ -519,11 +522,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.list_rounded,
-                      size: rs.f(10), color: AppColors.muted),
+                      size: rs.f(11), color: AppColors.muted),
                   SizedBox(width: rs.p(4)),
                   Text('See all stages',
                       style: AppTheme.sans(
-                          size: rs.f(10),
+                          size: rs.f(11),
                           color: AppColors.muted,
                           weight: FontWeight.w600)),
                 ],
@@ -599,11 +602,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                       : AppColors.subtle)),
                           Text(taskLabel,
                               style: AppTheme.mono(
-                                  size: rs.f(10), color: AppColors.muted)),
+                                  size: rs.f(11), color: AppColors.muted)),
                           if (stage.xpBonus > 0 || stage.bossDmgBonus > 0)
                             Text(
                               '${stage.xpBonus > 0 ? '+${stage.xpBonus} XP per task ' : ''}${stage.bossDmgBonus > 0 ? '+${stage.bossDmgBonus} boss dmg per task' : ''}',
-                              style: AppTheme.mono(size: rs.f(8), color: stage.color),
+                              style: AppTheme.mono(size: rs.f(9), color: stage.color),
                             ),
                         ],
                       ),
@@ -618,7 +621,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         ),
                         child: Text('EARNED',
                             style: AppTheme.mono(
-                                size: rs.f(8),
+                                size: rs.f(9),
                                 color: stage.color,
                                 weight: FontWeight.w900)),
                       ),
@@ -666,7 +669,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('CURRENT RANK',
                         style: AppTheme.mono(
-                            size: rs.f(8),
+                            size: rs.f(9),
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
                     SizedBox(height: rs.p(1)),
@@ -685,13 +688,13 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                   children: [
                     Text('NEXT',
                         style: AppTheme.mono(
-                            size: rs.f(7),
+                            size: rs.f(8),
                             color: AppColors.subtle,
                             weight: FontWeight.w800)),
                     Text(next.icon, style: const TextStyle(fontSize: 18)),
                     Text(next.name,
                         style: AppTheme.sans(
-                            size: rs.f(9),
+                            size: rs.f(10),
                             color: AppColors.subtle,
                             weight: FontWeight.w600)),
                   ],
@@ -714,10 +717,10 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('${current.minXp} XP',
-                    style: AppTheme.mono(size: rs.f(8), color: AppColors.subtle)),
+                    style: AppTheme.mono(size: rs.f(9), color: AppColors.subtle)),
                 Text(
                     '${totalXp - current.minXp} / ${next.minXp - current.minXp} XP to ${next.name}',
-                    style: AppTheme.mono(size: rs.f(8), color: current.color)),
+                    style: AppTheme.mono(size: rs.f(9), color: current.color)),
               ],
             ),
           ],
@@ -734,11 +737,11 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Icon(Icons.list_rounded,
-                      size: rs.f(10), color: AppColors.muted),
+                      size: rs.f(11), color: AppColors.muted),
                   SizedBox(width: rs.p(4)),
                   Text('See all ranks',
                       style: AppTheme.sans(
-                          size: rs.f(10),
+                          size: rs.f(11),
                           color: AppColors.muted,
                           weight: FontWeight.w600)),
                 ],
@@ -811,7 +814,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                                       earned ? tier.color : AppColors.subtle)),
                           Text('${tier.minXp}+ XP',
                               style: AppTheme.mono(
-                                  size: rs.f(10), color: AppColors.muted)),
+                                  size: rs.f(11), color: AppColors.muted)),
                         ],
                       ),
                     ),
@@ -825,7 +828,7 @@ class _ProfilePageState extends ConsumerState<ProfilePage>
                         ),
                         child: Text('EARNED',
                             style: AppTheme.mono(
-                                size: rs.f(8),
+                                size: rs.f(9),
                                 color: tier.color,
                                 weight: FontWeight.w900)),
                       ),
@@ -884,12 +887,12 @@ class _ActivityTab extends StatelessWidget {
                         style: AppTheme.sans(size: 11, weight: FontWeight.w700),
                         overflow: TextOverflow.ellipsis),
                     Text(item.time,
-                        style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+                        style: AppTheme.mono(size: 9, color: AppColors.subtle)),
                   ],
                 ),
               ),
               Text('+${item.points}',
-                  style: AppTheme.mono(size: 10, color: AppColors.accent)),
+                  style: AppTheme.mono(size: 11, color: AppColors.accent)),
             ],
           ),
         );
@@ -958,14 +961,14 @@ class _BadgesTab extends StatelessWidget {
                                   size: 11, weight: FontWeight.w700)),
                           Text(badgeDesc,
                               style: AppTheme.sans(
-                                  size: 9, color: AppColors.subtle)),
+                                  size: 10, color: AppColors.subtle)),
                         ],
                       ),
                     ),
                     Text(
                       unlocked ? (selected ? 'Selected' : 'Owned') : 'Locked',
                       style: AppTheme.mono(
-                        size: 9,
+                        size: 10,
                         color: unlocked
                             ? (selected ? AppColors.accent : AppColors.subtle)
                             : AppColors.muted,
@@ -1002,7 +1005,7 @@ class _StatBox extends StatelessWidget {
           const SizedBox(height: 2),
           Text(label,
               style: AppTheme.sans(
-                  size: 9, color: AppColors.subtle, weight: FontWeight.w600)),
+                  size: 10, color: AppColors.subtle, weight: FontWeight.w600)),
         ],
       ),
     );

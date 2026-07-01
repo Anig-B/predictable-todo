@@ -116,6 +116,9 @@ class TaskModel {
   /// 1-28 = specific date, 0 = last day of month, null = any day
   final int? monthlyDay;
 
+  /// If non-null, this task is a quest belonging to a mission
+  final String? missionId;
+
   DateTime? get scheduledDateTime {
     final t = time.toLowerCase().trim();
     if (!t.contains(':') && !t.contains('am') && !t.contains('pm')) return null;
@@ -219,6 +222,7 @@ class TaskModel {
     this.proofNotes,
     this.proofImage,
     this.proofRating = 0,
+    this.missionId,
   });
 
   TaskModel copyWith({
@@ -241,6 +245,7 @@ class TaskModel {
     String? proofNotes,
     String? proofImage,
     int? proofRating,
+    String? missionId,
   }) =>
       TaskModel(
         id: id ?? this.id,
@@ -263,6 +268,7 @@ class TaskModel {
         proofNotes: proofNotes ?? this.proofNotes,
         proofImage: proofImage ?? this.proofImage,
         proofRating: proofRating ?? this.proofRating,
+        missionId: missionId ?? this.missionId,
       );
 
   Map<String, dynamic> toJson() => {
@@ -284,6 +290,7 @@ class TaskModel {
         'proof_notes': proofNotes,
         'proof_image': proofImage,
         'proof_rating': proofRating,
+        'mission_id': missionId,
       };
 
   factory TaskModel.fromJson(Map<String, dynamic> j) => TaskModel(
@@ -307,5 +314,6 @@ class TaskModel {
         proofNotes: j['proof_notes'] as String?,
         proofImage: j['proof_image'] as String?,
         proofRating: j['proof_rating'] as int? ?? 0,
+        missionId: j['mission_id'] as String?,
       );
 }

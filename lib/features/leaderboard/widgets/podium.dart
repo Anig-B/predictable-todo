@@ -103,7 +103,7 @@ class _PodiumItem extends StatelessWidget {
 
             Text(
               '${entry.xp} XP',
-              style: AppTheme.mono(size: 9, color: AppColors.accent),
+              style: AppTheme.mono(size: 10, color: AppColors.accent),
             ),
             if (entry.selectedBadges.isNotEmpty) ...[
               const SizedBox(height: 4),

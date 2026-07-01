@@ -1,6 +1,7 @@
 import 'package:go_router/go_router.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../../features/auth/providers/auth_provider.dart';
+import '../services/notification_service.dart';
 import '../../features/auth/pages/auth_page.dart';
 import '../../features/shell/pages/main_shell.dart';
 import '../../features/tasks/pages/home_page.dart';
@@ -19,6 +20,7 @@ final appRouterProvider = Provider<GoRouter>((ref) {
   final user = ref.watch(currentUserProvider);
 
   return GoRouter(
+    navigatorKey: NotificationService.navigatorKey,
     initialLocation: '/tasks',
     redirect: (context, state) {
       final isAuthPage = state.matchedLocation == '/auth';

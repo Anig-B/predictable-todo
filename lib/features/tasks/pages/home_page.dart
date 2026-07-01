@@ -6,7 +6,7 @@ import '../../../core/theme/app_colors.dart';
 import '../../../core/theme/app_theme.dart';
 import '../../../core/utils/responsive_scale.dart';
 import '../../../shared/widgets/rainbow_glimmer.dart';
-import '../../../core/data/seed_data.dart';
+
 import '../providers/task_provider.dart';
 import '../../gamification/providers/gamification_provider.dart';
 import '../../gamification/providers/effects_provider.dart';
@@ -111,7 +111,9 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                           _selectedIds.clear();
                         } else {
                           _selectedIds.addAll(
-                            _filteredTasks(tState.tasks).map((t) => t.id),
+                            _filteredTasks(tState.tasks)
+                                .where((t) => t.missionId == null)
+                                .map((t) => t.id),
                           );
                         }
                       });
@@ -123,13 +125,13 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                     ),
                   ),
                   Text('${_selectedIds.length}',
-                      style: AppTheme.mono(size: rs.f(10), color: AppColors.subtle)),
+                      style: AppTheme.mono(size: rs.f(11), color: AppColors.subtle)),
                   const Spacer(),
                   GestureDetector(
                     onTap: _selectedIds.isEmpty ? null : () async {
                       final tasks = _selectedIds
                           .map((id) => tState.tasks.firstWhere((t) => t.id == id))
-                          .where((t) => t.done)
+                          .where((t) => t.done && t.missionId == null)
                           .toList();
                       if (tasks.isEmpty) return;
 
@@ -287,34 +289,102 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                           children: [
                             Text('${filteredDone}/${filteredTasks.length} DONE',
                                 style:
-                                    AppTheme.mono(size: rs.f(10), color: AppColors.subtle)),
+                                    AppTheme.mono(size: rs.f(11), color: AppColors.subtle)),
                             Text('+$totalXp XP',
                                 style:
-                                    AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
+                                    AppTheme.mono(size: rs.f(11), color: AppColors.accent)),
                           ],
                         ),
-                        SizedBox(height: rs.p(8)),
+                        SizedBox(height: rs.p(16)),
 
                         // Task list
-                        ...filteredTasks.map((task) => TaskCard(
-                              task: task,
-                              effectiveMulti: gState.effectiveMulti,
-                              celebrationLocked: _celebrationLock,
-                              onCelebrationStart: _onCelebrationStart,
-                              onCelebrationEnd: _onCelebrationEnd,
-                              onToggle: () => _handleToggle(context, ref, task),
-                              onQuickToggle: () =>
-                                  _handleQuickToggle(context, ref, task),
-                              onLongPress: _selectMode
-                                  ? null
-                                  : () => _handleLongPress(context, ref, task),
-                              selectMode: _selectMode,
-                              isSelected: _selectedIds.contains(task.id),
-                              onSelect: () => _toggleSelect(task.id),
-                            )),
+                        ...() {
+                          final personal = filteredTasks
+                              .where((t) => t.missionId == null)
+                              .toList();
+                          final mission = filteredTasks
+                              .where((t) => t.missionId != null)
+                              .toList();
+                          final widgets = <Widget>[];
+                          widgets.add(Padding(
+                            padding: EdgeInsets.only(
+                                top: rs.p(4), bottom: rs.p(10)),
+                            child: Text('PERSONAL QUESTS',
+                                style: AppTheme.mono(
+                                    size: rs.f(11), color: AppColors.subtle)),
+                          ));
+                          if (personal.isNotEmpty) {
+                            widgets.addAll(personal.map((task) => TaskCard(
+                                  task: task,
+                                  effectiveMulti: gState.effectiveMulti,
+                                  celebrationLocked: _celebrationLock,
+                                  onCelebrationStart: _onCelebrationStart,
+                                  onCelebrationEnd: _onCelebrationEnd,
+                                  onToggle: () =>
+                                      _handleToggle(context, ref, task),
+                                  onQuickToggle: () =>
+                                      _handleQuickToggle(context, ref, task),
+                                  onLongPress: _selectMode
+                                      ? null
+                                      : () =>
+                                          _handleLongPress(context, ref, task),
+                                  selectMode: _selectMode,
+                                  isSelected: _selectedIds.contains(task.id),
+                                  onSelect: () => _toggleSelect(task.id),
+                                )));
+                          } else {
+                            widgets.add(Padding(
+                              padding: EdgeInsets.symmetric(vertical: rs.p(24)),
+                              child: Center(
+                                child: Text('No personal quests',
+                                    style: AppTheme.sans(
+                                        size: rs.f(11),
+                                        color: AppColors.muted)),
+                              ),
+                            ));
+                          }
 
-                        if (filteredTasks.isEmpty)
-                          _EmptyState(filter: _activeFilter, ref: ref),
+                          widgets.add(Padding(
+                            padding: EdgeInsets.only(
+                                top: rs.p(20), bottom: rs.p(10)),
+                            child: Text('MISSION QUESTS',
+                                style: AppTheme.mono(
+                                    size: rs.f(11), color: AppColors.accent)),
+                          ));
+                          if (mission.isNotEmpty) {
+                            widgets.addAll(mission.map((task) => TaskCard(
+                                  task: task,
+                                  effectiveMulti: gState.effectiveMulti,
+                                  celebrationLocked: _celebrationLock,
+                                  onCelebrationStart: _onCelebrationStart,
+                                  onCelebrationEnd: _onCelebrationEnd,
+                                  onToggle: () =>
+                                      _handleToggle(context, ref, task),
+                                  onQuickToggle: () =>
+                                      _handleQuickToggle(context, ref, task),
+                                  onLongPress: _selectMode
+                                      ? null
+                                      : () =>
+                                          _handleLongPress(context, ref, task),
+                                  selectMode: _selectMode,
+                                  isSelected: _selectedIds.contains(task.id),
+                                  onSelect: () {},
+                                )));
+                          } else {
+                            widgets.add(Padding(
+                              padding: EdgeInsets.symmetric(vertical: rs.p(24)),
+                              child: Center(
+                                child: Text('No mission quests — join a mission to see them here',
+                                    textAlign: TextAlign.center,
+                                    style: AppTheme.sans(
+                                        size: rs.f(11),
+                                        color: AppColors.muted)),
+                              ),
+                            ));
+                          }
+                          return widgets;
+                        }(),
+
                       ],
                     ),
                   ),
@@ -463,40 +533,32 @@ class _TasksPageState extends ConsumerState<TasksPage> {
               ),
             ),
             SizedBox(height: rs.p(8)),
-            ListTile(
-              leading: Icon(Icons.edit_rounded, color: AppColors.accent, size: rs.s(20)),
-              title: Text('Edit Quest',
-                  style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => AddTaskPage(existingTask: task),
-                  ),
-                );
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.checklist_rounded, color: AppColors.blue, size: rs.s(20)),
-              title: Text('Select Multiple',
-                  style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                _enterSelectMode();
-              },
-            ),
-            ListTile(
-              leading: Icon(Icons.delete_rounded, color: AppColors.red, size: rs.s(20)),
-              title: Text('Delete Quest',
-                  style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
-              onTap: () {
-                Navigator.of(ctx).pop();
-                showDialog(
-                  context: context,
-                  builder: (ctx) => AlertDialog(
-                    backgroundColor: AppColors.surface,
-              title: Text('Delete Quest',
+            if (task.missionId == null) ...[
+              ListTile(
+                leading: Icon(Icons.edit_rounded, color: AppColors.accent, size: rs.s(20)),
+                title: Text('Edit Quest',
+                    style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => AddTaskPage(existingTask: task),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: Icon(Icons.delete_rounded, color: AppColors.red, size: rs.s(20)),
+                title: Text('Delete Quest',
+                    style: AppTheme.sans(size: 13, weight: FontWeight.w600, color: AppColors.red)),
+                onTap: () {
+                  Navigator.of(ctx).pop();
+                  showDialog(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      backgroundColor: AppColors.surface,
+                      title: Text('Delete Quest',
                           style: AppTheme.sans(size: rs.f(15), weight: FontWeight.w700, color: AppColors.text)),
                       content: Text('Delete "${task.title}" permanently?',
                           style: AppTheme.sans(size: rs.f(12), color: AppColors.muted)),
@@ -515,8 +577,18 @@ class _TasksPageState extends ConsumerState<TasksPage> {
                               style: AppTheme.sans(size: rs.f(11), color: AppColors.red)),
                         ),
                       ],
-                  ),
-                );
+                    ),
+                  );
+                },
+              ),
+            ],
+            ListTile(
+              leading: Icon(Icons.checklist_rounded, color: AppColors.blue, size: rs.s(20)),
+              title: Text('Select Multiple',
+                  style: AppTheme.sans(size: rs.f(13), weight: FontWeight.w600, color: AppColors.text)),
+              onTap: () {
+                Navigator.of(ctx).pop();
+                _enterSelectMode();
               },
             ),
           ],
@@ -528,6 +600,7 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   Future<void> _handleQuickToggle(
       BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
+      if (task.missionId != null) return;
       if (!await _confirmUndo(context, task)) return;
 
       ref.read(taskProvider.notifier).uncompleteTask(task.id);
@@ -535,14 +608,18 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           .read(gamificationProvider.notifier)
           .onTaskUncompleted(task.points, task.bonusEarned);
     } else {
-      // Basic points, no rating/proof
-      _completeTask(context, ref, task, 0, 3, isQuick: true);
+      if (task.missionId != null) {
+        _showProofModal(context, ref, task);
+      } else {
+        _completeTask(context, ref, task, 0, 3, isQuick: true);
+      }
     }
   }
 
   Future<void> _handleToggle(
       BuildContext context, WidgetRef ref, TaskModel task) async {
     if (task.done) {
+      if (task.missionId != null) return;
       if (!await _confirmUndo(context, task)) return;
 
       ref.read(taskProvider.notifier).uncompleteTask(task.id);
@@ -550,35 +627,43 @@ class _TasksPageState extends ConsumerState<TasksPage> {
           .read(gamificationProvider.notifier)
           .onTaskUncompleted(task.points, task.bonusEarned);
     } else {
-      // Show proof modal
-      showModalBottomSheet(
-        context: context,
-        isScrollControlled: true,
-        useRootNavigator: false,
-        useSafeArea: true,
-        backgroundColor: Colors.transparent,
-        builder: (_) => ProofModal(
-          task: task,
-          onSubmit: (bonusXp, rating, notes, imageFile) async {
-            String? imageUrl;
-            if (imageFile != null) {
-              final user = ref.read(currentUserProvider);
-              if (user != null) {
-                final bytes = await imageFile.readAsBytes();
-                final ext = imageFile.name.split('.').last;
-                imageUrl = await ref
-                    .read(taskRepositoryProvider)
-                    .uploadProofImage(user.id, bytes, ext);
-              }
-            }
-            if (context.mounted) {
-              _completeTask(context, ref, task, bonusXp, rating,
-                  notes: notes, imageUrl: imageUrl);
-            }
-          },
-        ),
-      );
+      if (task.missionId != null) {
+        _showProofModal(context, ref, task);
+      } else {
+        _completeTask(context, ref, task, 0, 3, isQuick: true);
+      }
     }
+  }
+
+  void _showProofModal(
+      BuildContext context, WidgetRef ref, TaskModel task) {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      useRootNavigator: false,
+      useSafeArea: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => ProofModal(
+        task: task,
+        onSubmit: (bonusXp, rating, notes, imageFile) async {
+          String? imageUrl;
+          if (imageFile != null) {
+            final user = ref.read(currentUserProvider);
+            if (user != null) {
+              final bytes = await imageFile.readAsBytes();
+              final ext = imageFile.name.split('.').last;
+              imageUrl = await ref
+                  .read(taskRepositoryProvider)
+                  .uploadProofImage(user.id, bytes, ext);
+            }
+          }
+          if (context.mounted) {
+            _completeTask(context, ref, task, bonusXp, rating,
+                notes: notes, imageUrl: imageUrl);
+          }
+        },
+      ),
+    );
   }
 
   void _completeTask(BuildContext context, WidgetRef ref, TaskModel task,
@@ -662,124 +747,6 @@ class _TasksPageState extends ConsumerState<TasksPage> {
   }
 }
 
-class _EmptyState extends StatelessWidget {
-  final TaskFilter filter;
-  final WidgetRef ref;
-
-  const _EmptyState({required this.filter, required this.ref});
-
-  @override
-  Widget build(BuildContext context) {
-    final rs = ResponsiveScale(context);
-    return Column(
-      children: [
-        SizedBox(height: rs.p(60)),
-        Text('🎉', style: TextStyle(fontSize: rs.f(48))),
-        SizedBox(height: rs.p(8)),
-        Text(
-          filter == TaskFilter.notes
-              ? 'NO SCROLLS ETCHED'
-              : (filter == TaskFilter.cleared
-                  ? 'NO CLEARED QUESTS'
-                  : 'ALL QUESTS CLEARED!'),
-          style: AppTheme.mono(
-                  size: rs.f(14), weight: FontWeight.w900, color: AppColors.accent)
-              .copyWith(letterSpacing: 2),
-        ),
-        if (filter == TaskFilter.today) ...[
-          SizedBox(height: rs.p(32)),
-          Container(
-            width: double.infinity,
-            padding: rs.symH(4) + rs.symV(12),
-            decoration: BoxDecoration(
-              border: Border(
-                  top: BorderSide(
-                      color: AppColors.border.withValues(alpha: 0.5))),
-            ),
-            child: Text('OR IMPORT A MISSION PACK',
-                textAlign: TextAlign.center,
-                style: AppTheme.mono(
-                        size: rs.f(10),
-                        weight: FontWeight.w800,
-                        color: AppColors.subtle)
-                    .copyWith(letterSpacing: 1.5)),
-          ),
-          SizedBox(height: rs.p(12)),
-          ...SeedData.demoSets.map((demo) => _DemoPackCard(
-                demo: demo,
-                onTap: () {
-                  final base = DateTime.now().millisecondsSinceEpoch;
-                  final tasks = demo.tasks.asMap().entries.map((e) {
-                    return e.value.copyWith(
-                        id: (base + e.key).toString(),
-                        streak: 0,
-                        done: false,
-                        bonusEarned: 0,
-                        clearLastCompleted: true);
-                  }).toList();
-                  ref.read(taskProvider.notifier).loadDemo(tasks);
-                },
-              )),
-        ],
-      ],
-    );
-  }
-}
-
-class _DemoPackCard extends StatelessWidget {
-  final DemoSet demo;
-  final VoidCallback onTap;
-
-  const _DemoPackCard({required this.demo, required this.onTap});
-
-  @override
-  Widget build(BuildContext context) {
-    final rs = ResponsiveScale(context);
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        margin: EdgeInsets.only(bottom: rs.p(10)),
-        padding: rs.all(12),
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          borderRadius: rs.circ(16),
-          border: Border.all(color: demo.color.withValues(alpha: 0.25)),
-        ),
-        child: Row(
-          children: [
-            Container(
-              width: rs.s(44),
-              height: rs.s(44),
-              decoration: BoxDecoration(
-                color: demo.color.withValues(alpha: 0.1),
-                borderRadius: rs.circ(12),
-              ),
-              alignment: Alignment.center,
-              child: Text(demo.icon, style: TextStyle(fontSize: rs.f(22))),
-            ),
-            SizedBox(width: rs.p(14)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(demo.name,
-                      style: AppTheme.sans(size: rs.f(14), weight: FontWeight.w800)),
-                  Text(demo.desc,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.sans(size: rs.f(10), color: AppColors.subtle)),
-                ],
-              ),
-            ),
-            Icon(Icons.add_circle_outline_rounded,
-                size: rs.s(20), color: AppColors.muted),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 class _Header extends StatelessWidget {
   final int level;
   final double lvlProgress;
@@ -848,7 +815,7 @@ class _Header extends StatelessWidget {
                     ),
                     SizedBox(width: rs.p(6)),
                     Text('LVL $level',
-                        style: AppTheme.mono(size: rs.f(9), color: AppColors.accent)),
+                        style: AppTheme.mono(size: rs.f(10), color: AppColors.accent)),
                   ],
                 ),
               ],
@@ -985,7 +952,7 @@ class _IconBtn extends StatelessWidget {
                   alignment: Alignment.center,
                   child: Text('$badge',
                       style: AppTheme.mono(
-                          size: rs.f(8),
+                          size: rs.f(9),
                           color: Colors.white,
                           weight: FontWeight.w800)),
                 ),

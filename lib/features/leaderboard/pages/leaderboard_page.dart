@@ -128,7 +128,7 @@ class _LeaderboardPageState extends ConsumerState<LeaderboardPage> {
                           child: Text(
                             tabName,
                             style: AppTheme.sans(
-                              size: rs.f(10),
+                              size: rs.f(11),
                               weight: FontWeight.w700,
                               color:
                                   active ? AppColors.accent : AppColors.muted,
@@ -320,21 +320,21 @@ class _LeaderboardCard extends StatelessWidget {
                       const SizedBox(height: 2),
                       Text('${entry.xp} XP',
                           style:
-                              AppTheme.mono(size: 9, color: AppColors.accent)),
+                              AppTheme.mono(size: 10, color: AppColors.accent)),
                       Row(
                         children: [
                           Text('LVL ${entry.level}',
                               style: AppTheme.mono(
-                                  size: 8, color: AppColors.purple)),
+                                  size: 9, color: AppColors.purple)),
                           const SizedBox(width: 6),
                           Text(statLabel,
                               style: AppTheme.sans(
-                                  size: 8, color: AppColors.subtle)),
+                                  size: 9, color: AppColors.subtle)),
                           if (entry.selectedBadges.isNotEmpty) ...[
                             const SizedBox(width: 8),
                             ...entry.selectedBadges.map((b) => Padding(
                               padding: const EdgeInsets.only(right: 2),
-                              child: Text(SeedData.getBadgeIcon(b), style: const TextStyle(fontSize: 10)),
+                              child: Text(SeedData.getBadgeIcon(b), style: const TextStyle(fontSize: 11)),
                             )),
                           ],
                         ],
@@ -363,7 +363,7 @@ class _LeaderboardCard extends StatelessWidget {
                       child: Text(
                         challengeSent ? 'Sent ✓' : (isReceived ? 'Reply' : 'Challenge'),
                         style: AppTheme.sans(
-                          size: 9,
+                          size: 10,
                           weight: FontWeight.w700,
                           color: challengeSent
                               ? AppColors.accent

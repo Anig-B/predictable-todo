@@ -13,7 +13,7 @@ class SectionLabel extends StatelessWidget {
       children: [
         Text(text,
             style: AppTheme.mono(
-                    size: 9, color: AppColors.subtle, weight: FontWeight.w700)
+                    size: 10, color: AppColors.subtle, weight: FontWeight.w700)
                 .copyWith(letterSpacing: 2)),
         if (tooltip != null) ...[
           const SizedBox(width: 6),

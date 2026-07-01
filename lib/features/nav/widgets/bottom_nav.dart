@@ -125,7 +125,7 @@ class _NavItemState extends State<_NavItem> {
                               color: AppColors.red, shape: BoxShape.circle),
                           child: Text('${widget.badge}',
                               style:
-                                  AppTheme.mono(size: 7, color: Colors.white)),
+                                  AppTheme.mono(size: 8, color: Colors.white)),
                         ),
                       ),
                   ],
@@ -134,7 +134,7 @@ class _NavItemState extends State<_NavItem> {
                 AnimatedDefaultTextStyle(
                   duration: const Duration(milliseconds: 150),
                   style: AppTheme.sans(
-                      size: 9, weight: FontWeight.w700, color: color),
+                      size: 10, weight: FontWeight.w700, color: color),
                   child: Text(widget.label),
                 ),
                 const SizedBox(height: 2),

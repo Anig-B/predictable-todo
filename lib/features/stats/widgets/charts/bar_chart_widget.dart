@@ -26,7 +26,7 @@ class HorizontalBarChart extends StatelessWidget {
                     textAlign: TextAlign.right,
                     overflow: TextOverflow.ellipsis,
                     maxLines: 1,
-                    style: AppTheme.sans(size: 9, weight: FontWeight.w600, color: AppColors.muted)),
+                    style: AppTheme.sans(size: 10, weight: FontWeight.w600, color: AppColors.muted)),
               ),
               const SizedBox(width: 8),
               Expanded(
@@ -47,7 +47,7 @@ class HorizontalBarChart extends StatelessWidget {
                           padding: const EdgeInsets.only(right: 6),
                           child: Text('$completed',
                               style: AppTheme.mono(
-                                  size: 8,
+                                  size: 9,
                                   color: Colors.black.withValues(alpha: 0.65),
                                   weight: FontWeight.w700)),
                         ),

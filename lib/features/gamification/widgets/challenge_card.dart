@@ -73,14 +73,14 @@ class ChallengeCard extends StatelessWidget {
                           ),
                           child: Text('DONE',
                               style: AppTheme.mono(
-                                  size: 9, color: AppColors.accent)),
+                                  size: 10, color: AppColors.accent)),
                         ),
                       ],
                     ],
                   ),
                   const SizedBox(height: 2),
                   Text(challenge.desc,
-                      style: AppTheme.sans(size: 10, color: AppColors.subtle)),
+                      style: AppTheme.sans(size: 11, color: AppColors.subtle)),
                 ],
               ),
             ),
@@ -108,7 +108,7 @@ class ChallengeCard extends StatelessWidget {
                           
                 if (!done)
                   Text('${challenge.reward} XP',
-                      style: AppTheme.sans(size: 8, color: AppColors.subtle)),
+                      style: AppTheme.sans(size: 9, color: AppColors.subtle)),
               ],
             ),
           ],

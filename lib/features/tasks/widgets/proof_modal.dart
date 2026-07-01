@@ -75,7 +75,7 @@ class _ProofModalState extends State<ProofModal> {
 
             // Rating
             Text('HOW DID IT GO?',
-                style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                style: AppTheme.mono(size: 10, color: AppColors.subtle)),
             const SizedBox(height: 8),
             Row(
               children: List.generate(5, (i) {
@@ -147,7 +147,7 @@ class _ProofModalState extends State<ProofModal> {
             const SizedBox(height: 12),
 
             // Note
-            Text('NOTE', style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+            Text('NOTE', style: AppTheme.mono(size: 10, color: AppColors.subtle)),
             const SizedBox(height: 5),
             TextField(
               controller: _noteCtrl,

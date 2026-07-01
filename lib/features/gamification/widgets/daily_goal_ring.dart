@@ -29,7 +29,7 @@ class DailyGoalRing extends StatelessWidget {
                 painter: _RingPainter(progress: progress),
                 child: Center(
                   child: Text('$done/$goal',
-                      style: AppTheme.mono(size: 7, color: AppColors.accent)),
+                      style: AppTheme.mono(size: 8, color: AppColors.accent)),
                 ),
               ),
             ),
@@ -39,12 +39,12 @@ class DailyGoalRing extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text('Daily Goal',
-                      style: AppTheme.sans(size: 10, weight: FontWeight.w800),
+                      style: AppTheme.sans(size: 11, weight: FontWeight.w800),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis),
                   Text(done >= goal ? 'Done! 🎉' : '${goal - done} left',
                       style: AppTheme.sans(
-                          size: 8,
+                          size: 9,
                           color: AppColors.subtle,
                           weight: FontWeight.w600),
                       maxLines: 1,
@@ -115,7 +115,7 @@ class StreakCard extends StatelessWidget {
                 children: [
                   Text('$streak Days',
                       style: AppTheme.sans(
-                          size: 10,
+                          size: 11,
                           weight: FontWeight.w800,
                           color: AppColors.gold),
                       maxLines: 1,
@@ -125,7 +125,7 @@ class StreakCard extends StatelessWidget {
                           ? '🛡️ $shields shield${shields > 1 ? 's' : ''}'
                           : 'Streak',
                       style: AppTheme.sans(
-                          size: 8,
+                          size: 9,
                           color: AppColors.subtle,
                           weight: FontWeight.w600),
                       maxLines: 1,

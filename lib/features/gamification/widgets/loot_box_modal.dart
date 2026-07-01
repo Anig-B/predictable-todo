@@ -133,7 +133,7 @@ class _OpenedLoot extends StatelessWidget {
         ),
         const SizedBox(height: 10),
         Text(loot.rarity.label.toUpperCase(),
-            style: AppTheme.mono(size: 9, color: loot.color)
+            style: AppTheme.mono(size: 10, color: loot.color)
                 .copyWith(letterSpacing: 2)),
         const SizedBox(height: 3),
         Text(loot.name,

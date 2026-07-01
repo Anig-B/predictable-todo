@@ -25,7 +25,7 @@ class DonutChart extends StatelessWidget {
                   style: AppTheme.mono(
                       size: 18, weight: FontWeight.w800, color: AppColors.text)),
               Text('TASKS',
-                  style: AppTheme.mono(size: 8, color: AppColors.subtle)),
+                  style: AppTheme.mono(size: 9, color: AppColors.subtle)),
             ],
           ),
         ),

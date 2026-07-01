@@ -86,7 +86,7 @@ class TaskFilterBar extends StatelessWidget {
                     child: Text(
                       f.name.toUpperCase(),
                       style: AppTheme.mono(
-                        size: 9,
+                        size: 10,
                         weight: active ? FontWeight.w900 : FontWeight.w700,
                         color: active ? AppColors.accent : AppColors.muted,
                       ).copyWith(letterSpacing: 1.2),

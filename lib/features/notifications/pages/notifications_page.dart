@@ -199,6 +199,8 @@ class _NotificationCard extends StatelessWidget {
     switch (notification.type) {
       case 'challenge_received':
         return AppAvatar(avatar: '⚔️', size: size, fontSize: fontSize);
+      case 'mission_invite':
+        return AppAvatar(avatar: '📬', size: size, fontSize: fontSize);
       case 'challenge_accepted':
         return AppAvatar(avatar: '🏆', size: size, fontSize: fontSize);
       case 'challenge_rejected':
@@ -368,6 +370,72 @@ class _NotificationCard extends StatelessWidget {
                                         .read(notificationProvider.notifier)
                                         .declineChallenge(
                                             notification.id, cid);
+                                  }
+                                },
+                                child: Text('DECLINE',
+                                    style: AppTheme.mono(
+                                        size: rs.font(11),
+                                        weight: FontWeight.w800)),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    if (notification.type == 'mission_invite')
+                      Padding(
+                        padding: EdgeInsets.only(
+                            top: rs.pad(8), bottom: rs.pad(4)),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.accent,
+                                  foregroundColor: AppColors.bg,
+                                  minimumSize:
+                                      Size(0, rs.scale(36)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(rs.pad(8))),
+                                ),
+                                onPressed: () {
+                                  final mid = notification
+                                      .metadata['mission_id'];
+                                  if (mid != null) {
+                                    ref
+                                        .read(notificationProvider.notifier)
+                                        .acceptMissionInvite(
+                                            notification.id, mid.toString());
+                                  }
+                                },
+                                child: Text('ACCEPT',
+                                    style: AppTheme.mono(
+                                        size: rs.font(11),
+                                        weight: FontWeight.w800)),
+                              ),
+                            ),
+                            SizedBox(width: rs.pad(8)),
+                            Expanded(
+                              child: ElevatedButton(
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: AppColors.surface,
+                                  foregroundColor: AppColors.text,
+                                  minimumSize:
+                                      Size(0, rs.scale(36)),
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius:
+                                          BorderRadius.circular(rs.pad(8))),
+                                  side: const BorderSide(
+                                      color: AppColors.border),
+                                ),
+                                onPressed: () {
+                                  final mid = notification
+                                      .metadata['mission_id'];
+                                  if (mid != null) {
+                                    ref
+                                        .read(notificationProvider.notifier)
+                                        .declineMissionInvite(
+                                            notification.id, mid.toString());
                                   }
                                 },
                                 child: Text('DECLINE',

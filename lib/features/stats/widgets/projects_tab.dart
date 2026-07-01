@@ -97,7 +97,7 @@ class ProjectsTab extends ConsumerWidget {
                 ),
                 const SizedBox(width: 12),
                 Text('${p['completed']}/${p['total']}',
-                    style: AppTheme.mono(size: 10, color: AppColors.muted)),
+                    style: AppTheme.mono(size: 11, color: AppColors.muted)),
               ],
             ),
           );

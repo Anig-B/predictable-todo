@@ -137,7 +137,7 @@ class _UserSearchModalState extends ConsumerState<UserSearchModal> {
                                       size: 14, weight: FontWeight.w700)),
                               Text('#${u['short_id']}',
                                   style: AppTheme.mono(
-                                      size: 10, color: AppColors.accent)),
+                                      size: 11, color: AppColors.accent)),
                             ],
                           ),
                         ),

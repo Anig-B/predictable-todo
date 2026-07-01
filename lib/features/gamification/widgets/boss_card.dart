@@ -104,7 +104,7 @@ class _BossCardState extends ConsumerState<BossCard>
                 child: Row(
                   children: [
                     Text('⚔️ WEEKLY BOSS',
-                        style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                        style: AppTheme.mono(size: 10, color: AppColors.subtle)),
                     const SizedBox(width: 6),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 5, vertical: 1),
@@ -113,7 +113,7 @@ class _BossCardState extends ConsumerState<BossCard>
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(widget.boss.color?.toUpperCase() ?? 'NONE',
-                          style: AppTheme.mono(size: 7, color: elementColor, weight: FontWeight.w800)),
+                          style: AppTheme.mono(size: 8, color: elementColor, weight: FontWeight.w800)),
                     ),
                   ],
                 ),
@@ -126,7 +126,7 @@ class _BossCardState extends ConsumerState<BossCard>
                   borderRadius: BorderRadius.circular(6),
                 ),
                 child: Text('+${widget.boss.reward} XP',
-                    style: AppTheme.mono(size: 9, color: elementColor)),
+                    style: AppTheme.mono(size: 10, color: elementColor)),
               ),
             ],
           ),
@@ -227,9 +227,9 @@ class _BossCardState extends ConsumerState<BossCard>
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text('HP',
-                    style: AppTheme.mono(size: 9, color: AppColors.subtle)),
+                    style: AppTheme.mono(size: 10, color: AppColors.subtle)),
                 Text('${widget.boss.hp.clamp(0, 999999)}/${widget.boss.maxHp}',
-                    style: AppTheme.mono(size: 9, color: hpColor)),
+                    style: AppTheme.mono(size: 10, color: hpColor)),
               ],
             ),
             const SizedBox(height: 5),
@@ -245,7 +245,7 @@ class _BossCardState extends ConsumerState<BossCard>
             const SizedBox(height: 6),
             Text(
               '${widget.boss.tasksDone}/${widget.boss.tasksNeeded} tasks · ${widget.boss.damagePerTask} DMG each',
-              style: AppTheme.sans(size: 9, color: AppColors.subtle),
+              style: AppTheme.sans(size: 10, color: AppColors.subtle),
             ),
           ],
         ],
