@@ -2,15 +2,18 @@
 
 import { useState } from "react";
 import { proofSubmissions } from "@/lib/data";
-import { UserAvatar } from "@/components/user-avatar";
+import { UserAvatar } from "./user-avatar";
 import { Star } from "lucide-react";
 import { toast } from "sonner";
-import { RejectProofDialog } from "@/components/reject-proof-dialog";
 
-export default function ReviewsPage() {
-  const [proofs, setProofs] = useState(proofSubmissions);
-  const [activeTab, setActiveTab] = useState("pending");
-  const [showRejectDialog, setShowRejectDialog] = useState<string | null>(null);
+interface MissionProofsTabProps {
+  missionId: string;
+}
+
+export function MissionProofsTab({ missionId }: MissionProofsTabProps) {
+  const [proofs, setProofs] = useState(
+    proofSubmissions.filter((p) => p.missionId === missionId),
+  );
 
   const getInitials = (name: string) => {
     return name
@@ -26,19 +29,11 @@ export default function ReviewsPage() {
         p.id === proofId ? { ...p, status: "approved" as const } : p,
       ),
     );
-    toast.success("Review approved");
+    toast.success("Proof approved");
   };
 
-  const handleRejectSubmit = (proofId: string, feedback: string) => {
-    setProofs((prev) =>
-      prev.map((p) =>
-        p.id === proofId
-          ? { ...p, status: "rejected" as const, feedbackText: feedback }
-          : p,
-      ),
-    );
-    setShowRejectDialog(null);
-    toast.success("Review rejected");
+  const handleReject = (proofId: string) => {
+    toast.error("Please provide feedback before rejecting");
   };
 
   const renderStars = (rating: number) => {
@@ -60,45 +55,21 @@ export default function ReviewsPage() {
   const reviewedProofs = proofs.filter((p) => p.status !== "pending");
 
   return (
-    <div className="p-8">
-      {/* Page Header */}
-      <h1 className="text-3xl font-semibold text-[#1a1a1a] mb-8">Reviews</h1>
-
-      {/* Tabs */}
-      <div className="flex gap-6 mb-8 border-b border-[#e8e3db]">
-        <button
-          onClick={() => setActiveTab("pending")}
-          className={`px-0 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "pending"
-              ? "border-[#1a1a1a] text-[#1a1a1a]"
-              : "border-transparent text-[#8b8b8b] hover:text-[#6b6b6b]"
-          }`}
-        >
-          Pending ({pendingProofs.length})
-        </button>
-        <button
-          onClick={() => setActiveTab("reviewed")}
-          className={`px-0 py-3 text-sm font-medium border-b-2 transition-colors ${
-            activeTab === "reviewed"
-              ? "border-[#1a1a1a] text-[#1a1a1a]"
-              : "border-transparent text-[#8b8b8b] hover:text-[#6b6b6b]"
-          }`}
-        >
-          Reviewed
-        </button>
-      </div>
-
-      {/* Tab Content */}
-      <div className="space-y-4">
-        {activeTab === "pending" && pendingProofs.length > 0 && (
-          <>
+    <div className="space-y-8">
+      {/* Pending Proofs */}
+      {pendingProofs.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4">
+            Pending ({pendingProofs.length})
+          </h3>
+          <div className="space-y-3">
             {pendingProofs.map((proof) => (
               <div
                 key={proof.id}
                 className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6"
               >
-                <div className="grid grid-cols-[1fr_auto_auto] gap-6 items-start">
-                  {/* Left: User and proof info */}
+                <div className="grid grid-cols-[1fr_auto] gap-6">
+                  {/* Left: User info and notes */}
                   <div>
                     <div className="flex items-center gap-3 mb-3">
                       <UserAvatar
@@ -115,13 +86,15 @@ export default function ReviewsPage() {
                         </p>
                       </div>
                     </div>
-                    <p className="text-sm font-medium text-[#1a1a1a] mb-2">
+                    <p className="text-sm font-medium text-[#1a1a1a] mb-1">
                       {proof.questTitle}
                     </p>
-                    <p className="text-sm text-[#6b6b6b] mb-4">{proof.notes}</p>
+                    <p className="text-sm text-[#6b6b6b] line-clamp-2 mb-3">
+                      {proof.notes}
+                    </p>
 
                     {/* Proof image placeholder */}
-                    <div className="w-32 h-24 bg-[#e8e3db] rounded-lg flex items-center justify-center text-[#8b8b8b]">
+                    <div className="w-24 h-24 bg-[#e8e3db] rounded-lg flex items-center justify-center text-[#8b8b8b]">
                       <svg
                         className="w-6 h-6"
                         fill="none"
@@ -138,40 +111,38 @@ export default function ReviewsPage() {
                     </div>
                   </div>
 
-                  {/* Middle: Rating */}
-                  <div className="flex items-start pt-1">
-                    {renderStars(proof.rating)}
-                  </div>
-
-                  {/* Right: Buttons */}
-                  <div className="flex gap-2 pt-1">
-                    <button
-                      onClick={() => handleApprove(proof.id)}
-                      className="px-4 py-2 bg-[#d1fae5] text-[#065f46] rounded-lg text-sm font-medium hover:bg-[#a7f3d0] transition-colors"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => setShowRejectDialog(proof.id)}
-                      className="px-4 py-2 border border-[#fecaca] text-[#991b1b] rounded-lg text-sm font-medium hover:bg-[#fee2e2] transition-colors"
-                    >
-                      Reject
-                    </button>
+                  {/* Right: Rating and actions */}
+                  <div className="flex flex-col items-end justify-between">
+                    <div>{renderStars(proof.rating)}</div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => handleApprove(proof.id)}
+                        className="px-4 py-2 bg-[#d1fae5] text-[#065f46] rounded-lg text-sm font-medium hover:bg-[#a7f3d0] transition-colors"
+                      >
+                        Approve
+                      </button>
+                      <button
+                        onClick={() => handleReject(proof.id)}
+                        className="px-4 py-2 border border-[#fecaca] text-[#991b1b] rounded-lg text-sm font-medium hover:bg-[#fee2e2] transition-colors"
+                      >
+                        Reject
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
             ))}
-          </>
-        )}
-
-        {activeTab === "pending" && pendingProofs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[#8b8b8b]">No pending reviews</p>
           </div>
-        )}
+        </div>
+      )}
 
-        {activeTab === "reviewed" && reviewedProofs.length > 0 && (
-          <>
+      {/* Reviewed Proofs */}
+      {reviewedProofs.length > 0 && (
+        <div>
+          <h3 className="text-lg font-semibold text-[#1a1a1a] mb-4">
+            Reviewed
+          </h3>
+          <div className="space-y-3">
             {reviewedProofs.map((proof) => (
               <div
                 key={proof.id}
@@ -194,7 +165,7 @@ export default function ReviewsPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="mt-2 mb-2">
+                    <div className="mt-2">
                       <span
                         className={`inline-block px-2 py-1 rounded text-xs font-medium ${
                           proof.status === "approved"
@@ -215,25 +186,8 @@ export default function ReviewsPage() {
                 </div>
               </div>
             ))}
-          </>
-        )}
-
-        {activeTab === "reviewed" && reviewedProofs.length === 0 && (
-          <div className="text-center py-12">
-            <p className="text-[#8b8b8b]">No reviewed submissions yet</p>
           </div>
-        )}
-      </div>
-
-      {/* Reject Dialog */}
-      {showRejectDialog && (
-        <RejectProofDialog
-          proofId={showRejectDialog}
-          onClose={() => setShowRejectDialog(null)}
-          onSubmit={(proofId, feedback) =>
-            handleRejectSubmit(proofId, feedback)
-          }
-        />
+        </div>
       )}
     </div>
   );
