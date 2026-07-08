@@ -15,7 +15,7 @@ export default function ForbiddenPage() {
           QuestLog app instead.
         </p>
         <Button
-          onClick={() => router.push("/auth/login")}
+          onClick={() => router.push("/login")}
           className="bg-[#1a1a1a] text-white hover:bg-[#333]"
         >
           Back to Login

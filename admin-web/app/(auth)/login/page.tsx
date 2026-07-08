@@ -54,14 +54,14 @@ export default function LoginPage() {
 
       // 3. Route based on role
       if (role.kind === "admin") {
-        router.push("/");
+        router.push("/admin");
       } else if (role.kind === "manager") {
         // Store manager's accessible mission IDs in sessionStorage for quick access
         sessionStorage.setItem(
           "userMissionIds",
           JSON.stringify(role.missionIds),
         );
-        router.push("/dashboard/missions");
+        router.push("/");
       }
 
       router.refresh();
