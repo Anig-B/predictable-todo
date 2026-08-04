@@ -41,44 +41,44 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (authLoading) return;
-    fetchCurrentUser();
-  }, [role, authLoading]);
+  // useEffect(() => {
+  //   if (authLoading) return;
+  //   fetchCurrentUser();
+  // }, [role, authLoading]);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
+  // const fetchCurrentUser = async () => {
+  //   try {
+  //     const {
+  //       data: { user },
+  //     } = await supabase.auth.getUser();
 
-      const userId = user?.id || null;
-      setCurrentUserId(userId);
+  //     const userId = user?.id || null;
+  //     setCurrentUserId(userId);
 
-      let missionIds = JSON.parse(
-        sessionStorage.getItem("userMissionIds") || "[]",
-      );
+  //     let missionIds = JSON.parse(
+  //       sessionStorage.getItem("userMissionIds") || "[]",
+  //     );
 
-      if (!missionIds.length && userId) {
-        const { data: fallbackMissions } = await supabase
-          .from("mission_members")
-          .select("mission_id")
-          .eq("user_id", userId)
-          .eq("role", "manager");
+  //     if (!missionIds.length && userId) {
+  //       const { data: fallbackMissions } = await supabase
+  //         .from("mission_members")
+  //         .select("mission_id")
+  //         .eq("user_id", userId)
+  //         .eq("role", "manager");
 
-        if (fallbackMissions && fallbackMissions.length > 0) {
-          missionIds = fallbackMissions.map((m) => m.mission_id);
-          sessionStorage.setItem("userMissionIds", JSON.stringify(missionIds));
-        }
-      }
+  //       if (fallbackMissions && fallbackMissions.length > 0) {
+  //         missionIds = fallbackMissions.map((m) => m.mission_id);
+  //         sessionStorage.setItem("userMissionIds", JSON.stringify(missionIds));
+  //       }
+  //     }
 
-      await Promise.all([fetchTeamMembers(missionIds), fetchAvailableUsers()]);
-    } catch (err) {
-      console.error("Error initializing context:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
+  //     await Promise.all([fetchTeamMembers(missionIds), fetchAvailableUsers()]);
+  //   } catch (err) {
+  //     console.error("Error initializing context:", err);
+  //   } finally {
+  //     setLoading(false);
+  //   }
+  // };
 
   const fetchTeamMembers = async (missionIds: string[]) => {
     if (!missionIds || missionIds.length === 0) {
