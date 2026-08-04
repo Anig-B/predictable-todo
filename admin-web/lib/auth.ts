@@ -5,20 +5,11 @@ export type WebAppRole =
   | { kind: "manager"; missionIds: string[] } // scoped to managed missions
   | { kind: "forbidden" }; // regular member → 403
 
-/**
- * Workflow spec §1 Auth:
- *  - profiles.role = 'admin'                          → full access
- *  - mission_members row with role = 'manager'        → scoped access
- *  - otherwise                                        → 403
- *
- * RLS allows a user to SELECT their own profile row and their own
- * mission_members rows, so both queries work with the anon key + session.
- */
 export async function resolveWebAppRole(
   supabase: SupabaseClient,
   userId: string,
 ): Promise<WebAppRole> {
-  // 1. System admin check
+  // 1. Profile role check
   const { data: profile, error: profileError } = await supabase
     .from("profiles")
     .select("role")
@@ -26,26 +17,45 @@ export async function resolveWebAppRole(
     .single();
 
   if (profileError) throw profileError;
+
+  // System admin check
   if (profile?.role === "admin") return { kind: "admin" };
 
-  // 2. Manager check — only missions where the invite was accepted
-  //    (joined_at IS NULL means the invite is still pending)
+  // 2. Fetch manager's assigned missions
   const { data: memberships, error: memberError } = await supabase
+    .from("mission_members")
+    .select("mission_id")
+    .eq("user_id", userId)
+    .not("joined_at", "is", null);
+
+  if (memberError) throw memberError;
+
+  const missionIds = memberships ? memberships.map((m) => m.mission_id as string) : [];
+
+  // 3. If profiles.role is 'manager', grant access regardless of mission count
+  if (profile?.role === "manager") {
+    return {
+      kind: "manager",
+      missionIds: missionIds, // returns [] if 0 missions exist, but DOES NOT FORBID LOG IN
+    };
+  }
+
+  // 4. Fallback: Check if they are assigned as 'manager' in mission_members table
+  // (In case role in profiles table is still 'user')
+  const { data: roleMemberships } = await supabase
     .from("mission_members")
     .select("mission_id")
     .eq("user_id", userId)
     .eq("role", "manager")
     .not("joined_at", "is", null);
 
-  if (memberError) throw memberError;
-
-  if (memberships && memberships.length > 0) {
+  if (roleMemberships && roleMemberships.length > 0) {
     return {
       kind: "manager",
-      missionIds: memberships.map((m) => m.mission_id as string),
+      missionIds: roleMemberships.map((m) => m.mission_id as string),
     };
   }
 
-  // 3. Regular member / no membership → not allowed in the web app
+  // 5. Regular member / no membership → not allowed in the web app
   return { kind: "forbidden" };
 }

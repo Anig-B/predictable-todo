@@ -22,7 +22,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      // 1. Authenticate against the shared Supabase instance
+      // 1. Authenticate against Supabase
       const { data, error: signInError } =
         await supabase.auth.signInWithPassword({ email, password });
 
@@ -32,21 +32,22 @@ export default function LoginPage() {
             ? "Incorrect email or password"
             : signInError.message,
         );
+        setLoading(false);
         return;
       }
 
       const userId = data.user?.id;
       if (!userId) {
         setError("Sign-in failed. Try again.");
+        setLoading(false);
         return;
       }
 
-      // 2. Role gate: admin → all missions, manager → scoped, else 403
+      // 2. Role gate check
       const role = await resolveWebAppRole(supabase, userId);
 
       if (role.kind === "forbidden") {
-        // Regular members manage quests from the Flutter app.
-        // End the web session so they don't hold a half-usable login.
+        // Sign out Flutter users so they don't hold a partial web session
         await supabase.auth.signOut();
         router.push("/forbidden");
         return;
@@ -56,19 +57,18 @@ export default function LoginPage() {
       if (role.kind === "admin") {
         router.push("/admin");
       } else if (role.kind === "manager") {
-        // Store manager's accessible mission IDs in sessionStorage for quick access
         sessionStorage.setItem(
           "userMissionIds",
           JSON.stringify(role.missionIds),
         );
         router.push("/");
       }
-
+      
+      // Refresh router state AFTER routing decisions to ensure middleware receives fresh auth cookies
       router.refresh();
     } catch (err) {
       console.error("Login error:", err);
       setError("Something went wrong. Try again.");
-    } finally {
       setLoading(false);
     }
   };
