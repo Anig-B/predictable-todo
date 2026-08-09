@@ -55,19 +55,17 @@ export default function UsersPage() {
       const userId = user?.id || null;
       setCurrentUserId(userId);
 
-      let missionIds = JSON.parse(
-        sessionStorage.getItem("userMissionIds") || "[]",
-      );
-
-      if (!missionIds.length && userId) {
-        const { data: fallbackMissions } = await supabase
+      // Always query fresh missions managed by this user to keep state consistent across devices
+      let missionIds: string[] = [];
+      if (userId) {
+        const { data: managedMissions } = await supabase
           .from("mission_members")
           .select("mission_id")
           .eq("user_id", userId)
           .eq("role", "manager");
 
-        if (fallbackMissions && fallbackMissions.length > 0) {
-          missionIds = fallbackMissions.map((m) => m.mission_id);
+        if (managedMissions && managedMissions.length > 0) {
+          missionIds = managedMissions.map((m) => m.mission_id);
           sessionStorage.setItem("userMissionIds", JSON.stringify(missionIds));
         }
       }
@@ -104,7 +102,7 @@ export default function UsersPage() {
 
       if (error) throw error;
 
-      const enrichedMembers = await Promise.all(
+      const rawMembers = await Promise.all(
         (missionMembers || [])
           .filter((member: any) => member.user?.role !== "admin")
           .map(async (member: any) => {
@@ -126,19 +124,49 @@ export default function UsersPage() {
               missionId: member.mission_id,
               userId: member.user_id,
               username: member.user?.username || "Pending Registration",
-              role: member.role,
+              role: member.role as "member" | "manager",
               joinedAt: isActive
                 ? new Date(member.joined_at).toLocaleDateString()
                 : "Awaiting App Sync",
               level: member.user?.level || 1,
               streak: member.user?.streak || 0,
-              weeklyXp: weeklyXp, // 🔥 FIXED: Assigning the updated local variable variable instead of 'member.weeklyXp'
+              weeklyXp: weeklyXp,
               status: isActive ? ("active" as const) : ("pending" as const),
             };
           }),
       );
 
-      setMembers(enrichedMembers);
+      // Deduplicate members by userId (or username for pending invites)
+      const memberMap = new Map<string, TeamMember>();
+
+      for (const m of rawMembers) {
+        const key = m.userId || m.username;
+        const existing = memberMap.get(key);
+
+        if (!existing) {
+          memberMap.set(key, m);
+        } else {
+          // Keep 'manager' role if the user holds a manager role in any assigned mission
+          const highestRole =
+            existing.role === "manager" || m.role === "manager"
+              ? "manager"
+              : "member";
+
+          // Keep active status if active in any mission
+          const bestStatus =
+            existing.status === "active" || m.status === "active"
+              ? "active"
+              : "pending";
+
+          memberMap.set(key, {
+            ...existing,
+            role: highestRole,
+            status: bestStatus,
+          });
+        }
+      }
+
+      setMembers(Array.from(memberMap.values()));
     } catch (err) {
       console.error("Error fetching team members:", err);
       toast.error("Failed to sync team membership rosters");
@@ -192,7 +220,7 @@ export default function UsersPage() {
         const existingMember = members.find((m) => m.userId === data.userId);
         if (existingMember) {
           toast.error(
-            "User already holds a position or pending invite within this mission.",
+            "User already holds a position or pending invite within this mission scope.",
           );
           return;
         }
@@ -230,20 +258,21 @@ export default function UsersPage() {
   ) => {
     if (!userId) return;
     try {
+      let missionIds = JSON.parse(
+        sessionStorage.getItem("userMissionIds") || "[]",
+      );
+
+      // Update the user's role across all managed missions
       const { error } = await supabase
         .from("mission_members")
         .update({ role: newRole })
-        .eq("mission_id", missionId)
+        .in("mission_id", missionIds.length > 0 ? missionIds : [missionId])
         .eq("user_id", userId);
 
       if (error) throw error;
 
       setMembers((prev) =>
-        prev.map((m) =>
-          m.missionId === missionId && m.userId === userId
-            ? { ...m, role: newRole }
-            : m,
-        ),
+        prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m)),
       );
 
       toast.success(`Role updated successfully to ${newRole}`);
@@ -261,22 +290,24 @@ export default function UsersPage() {
     if (!userId) return;
 
     const confirmDelete = window.confirm(
-      `Are you sure you want to remove ${username} from this mission? This action will revoke their access immediately.`,
+      `Are you sure you want to remove ${username} from your team? This action will revoke their access across your managed missions.`,
     );
     if (!confirmDelete) return;
 
     try {
+      let missionIds = JSON.parse(
+        sessionStorage.getItem("userMissionIds") || "[]",
+      );
+
       const { error } = await supabase
         .from("mission_members")
         .delete()
-        .eq("mission_id", missionId)
+        .in("mission_id", missionIds.length > 0 ? missionIds : [missionId])
         .eq("user_id", userId);
 
       if (error) throw error;
 
-      setMembers((prev) =>
-        prev.filter((m) => !(m.missionId === missionId && m.userId === userId)),
-      );
+      setMembers((prev) => prev.filter((m) => m.userId !== userId));
       toast.success(`${username} removed from team roster.`);
     } catch (err) {
       console.error("Error offboarding team member:", err);
@@ -383,7 +414,7 @@ export default function UsersPage() {
             ) : (
               filteredMembers.map((member) => (
                 <tr
-                  key={`${member.missionId}-${member.userId || member.username}`}
+                  key={member.userId || member.username}
                   onClick={() => setSelectedMember(member)}
                   className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] cursor-pointer transition-colors last:border-0"
                 >
