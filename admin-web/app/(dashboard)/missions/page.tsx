@@ -37,11 +37,15 @@ export default function MissionsPage() {
   const [missions, setMissions] = useState<MissionWithStats[]>([]);
   const [loading, setLoading] = useState(true);
   const [showNewMissionDialog, setShowNewMissionDialog] = useState(false);
-  const [openMissionMenuId, setOpenMissionMenuId] = useState<string | null>(null);
+  const [openMissionMenuId, setOpenMissionMenuId] = useState<string | null>(
+    null,
+  );
 
   // Archive Popover State & Ref
   const [isArchiveOpen, setIsArchiveOpen] = useState(false);
-  const [archivedMissions, setArchivedMissions] = useState<ArchivedMission[]>([]);
+  const [archivedMissions, setArchivedMissions] = useState<ArchivedMission[]>(
+    [],
+  );
   const [fetchingArchived, setFetchingArchived] = useState(false);
   const archiveContainerRef = useRef<HTMLDivElement>(null);
 
@@ -74,7 +78,8 @@ export default function MissionsPage() {
 
       const { data, error } = await supabase
         .from("missions")
-        .select(`
+        .select(
+          `
           id,
           name,
           description,
@@ -82,26 +87,31 @@ export default function MissionsPage() {
           created_at,
           tasks:tasks!tasks_mission_id_fk_fkey ( id, done ),
           mission_members!left ( user_id )
-        `)
+        `,
+        )
         .eq("is_active", true)
         .order("created_at", { ascending: false });
 
       if (error) throw error;
 
-      const formattedMissions: MissionWithStats[] = (data || []).map((m: any) => {
-        const taskList = Array.isArray(m.tasks) ? m.tasks : [];
-        const memberList = Array.isArray(m.mission_members) ? m.mission_members : [];
+      const formattedMissions: MissionWithStats[] = (data || []).map(
+        (m: any) => {
+          const taskList = Array.isArray(m.tasks) ? m.tasks : [];
+          const memberList = Array.isArray(m.mission_members)
+            ? m.mission_members
+            : [];
 
-        return {
-          id: m.id,
-          name: m.name,
-          description: m.description || "",
-          active: Boolean(m.is_active),
-          questsTotal: taskList.length,
-          questsDone: taskList.filter((t: any) => Boolean(t.done)).length,
-          memberCount: memberList.length,
-        };
-      });
+          return {
+            id: m.id,
+            name: m.name,
+            description: m.description || "",
+            active: Boolean(m.is_active),
+            questsTotal: taskList.length,
+            questsDone: taskList.filter((t: any) => Boolean(t.done)).length,
+            memberCount: memberList.length,
+          };
+        },
+      );
 
       setMissions(formattedMissions);
     } catch (error: any) {
@@ -142,7 +152,10 @@ export default function MissionsPage() {
     loadMissions();
   }, []);
 
-  const handleArchiveMission = async (missionId: string, missionName: string) => {
+  const handleArchiveMission = async (
+    missionId: string,
+    missionName: string,
+  ) => {
     setOpenMissionMenuId(null);
     try {
       const { error } = await supabase
@@ -176,7 +189,7 @@ export default function MissionsPage() {
     }
   };
 
- const handleDeleteArchived = async (id: string) => {
+  const handleDeleteArchived = async (id: string) => {
     try {
       // 1. Clean up tasks manually (prevents trigger mismatches on task delete)
       const { error: taskErr } = await supabase
@@ -229,7 +242,7 @@ export default function MissionsPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <Loader2 className="w-6 h-6 animate-spin text-gray-500" />
       </div>
     );
@@ -244,7 +257,8 @@ export default function MissionsPage() {
             Mission Packs
           </h1>
           <p className="text-sm text-gray-500 mt-1">
-            Manage operational project packs, nested task groups, and team resource routing.
+            Manage operational project packs, nested task groups, and team
+            resource routing.
           </p>
         </div>
         <Button
@@ -260,7 +274,8 @@ export default function MissionsPage() {
       {missions.length === 0 ? (
         <div className="text-center py-12 border border-dashed border-[#e8e3db] rounded-lg">
           <p className="text-gray-500 text-sm">
-            No active missions found. Create your first mission pack to get started!
+            No active missions found. Create your first mission pack to get
+            started!
           </p>
         </div>
       ) : (
@@ -290,7 +305,9 @@ export default function MissionsPage() {
                         onClick={(e) => {
                           e.stopPropagation();
                           setOpenMissionMenuId(
-                            openMissionMenuId === mission.id ? null : mission.id
+                            openMissionMenuId === mission.id
+                              ? null
+                              : mission.id,
                           );
                         }}
                         className="p-1 hover:bg-[#e8e3db] rounded-md transition-colors"
@@ -309,7 +326,9 @@ export default function MissionsPage() {
                           </Link>
                           <hr className="border-[#e8e3db]" />
                           <button
-                            onClick={() => handleArchiveMission(mission.id, mission.name)}
+                            onClick={() =>
+                              handleArchiveMission(mission.id, mission.name)
+                            }
                             className="w-full text-left px-4 py-2 hover:bg-[#f0ebe4] text-sm text-rose-600 last:rounded-b-lg"
                           >
                             Archive Pack
@@ -319,7 +338,10 @@ export default function MissionsPage() {
                     </div>
                   </div>
 
-                  <Link href={`/missions/${mission.id}`} className="block text-inherit">
+                  <Link
+                    href={`/missions/${mission.id}`}
+                    className="block text-inherit"
+                  >
                     <div className="flex items-center gap-3 text-xs font-medium text-gray-400 mb-4">
                       <span className="flex items-center gap-1">
                         <CheckSquare className="w-3.5 h-3.5" />
@@ -343,7 +365,8 @@ export default function MissionsPage() {
                     <div className="flex justify-between items-center text-xs text-[#8b8b8b] mb-6">
                       <span>Task Pack Completion</span>
                       <span className="font-semibold text-gray-700">
-                        {mission.questsDone}/{mission.questsTotal} ({progressPercent}%)
+                        {mission.questsDone}/{mission.questsTotal} (
+                        {progressPercent}%)
                       </span>
                     </div>
                   </Link>

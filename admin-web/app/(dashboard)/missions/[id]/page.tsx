@@ -3,7 +3,6 @@
 import { use, useEffect, useState, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   ArrowLeft,
   Loader2,
@@ -11,18 +10,23 @@ import {
   Users,
   ShieldCheck,
   Plus,
-  CheckCircle2,
-  User,
-  Award,
-  Pencil,
   Trash2,
   X,
-  Check,
+  CheckCircle2,
+  Clock,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
+import {
+  TaskCard,
+  TaskRow,
+  AssignableUser,
+  PRIORITY_XP,
+  TaskPriority,
+  TaskRecurring,
+} from "@/components/create-task";
 
-// --- Database-Aligned Interfaces ---
+// --- Database Interfaces ---
 interface Mission {
   id: string;
   name: string;
@@ -37,11 +41,12 @@ interface Task {
   mission_id_fk: string | null;
   user_id: string | null;
   title: string;
-  description: string | null;
+  desc: string | null;
+  time?: string | null;
   points: number;
-  status: string;
-  priority?: string;
-  category?: string;
+  priority?: number; // 0 (low), 1 (medium), 2 (high)
+  recurring?: number; // 0 (none), 1 (daily), 2 (weekly), 3 (monthly)
+  done: boolean;
   proof_notes?: string | null;
   proof_image?: string | null;
   assigned_user?: {
@@ -57,7 +62,6 @@ interface MissionMember {
   joined_at: string | null;
 }
 
-// --- Main Page Component ---
 export default function MissionDetailPage({
   params: paramsPromise,
 }: {
@@ -70,14 +74,13 @@ export default function MissionDetailPage({
   const [mission, setMission] = useState<Mission | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<"members" | "tasks" | "proofs">(
-    "tasks"
+    "tasks",
   );
 
   useEffect(() => {
     async function fetchMissionDetail() {
       try {
         setLoading(true);
-
         const { data, error } = await supabase
           .from("missions")
           .select("*")
@@ -85,7 +88,6 @@ export default function MissionDetailPage({
           .single();
 
         if (error) throw error;
-
         setMission(data);
       } catch (err: any) {
         toast.error(err?.message || "Could not load mission details");
@@ -202,7 +204,7 @@ export default function MissionDetailPage({
         </button>
       </div>
 
-      {/* Tab Panels */}
+      {/* Dynamic Tab Rendering */}
       <div className="bg-white border border-[#e8e3db] rounded-xl p-6 shadow-xs">
         {activeTab === "tasks" && (
           <MissionTasksSection missionId={mission.id} />
@@ -218,8 +220,7 @@ export default function MissionDetailPage({
   );
 }
 
-// --- Tasks Section ---
-
+// --- Tasks Tab Section ---
 function MissionTasksSection({ missionId }: { missionId: string }) {
   const supabase = createClient();
 
@@ -227,44 +228,36 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
   const [members, setMembers] = useState<MissionMember[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Modal & Form State
+  // Modal State
   const [showModal, setShowModal] = useState(false);
-  const [editingTask, setEditingTask] = useState<Task | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  // Form Input Fields
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [points, setPoints] = useState(100);
-  const [assignedUserId, setAssignedUserId] = useState<string>("");
+  const [taskRow, setTaskRow] = useState<TaskRow>({
+    key: crypto.randomUUID(),
+    title: "",
+    desc: "",
+    time: "09:00",
+    priority: 1, // Default to Medium (1)
+    points: PRIORITY_XP[1],
+    recurring: 0, // Default to None (0)
+    assignMode: "all",
+    assigneeIds: [],
+  });
 
   const fetchData = useCallback(async () => {
     try {
       setLoading(true);
 
-      // Query tasks table filtering on mission_id_fk
       const { data: tasksData, error: tasksError } = await supabase
         .from("tasks")
-        .select(
-          `
-          *,
-          assigned_user:profiles!user_id(username)
-        `
-        )
+        .select(`*, assigned_user:profiles!user_id(username)`)
         .eq("mission_id_fk", missionId);
 
       if (tasksError) throw tasksError;
 
       const { data: membersData, error: membersError } = await supabase
         .from("mission_members")
-        .select(
-          `
-          user_id,
-          role,
-          joined_at,
-          profiles!user_id(username)
-        `
-        )
+        .select(`user_id, role, joined_at, profiles!user_id(username)`)
         .eq("mission_id", missionId);
 
       if (membersError) throw membersError;
@@ -281,12 +274,6 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
       setTasks(tasksData || []);
       setMembers(formattedMembers);
     } catch (err: any) {
-      console.error("Error loading task data:", {
-        message: err?.message,
-        details: err?.details,
-        hint: err?.hint,
-        code: err?.code,
-      });
       toast.error(err?.message || "Failed to load tasks");
     } finally {
       setLoading(false);
@@ -297,288 +284,278 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
     fetchData();
   }, [fetchData]);
 
-  const handleOpenCreate = () => {
-    setEditingTask(null);
-    setTitle("");
-    setDescription("");
-    setPoints(100);
-    setAssignedUserId("");
-    setShowModal(true);
-  };
-
-  const handleOpenEdit = (task: Task) => {
-    setEditingTask(task);
-    setTitle(task.title);
-    setDescription(task.description || "");
-    setPoints(task.points);
-    setAssignedUserId(task.user_id || "");
-    setShowModal(true);
-  };
-
-  const handleSubmitTask = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!title.trim()) {
+  const handleSaveTask = async () => {
+    if (!taskRow.title.trim()) {
       toast.error("Task title is required");
       return;
     }
 
     try {
       setSubmitting(true);
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+      if (!user) throw new Error("Authenticated user required");
 
-      const payload = {
+      const assignees =
+        taskRow.assignMode === "all"
+          ? members.map((m) => m.user_id)
+          : taskRow.assigneeIds.length > 0
+            ? taskRow.assigneeIds
+            : [user.id];
+
+      const newTasks = assignees.map((targetUserId) => ({
+        id: crypto.randomUUID(),
+        mission_id: missionId,
         mission_id_fk: missionId,
-        title: title.trim(),
-        description: description.trim() || null,
-        points: Number(points) || 50,
-        user_id: assignedUserId || null,
-      };
+        user_id: targetUserId,
+        title: taskRow.title.trim(),
+        desc: taskRow.desc.trim() || null,
+        time: taskRow.time || null,
+        priority: taskRow.priority,
+        recurring: taskRow.recurring,
+        points: taskRow.points,
+        done: false,
+      }));
 
-      if (editingTask) {
-        const { error } = await supabase
-          .from("tasks")
-          .update(payload)
-          .eq("id", editingTask.id);
+      const { error } = await supabase.from("tasks").insert(newTasks);
+      if (error) throw error;
 
-        if (error) throw error;
-        toast.success("Task updated successfully!");
-      } else {
-        const { error } = await supabase
-          .from("tasks")
-          .insert([{ ...payload, status: "pending" }]);
-
-        if (error) throw error;
-        toast.success("Task added to mission pack!");
-      }
-
+      toast.success("Task created");
       setShowModal(false);
       fetchData();
     } catch (err: any) {
-      console.error("Error saving task:", err);
-      toast.error(err?.message || "Failed to save task");
+      toast.error(err?.message || "Could not save task");
     } finally {
       setSubmitting(false);
     }
   };
 
-  const handleDeleteTask = async (taskId: string, taskTitle: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${taskTitle}"?`)) {
-      return;
-    }
-
+  const handleDeleteGroup = async (taskIds: string[]) => {
     try {
-      const { error } = await supabase.from("tasks").delete().eq("id", taskId);
-
+      const { error } = await supabase.from("tasks").delete().in("id", taskIds);
       if (error) throw error;
-
       toast.success("Task deleted");
-      setTasks((prev) => prev.filter((t) => t.id !== taskId));
+      fetchData();
     } catch (err: any) {
-      console.error("Error deleting task:", err);
-      toast.error("Failed to delete task");
+      toast.error(err?.message || "Could not delete task");
     }
   };
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-12 gap-2 text-gray-500">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm">Loading tasks...</span>
+      <div className="flex justify-center p-8">
+        <Loader2 className="w-6 h-6 animate-spin text-gray-400" />
       </div>
     );
   }
 
+  const assignableMembers: AssignableUser[] = members.map((m) => ({
+    id: m.user_id,
+    username: m.username,
+  }));
+
+  type GroupedTask = {
+    groupKey: string;
+    ids: string[];
+    title: string;
+    desc: string | null;
+    time?: string | null;
+    points: number;
+    assignees: string[];
+    allDone: boolean;
+    created_at?: string;
+  };
+
+  const groupedTasksMap = new Map<string, GroupedTask>();
+
+  tasks.forEach((task) => {
+    const key = `${task.title}-${task.desc ?? ""}-${task.time ?? ""}-${task.points}`;
+    const username = task.assigned_user?.username || "Unassigned";
+
+    if (!groupedTasksMap.has(key)) {
+      groupedTasksMap.set(key, {
+        groupKey: key,
+        ids: [task.id],
+        title: task.title,
+        desc: task.desc,
+        time: task.time,
+        points: task.points,
+        assignees: [username],
+        allDone: task.done,
+        created_at: task.created_at,
+      });
+    } else {
+      const current = groupedTasksMap.get(key)!;
+      current.ids.push(task.id);
+      if (!current.assignees.includes(username)) {
+        current.assignees.push(username);
+      }
+      // If any task in group is not done, aggregate done status
+      if (!task.done) {
+        current.allDone = false;
+      }
+    }
+  });
+
+  const groupedTasks = Array.from(groupedTasksMap.values());
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-lg font-semibold text-[#1a1a1a]">
-            Mission Tasks ({tasks.length})
-          </h2>
-          <p className="text-sm text-gray-500">
-            Manage, assign, or edit tasks assigned to this mission pack.
-          </p>
-        </div>
+        <h3 className="text-lg font-semibold text-gray-800">Mission Tasks</h3>
         <Button
-          onClick={handleOpenCreate}
-          className="bg-[#1a1a1a] text-white hover:bg-[#333333] flex items-center gap-2"
+          onClick={() => {
+            setTaskRow({
+              key: crypto.randomUUID(),
+              title: "",
+              desc: "",
+              time: "09:00",
+              priority: 1,
+              points: PRIORITY_XP[1],
+              recurring: 0,
+              assignMode: "all",
+              assigneeIds: [],
+            });
+            setShowModal(true);
+          }}
+          className="bg-[#1a1a1a] text-white hover:bg-[#333333] flex items-center gap-2 text-xs"
         >
-          <Plus className="w-4 h-4" />
-          Add Task
+          <Plus className="w-4 h-4" /> Add Task
         </Button>
       </div>
 
-      {tasks.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-[#e8e3db] rounded-lg">
-          <p className="text-gray-500 text-sm">
-            No tasks configured for this mission pack yet.
+      {groupedTasks.length === 0 ? (
+        <div className="text-center py-8 border border-dashed rounded-lg border-gray-200">
+          <p className="text-sm text-gray-400">
+            No tasks created yet for this mission pack.
           </p>
-          <Button
-            onClick={handleOpenCreate}
-            variant="outline"
-            className="mt-3 border-[#e8e3db] text-xs"
-          >
-            Create First Task
-          </Button>
         </div>
       ) : (
         <div className="grid gap-3">
-          {tasks.map((task) => (
+          {groupedTasks.map((group) => (
             <div
-              key={task.id}
-              className="p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf8] flex items-center justify-between hover:border-gray-300 transition-colors"
+              key={group.groupKey}
+              className="flex items-center justify-between p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf9]"
             >
-              <div className="space-y-1 max-w-xl">
-                <div className="flex items-center gap-2">
-                  <CheckCircle2
-                    className={`w-4 h-4 flex-shrink-0 ${
-                      task.status === "completed"
-                        ? "text-emerald-600"
-                        : "text-gray-400"
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="font-medium text-[#1a1a1a]">
+                    {group.title}
+                  </span>
+
+                  {/* Done / Pending Status Indicator */}
+                  <span
+                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${
+                      group.allDone
+                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
+                        : "bg-amber-50 text-amber-700 border border-amber-200"
                     }`}
-                  />
-                  <h3 className="font-medium text-[#1a1a1a] text-sm">
-                    {task.title}
-                  </h3>
+                  >
+                    {group.allDone ? (
+                      <>
+                        <CheckCircle2 className="w-3 h-3" /> Done
+                      </>
+                    ) : (
+                      <>
+                        <Clock className="w-3 h-3" /> Pending
+                      </>
+                    )}
+                  </span>
+
+                  <span className="text-[10px] bg-black text-[#ffffff] px-1.5 py-0.5 rounded font-bold">
+                    {group.points} XP
+                  </span>
+                  {group.time && (
+                    <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
+                      {group.time}
+                    </span>
+                  )}
                 </div>
-                {task.description && (
-                  <p className="text-xs text-gray-500 pl-6 line-clamp-2">
-                    {task.description}
-                  </p>
+                {group.desc && (
+                  <p className="text-xs text-gray-500">{group.desc}</p>
                 )}
-              </div>
+                <div className="flex items-center gap-3 text-[11px] text-gray-400 flex-wrap">
+                  <span>Assigned to: {group.assignees.join(", ")}</span>
 
-              <div className="flex items-center gap-3">
-                <div className="flex items-center gap-1.5 text-xs text-gray-600 bg-white px-2.5 py-1 rounded border border-[#e8e3db]">
-                  <User className="w-3.5 h-3.5 text-gray-400" />
-                  <span>{task.assigned_user?.username || "Unassigned"}</span>
-                </div>
-
-                <div className="flex items-center gap-1 text-xs font-bold text-amber-700 bg-amber-50 px-2.5 py-1 rounded border border-amber-200">
-                  <Award className="w-3.5 h-3.5" />
-                  <span>+{task.points} Points</span>
-                </div>
-
-                <div className="flex items-center gap-1 ml-2 border-l border-[#e8e3db] pl-3">
-                  <button
-                    onClick={() => handleOpenEdit(task)}
-                    className="p-1.5 text-gray-500 hover:text-black rounded hover:bg-gray-200 transition-colors"
-                    title="Edit Task"
-                  >
-                    <Pencil className="w-4 h-4" />
-                  </button>
-                  <button
-                    onClick={() => handleDeleteTask(task.id, task.title)}
-                    className="p-1.5 text-gray-400 hover:text-red-600 rounded hover:bg-red-50 transition-colors"
-                    title="Delete Task"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </button>
+                  {/* Created Date & Time */}
+                  {group.created_at && (
+                    <span>
+                      • Created:{" "}
+                      {new Date(group.created_at).toLocaleString([], {
+                        dateStyle: "short",
+                        timeStyle: "short",
+                      })}
+                    </span>
+                  )}
                 </div>
               </div>
+              <button
+                onClick={() => handleDeleteGroup(group.ids)}
+                className="p-1.5 text-gray-400 hover:text-rose-600 rounded cursor-pointer"
+                title="Delete task group"
+              >
+                <Trash2 className="w-4 h-4" />
+              </button>
             </div>
           ))}
         </div>
       )}
 
+      {/* Task Creation Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 w-full max-w-md border border-[#e8e3db] shadow-xl relative">
-            <button
-              onClick={() => setShowModal(false)}
-              className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"
-            >
-              <X className="w-5 h-5" />
-            </button>
+        <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
+          <div className="bg-white border border-[#e8e3db] rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+            <div className="flex items-center justify-between border-b pb-3">
+              <h3 className="font-semibold text-gray-800">Add New Task</h3>
+              <button onClick={() => setShowModal(false)}>
+                <X className="w-5 h-5 text-gray-400" />
+              </button>
+            </div>
 
-            <h2 className="text-xl font-semibold text-[#1a1a1a] mb-4">
-              {editingTask ? "Edit Task" : "Add Task to Mission"}
-            </h2>
+            <TaskCard
+              task={taskRow}
+              index={0}
+              memberList={assignableMembers}
+              canRemove={false}
+              saving={submitting}
+              onUpdate={(_, patch) =>
+                setTaskRow((prev) => ({ ...prev, ...patch }))
+              }
+              onRemove={() => {}}
+              onToggleAssignee={(_, userId) => {
+                setTaskRow((prev) => {
+                  const exists = prev.assigneeIds.includes(userId);
+                  return {
+                    ...prev,
+                    assigneeIds: exists
+                      ? prev.assigneeIds.filter((id) => id !== userId)
+                      : [...prev.assigneeIds, userId],
+                  };
+                });
+              }}
+            />
 
-            <form onSubmit={handleSubmitTask} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-[#1a1a1a] mb-1">
-                  Task Title *
-                </label>
-                <Input
-                  type="text"
-                  placeholder="e.g. Complete Code Review"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                  className="bg-[#fafaf8] border-[#e8e3db]"
-                  required
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-medium text-[#1a1a1a] mb-1">
-                  Description
-                </label>
-                <textarea
-                  rows={3}
-                  placeholder="Details or specific completion requirements..."
-                  value={description}
-                  onChange={(e) => setDescription(e.target.value)}
-                  className="w-full text-sm p-2.5 rounded-md bg-[#fafaf8] border border-[#e8e3db] focus:outline-none focus:ring-1 focus:ring-black"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-xs font-medium text-[#1a1a1a] mb-1">
-                    Points Reward
-                  </label>
-                  <Input
-                    type="number"
-                    min={10}
-                    step={10}
-                    value={points}
-                    onChange={(e) => setPoints(Number(e.target.value))}
-                    className="bg-[#fafaf8] border-[#e8e3db]"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-xs font-medium text-[#1a1a1a] mb-1">
-                    Assign To
-                  </label>
-                  <select
-                    value={assignedUserId}
-                    onChange={(e) => setAssignedUserId(e.target.value)}
-                    className="w-full text-sm p-2 bg-[#fafaf8] border border-[#e8e3db] rounded-md focus:outline-none"
-                  >
-                    <option value="">Unassigned</option>
-                    {members.map((member) => (
-                      <option key={member.user_id} value={member.user_id}>
-                        {member.username}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="flex gap-3 pt-4">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                  disabled={submitting}
-                  className="flex-1 border-[#e8e3db]"
-                >
-                  Cancel
-                </Button>
-                <Button
-                  type="submit"
-                  disabled={submitting || !title.trim()}
-                  className="flex-1 bg-[#1a1a1a] text-white hover:bg-[#333333]"
-                >
-                  {submitting
-                    ? "Saving..."
-                    : editingTask
-                    ? "Save Changes"
-                    : "Add Task"}
-                </Button>
-              </div>
-            </form>
+            <div className="flex gap-2 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => setShowModal(false)}
+                className="flex-1"
+                disabled={submitting}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleSaveTask}
+                className="flex-1 bg-[#1a1a1a] text-white"
+                disabled={submitting}
+              >
+                {submitting && (
+                  <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                )}
+                Save Task
+              </Button>
+            </div>
           </div>
         </div>
       )}
@@ -586,243 +563,82 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
   );
 }
 
-// --- Members Tab ---
-
+// --- Members Section ---
 function MissionMembersSection({ missionId }: { missionId: string }) {
   const supabase = createClient();
   const [members, setMembers] = useState<MissionMember[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const fetchMembers = useCallback(async () => {
-    try {
-      setLoading(true);
-      const { data, error } = await supabase
-        .from("mission_members")
-        .select(
-          `
-          user_id,
-          role,
-          joined_at,
-          profiles!user_id(username)
-        `
-        )
-        .eq("mission_id", missionId);
-
-      if (error) throw error;
-
-      const formatted = (data || []).map((m: any) => ({
-        user_id: m.user_id,
-        username: m.profiles?.username || "Unknown",
-        role: m.role || "member",
-        joined_at: m.joined_at,
-      }));
-
-      setMembers(formatted);
-    } catch (err: any) {
-      toast.error("Failed to load members");
-    } finally {
-      setLoading(false);
-    }
-  }, [missionId, supabase]);
-
   useEffect(() => {
+    async function fetchMembers() {
+      try {
+        setLoading(true);
+        const { data, error } = await supabase
+          .from("mission_members")
+          .select(`user_id, role, joined_at, profiles!user_id(username)`)
+          .eq("mission_id", missionId);
+
+        if (error) throw error;
+
+        const formatted = (data || []).map((m: any) => ({
+          user_id: m.user_id,
+          username: m.profiles?.username || "Unknown",
+          role: m.role || "member",
+          joined_at: m.joined_at,
+        }));
+        setMembers(formatted);
+      } catch (err: any) {
+        toast.error("Failed to load members");
+      } finally {
+        setLoading(false);
+      }
+    }
     fetchMembers();
-  }, [fetchMembers]);
+  }, [missionId, supabase]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center py-8 gap-2 text-gray-500">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm">Loading team members...</span>
-      </div>
+      <Loader2 className="w-6 h-6 animate-spin text-gray-400 mx-auto my-4" />
     );
   }
 
   return (
     <div className="space-y-4">
-      <h2 className="text-lg font-semibold text-[#1a1a1a]">
-        Assigned Team Members ({members.length})
-      </h2>
-      <div className="divide-y divide-[#e8e3db] border border-[#e8e3db] rounded-lg">
-        {members.length === 0 ? (
-          <div className="p-4 text-center text-sm text-gray-500">
-            No members assigned to this mission pack yet.
-          </div>
-        ) : (
-          members.map((member) => (
-            <div
-              key={member.user_id}
-              className="p-3.5 flex items-center justify-between"
-            >
-              <div className="flex items-center gap-3">
-                <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
-                  {member.username.slice(0, 2).toUpperCase()}
-                </div>
-                <span className="text-sm font-medium text-[#1a1a1a]">
-                  {member.username}
-                </span>
-              </div>
-              <span className="text-xs px-2.5 py-1 rounded bg-gray-100 text-gray-700 capitalize font-medium">
-                {member.role}
-              </span>
+      <h3 className="text-lg font-semibold text-gray-800">Team Members</h3>
+      <div className="divide-y divide-gray-100">
+        {members.map((m) => (
+          <div
+            key={m.user_id}
+            className="py-3 flex items-center justify-between"
+          >
+            <div>
+              <p className="text-sm font-medium text-gray-800">{m.username}</p>
+              <p className="text-xs text-gray-400 capitalize">{m.role}</p>
             </div>
-          ))
-        )}
+            <span className="text-xs text-gray-400">
+              {m.joined_at
+                ? `Joined ${new Date(m.joined_at).toLocaleDateString()}`
+                : "Pending invite"}
+            </span>
+          </div>
+        ))}
       </div>
     </div>
   );
 }
 
-// --- Proofs Tab ---
-
-// --- Proofs Tab ---
-
+// --- Proofs Section ---
 function MissionProofsSection({ missionId }: { missionId: string }) {
-  const supabase = createClient();
-  const [pendingTasks, setPendingTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(true);
-
-  const fetchProofs = useCallback(async () => {
-    try {
-      setLoading(true);
-
-      // Querying pending verification using the `done` boolean column
-      const { data, error } = await supabase
-        .from("tasks")
-        .select(
-          `
-          *,
-          assigned_user:profiles(username)
-        `
-        )
-        .eq("mission_id_fk", missionId)
-        .eq("done", false)
-        .not("proof_notes", "is", null); // Tasks with proof submitted but not yet marked done
-
-      if (error) throw error;
-
-      setPendingTasks(data || []);
-    } catch (err: any) {
-      console.error("Error fetching tasks for proof review:", {
-        message: err?.message,
-        details: err?.details,
-        hint: err?.hint,
-        code: err?.code,
-        raw: err,
-      });
-      toast.error(err?.message || "Failed to load proof verification queue");
-    } finally {
-      setLoading(false);
-    }
-  }, [missionId, supabase]);
-
-  useEffect(() => {
-    fetchProofs();
-  }, [fetchProofs]);
-
-  const handleReviewTask = async (taskId: string, approve: boolean) => {
-    try {
-      // If approved, set done = true. If rejected, clear proof notes to return it to active state.
-      const payload = approve
-        ? { done: true }
-        : { done: false, proof_notes: null, proof_image: null };
-
-      const { error } = await supabase
-        .from("tasks")
-        .update(payload)
-        .eq("id", taskId);
-
-      if (error) throw error;
-
-      toast.success(
-        approve
-          ? "Task approved and completed!"
-          : "Proof rejected; task returned to pending."
-      );
-      setPendingTasks((prev) => prev.filter((t) => t.id !== taskId));
-    } catch (err: any) {
-      console.error("Error updating proof status:", err);
-      toast.error(err?.message || "Action failed");
-    }
-  };
-
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center py-8 gap-2 text-gray-500">
-        <Loader2 className="w-5 h-5 animate-spin" />
-        <span className="text-sm">Loading verification queue...</span>
-      </div>
-    );
-  }
-
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold text-[#1a1a1a]">
-          Proof Verification Queue ({pendingTasks.length})
-        </h2>
-      </div>
-
-      {pendingTasks.length === 0 ? (
-        <div className="text-center py-12 border border-dashed border-[#e8e3db] rounded-lg">
-          <ShieldCheck className="w-8 h-8 mx-auto text-gray-400 mb-2" />
-          <h3 className="text-sm font-semibold text-gray-700">
-            Queue is Empty
-          </h3>
-          <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
-            No pending task submissions require review at this time.
-          </p>
-        </div>
-      ) : (
-        <div className="grid gap-3">
-          {pendingTasks.map((task) => (
-            <div
-              key={task.id}
-              className="p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf8] flex items-center justify-between"
-            >
-              <div className="space-y-1">
-                <span className="text-xs font-semibold text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 inline-block mb-1">
-                  +{task.points} Points
-                </span>
-                <h4 className="text-sm font-medium text-[#1a1a1a]">
-                  {task.title}
-                </h4>
-                <p className="text-xs text-gray-500">
-                  Submitted by{" "}
-                  <span className="font-medium">
-                    {task.assigned_user?.username || "Unknown"}
-                  </span>
-                </p>
-                {task.proof_notes && (
-                  <p className="text-xs text-gray-700 mt-2 bg-white p-2 rounded border border-[#e8e3db]">
-                    "{task.proof_notes}"
-                  </p>
-                )}
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Button
-                  onClick={() => handleReviewTask(task.id, false)}
-                  variant="outline"
-                  size="sm"
-                  className="text-red-600 hover:text-red-700 border-red-200 hover:bg-red-50 text-xs h-8"
-                >
-                  <X className="w-3.5 h-3.5 mr-1" />
-                  Reject
-                </Button>
-                <Button
-                  onClick={() => handleReviewTask(task.id, true)}
-                  size="sm"
-                  className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs h-8"
-                >
-                  <Check className="w-3.5 h-3.5 mr-1" />
-                  Approve
-                </Button>
-              </div>
-            </div>
-          ))}
-        </div>
-      )}
+    <div className="text-center py-8 space-y-2">
+      <ShieldCheck className="w-8 h-8 text-gray-400 mx-auto" />
+      <h4 className="text-sm font-medium text-gray-700">
+        Proof Verification Engine
+      </h4>
+      <p className="text-xs text-gray-400 max-w-sm mx-auto">
+        Review submitted photo proofs and notes for tasks assigned under this
+        mission pack.
+      </p>
     </div>
   );
 }

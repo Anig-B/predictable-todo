@@ -4,53 +4,56 @@ import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { X, Plus, Trash2, UserPlus, Check, Loader2 } from "lucide-react";
+import { X, Plus, UserPlus, Check, Loader2 } from "lucide-react";
 import { toast } from "sonner";
-
-interface UserProfile {
-  id: string;
-  username: string | null;
-  avatar_url: string | null;
-}
-
-interface TaskInput {
-  title: string;
-  description: string;
-  points: number;
-  assignedUserId: string | null;
-}
+import { TaskCard, TaskRow, AssignableUser, PRIORITY_XP } from "./create-task";
 
 interface NewMissionDialogProps {
   onClose: () => void;
   onSuccess: () => void;
 }
 
-export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) {
+const createDefaultTask = (): TaskRow => ({
+  key: crypto.randomUUID(),
+  title: "",
+  desc: "",
+  time: "",
+  priority: 1, // Medium
+  points: PRIORITY_XP[1],
+  recurring: 0, // One-off
+  assignMode: "all",
+  assigneeIds: [],
+});
+
+export function NewMissionDialog({
+  onClose,
+  onSuccess,
+}: NewMissionDialogProps) {
   const supabase = createClient();
 
   const [loading, setLoading] = useState(false);
   const [fetchingUsers, setFetchingUsers] = useState(true);
-  const [availableUsers, setAvailableUsers] = useState<UserProfile[]>([]);
+  const [availableUsers, setAvailableUsers] = useState<AssignableUser[]>([]);
 
   // Form State
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [globalAssignedUserIds, setGlobalAssignedUserIds] = useState<string[]>([]);
-  const [tasks, setTasks] = useState<TaskInput[]>([
-    { title: "", description: "", points: 100, assignedUserId: null },
-  ]);
+  const [globalAssignedUserIds, setGlobalAssignedUserIds] = useState<string[]>(
+    [],
+  );
 
-  // Fetch ONLY users who were invited by the current manager
+  const [tasks, setTasks] = useState<TaskRow[]>([createDefaultTask()]);
+
   useEffect(() => {
     async function loadInvitedUsers() {
       try {
         setFetchingUsers(true);
-
-        // 1. Get current logged-in manager
-        const { data: { user }, error: authError } = await supabase.auth.getUser();
+        const {
+          data: { user },
+          error: authError,
+        } = await supabase.auth.getUser();
         if (authError || !user) throw new Error("Authentication failed");
 
-        // 2. Fetch distinct user_ids from mission_members where invited_by = current user
         const { data: invitedMembers, error: membersError } = await supabase
           .from("mission_members")
           .select("user_id")
@@ -58,13 +61,12 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
 
         if (membersError) throw membersError;
 
-        // Deduplicate user IDs (excluding manager's own ID)
         const invitedUserIds = Array.from(
           new Set(
             (invitedMembers || [])
               .map((m) => m.user_id)
-              .filter((id) => id !== user.id)
-          )
+              .filter((id) => id !== user.id),
+          ),
         );
 
         if (invitedUserIds.length === 0) {
@@ -72,7 +74,6 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
           return;
         }
 
-        // 3. Fetch profiles only for those invited user IDs
         const { data: profiles, error: profilesError } = await supabase
           .from("profiles")
           .select("id, username, avatar_url")
@@ -80,35 +81,57 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
           .order("username", { ascending: true });
 
         if (profilesError) throw profilesError;
-        setAvailableUsers(profiles || []);
+
+        const mapped: AssignableUser[] = (profiles || []).map((p) => ({
+          id: p.id,
+          username: p.username || p.id.slice(0, 8),
+          avatar_url: p.avatar_url,
+        }));
+
+        setAvailableUsers(mapped);
       } catch (err: any) {
-        toast.error("Could not load invited team members");
+        toast.error("Could not load team members");
       } finally {
         setFetchingUsers(false);
       }
     }
 
     loadInvitedUsers();
-  }, []);
+  }, [supabase]);
 
-  const handleAddCustomTask = () => {
-    setTasks([...tasks, { title: "", description: "", points: 100, assignedUserId: null }]);
+  const handleAddTask = () => {
+    setTasks((prev) => [...prev, createDefaultTask()]);
   };
 
-  const handleRemoveTask = (index: number) => {
+  const handleRemoveTask = (key: string) => {
     if (tasks.length === 1) return;
-    setTasks(tasks.filter((_, i) => i !== index));
+    setTasks((prev) => prev.filter((t) => t.key !== key));
   };
 
-  const handleTaskChange = (index: number, key: keyof TaskInput, value: any) => {
-    const updatedTasks = [...tasks];
-    updatedTasks[index] = { ...updatedTasks[index], [key]: value };
-    setTasks(updatedTasks);
+  const handleUpdateTask = (key: string, patch: Partial<TaskRow>) => {
+    setTasks((prev) =>
+      prev.map((t) => (t.key === key ? { ...t, ...patch } : t)),
+    );
+  };
+
+  const handleToggleAssignee = (key: string, userId: string) => {
+    setTasks((prev) =>
+      prev.map((t) => {
+        if (t.key !== key) return t;
+        const exists = t.assigneeIds.includes(userId);
+        const assigneeIds = exists
+          ? t.assigneeIds.filter((id) => id !== userId)
+          : [...t.assigneeIds, userId];
+        return { ...t, assigneeIds };
+      }),
+    );
   };
 
   const toggleGlobalUser = (userId: string) => {
     setGlobalAssignedUserIds((prev) =>
-      prev.includes(userId) ? prev.filter((id) => id !== userId) : [...prev, userId]
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId],
     );
   };
 
@@ -122,11 +145,12 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
     try {
       setLoading(true);
 
-      // 1. Get Logged-In User
-      const { data: { user }, error: authError } = await supabase.auth.getUser();
-      if (authError || !user) throw new Error("Authentication failed. Please log in again.");
+      const {
+        data: { user },
+        error: authError,
+      } = await supabase.auth.getUser();
+      if (authError || !user) throw new Error("Authentication error");
 
-      // 2. Insert Mission Record
       const { data: newMission, error: missionError } = await supabase
         .from("missions")
         .insert({
@@ -141,19 +165,23 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
       if (missionError) throw missionError;
       const missionId = newMission.id;
 
-      // 3. Insert Mission Members (Creator as manager + Invited global users)
-      const memberInserts = [];
+      // Register Members
+      const memberInserts: {
+        mission_id: string;
+        user_id: string;
+        role: string;
+        invited_by: string;
+        joined_at: string | null;
+      }[] = [
+        {
+          mission_id: missionId,
+          user_id: user.id,
+          role: "manager",
+          invited_by: user.id,
+          joined_at: new Date().toISOString(),
+        },
+      ];
 
-      // Ensure creator is inserted as manager
-      memberInserts.push({
-        mission_id: missionId,
-        user_id: user.id,
-        role: "manager",
-        invited_by: user.id,
-        joined_at: new Date().toISOString(),
-      });
-
-      // Insert invited members
       globalAssignedUserIds.forEach((invitedUserId) => {
         if (invitedUserId !== user.id) {
           memberInserts.push({
@@ -172,20 +200,35 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
 
       if (membersError) throw membersError;
 
-      // 4. Bulk Insert Nested Tasks
+      // Bulk Insert Tasks
       const validTasks = tasks.filter((t) => t.title.trim() !== "");
       if (validTasks.length > 0) {
-        const taskInserts = validTasks.map((t) => ({
-          id: crypto.randomUUID(), // Generator for text primary key 'id'
-          mission_id: missionId,
-          mission_id_fk: missionId,
-          user_id: t.assignedUserId || user.id,
-          title: t.title.trim(),
-          desc: t.description.trim() || "", // Fixed: Matches schema column 'desc'
-          points: Number(t.points) || 100,
-          time: "",
-          done: false,
-        }));
+        const taskInserts: any[] = [];
+
+        validTasks.forEach((t) => {
+          const targetUsers =
+            t.assignMode === "all"
+              ? [user.id, ...globalAssignedUserIds]
+              : t.assigneeIds.length > 0
+                ? t.assigneeIds
+                : [user.id];
+
+          targetUsers.forEach((assignedUserId) => {
+            taskInserts.push({
+              id: crypto.randomUUID(),
+              mission_id: missionId,
+              mission_id_fk: missionId,
+              user_id: assignedUserId,
+              title: t.title.trim(),
+              desc: t.desc.trim() || "",
+              time: t.time.trim() || "",
+              priority: t.priority,
+              points: t.points,
+              recurring: t.recurring,
+              done: false,
+            });
+          });
+        });
 
         const { error: tasksError } = await supabase
           .from("tasks")
@@ -205,13 +248,10 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
 
   return (
     <>
-      {/* Background Backdrop */}
       <div
         className="fixed inset-0 bg-black/30 z-40 backdrop-blur-xs"
         onClick={onClose}
       />
-
-      {/* Dialog Container */}
       <div className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-2xl max-h-[85vh] bg-white border border-[#e8e3db] rounded-xl shadow-2xl z-50 flex flex-col overflow-hidden">
         {/* Header */}
         <div className="flex items-center justify-between px-6 py-4 border-b border-[#e8e3db] bg-white shrink-0">
@@ -231,7 +271,7 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
           </button>
         </div>
 
-        {/* Form Content */}
+        {/* Form Body */}
         <form
           onSubmit={handleSubmit}
           className="p-6 space-y-6 overflow-y-auto flex-1 bg-[#fafaf9]"
@@ -260,53 +300,48 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
               <textarea
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                placeholder="Describe the overarching goals of this mission pack..."
+                placeholder="Describe overarching goals..."
                 rows={2}
-                className="w-full px-3 py-2 border border-[#e8e3db] rounded-lg bg-white text-sm text-[#1a1a1a] placeholder-[#8b8b8b] focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]"
+                className="w-full px-3 py-2 border border-[#e8e3db] rounded-lg bg-white text-sm text-[#1a1a1a] outline-none ring-0 focus:border-[#1a1a1a]"
               />
             </div>
           </div>
 
-          {/* Section 2: Team Members Invites */}
+          {/* Section 2: Team Roster */}
           <div className="bg-white p-5 border border-[#e8e3db] rounded-lg space-y-3 shadow-xs">
-            <div>
-              <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
-                2. Invite Team Members
-              </h3>
-              <p className="text-xs text-gray-400 mt-0.5">
-                Only users invited by you are eligible to be assigned to this mission.
-              </p>
-            </div>
-
+            <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
+              2. Invite Team Members
+            </h3>
             {fetchingUsers ? (
               <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
-                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading team profiles...
+                <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading team
+                profiles...
               </div>
             ) : availableUsers.length === 0 ? (
-              <p className="text-xs text-gray-400 italic">No user candidates found in your invited roster.</p>
+              <p className="text-xs text-gray-400 italic">
+                No team members available.
+              </p>
             ) : (
               <div className="flex flex-wrap gap-2 pt-1">
-                {availableUsers.map((user) => {
-                  const isAssigned = globalAssignedUserIds.includes(user.id);
-                  const displayName = user.username || user.id.slice(0, 8);
-
+                {availableUsers.map((u) => {
+                  const assigned = globalAssignedUserIds.includes(u.id);
                   return (
                     <button
-                      key={user.id}
+                      key={u.id}
                       type="button"
-                      onClick={() => toggleGlobalUser(user.id)}
+                      onClick={() => toggleGlobalUser(u.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                        isAssigned
+                        assigned
                           ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
                           : "bg-[#fafaf8] text-gray-600 border-[#e8e3db] hover:bg-gray-100"
                       }`}
                     >
-                      {isAssigned ? (
+                      {assigned ? (
                         <Check className="w-3 h-3" />
                       ) : (
                         <UserPlus className="w-3 h-3" />
                       )}
-                      {displayName}
+                      {u.username}
                     </button>
                   );
                 })}
@@ -324,80 +359,25 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
                 type="button"
                 variant="outline"
                 size="sm"
-                onClick={handleAddCustomTask}
+                onClick={handleAddTask}
                 className="border-[#e8e3db] text-xs h-8 flex items-center gap-1 bg-white hover:bg-gray-50"
               >
-                <Plus className="w-3.5 h-3.5" />
-                Add Task
+                <Plus className="w-3.5 h-3.5" /> Add Task
               </Button>
             </div>
 
             {tasks.map((task, index) => (
-              <div
-                key={index}
-                className="bg-white border border-[#e8e3db] rounded-lg p-5 shadow-xs relative space-y-4"
-              >
-                <div className="absolute right-4 top-4 flex items-center gap-2">
-                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider bg-gray-100 px-1.5 py-0.5 rounded">
-                    Task #{index + 1}
-                  </span>
-                  {tasks.length > 1 && (
-                    <button
-                      type="button"
-                      onClick={() => handleRemoveTask(index)}
-                      className="p-1 text-gray-400 hover:text-rose-600 rounded hover:bg-rose-50 transition-colors"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  )}
-                </div>
-
-                <div className="grid grid-cols-1 gap-3 max-w-[85%]">
-                  <div>
-                    <label className="text-xs font-medium text-[#6b6b6b] block mb-1">
-                      Task Title *
-                    </label>
-                    <Input
-                      value={task.title}
-                      onChange={(e) =>
-                        handleTaskChange(index, "title", e.target.value)
-                      }
-                      placeholder="e.g., Watch Safety Onboarding Video"
-                      className="bg-white border-[#e8e3db] h-9"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-3 gap-2">
-                    <div className="col-span-2">
-                      <label className="text-xs font-medium text-[#6b6b6b] block mb-1">
-                        Description
-                      </label>
-                      <textarea
-                        value={task.description}
-                        onChange={(e) =>
-                          handleTaskChange(index, "description", e.target.value)
-                        }
-                        placeholder="Deliverable details..."
-                        rows={2}
-                        className="w-full px-3 py-1.5 border border-[#e8e3db] rounded-lg bg-white text-xs text-[#1a1a1a] focus:outline-none focus:ring-1 focus:ring-[#1a1a1a]"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-xs font-medium text-[#6b6b6b] block mb-1">
-                        XP Reward
-                      </label>
-                      <Input
-                        type="number"
-                        value={task.points}
-                        onChange={(e) =>
-                          handleTaskChange(index, "points", parseInt(e.target.value) || 0)
-                        }
-                        className="bg-white border-[#e8e3db] h-9"
-                      />
-                    </div>
-                  </div>
-                </div>
-              </div>
+              <TaskCard
+                key={task.key}
+                task={task}
+                index={index}
+                memberList={availableUsers}
+                canRemove={tasks.length > 1}
+                saving={loading}
+                onUpdate={handleUpdateTask}
+                onRemove={handleRemoveTask}
+                onToggleAssignee={handleToggleAssignee}
+              />
             ))}
           </div>
         </form>
@@ -409,7 +389,7 @@ export function NewMissionDialog({ onClose, onSuccess }: NewMissionDialogProps) 
             onClick={onClose}
             disabled={loading}
             variant="outline"
-            className="flex-1 border-[#e8e3db] text-[#6b6b6b] hover:bg-[#f0ebe4]"
+            className="flex-1 border-[#e8e3db] text-[#6b6b6b]"
           >
             Cancel
           </Button>

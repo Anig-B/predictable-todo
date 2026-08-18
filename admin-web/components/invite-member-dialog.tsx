@@ -5,9 +5,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-interface AvailableUser {
+export interface AvailableUser {
   id: string;
   username: string;
+  email?: string | null;
 }
 
 interface InviteMemberDialogProps {
@@ -39,16 +40,23 @@ export function InviteMemberDialog({
 
     try {
       if (inviteMethod === "username") {
-        if (!selectedUserId) {
-          return;
-        }
+        if (!selectedUserId) return;
         await onSubmit({ userId: selectedUserId });
       } else {
         if (!email.trim()) return;
-        await onSubmit({ email: email.trim() });
+
+        // Auto-match existing user ID if the typed email matches a registered profile
+        const matchedUser = availableUsers.find(
+          (u) => u.email?.toLowerCase() === email.trim().toLowerCase(),
+        );
+
+        if (matchedUser) {
+          await onSubmit({ userId: matchedUser.id });
+        } else {
+          await onSubmit({ email: email.trim() });
+        }
       }
 
-      // Reset on successful confirmation mutation execution
       setSelectedUserId("");
       setSearchInput("");
       setEmail("");
@@ -59,6 +67,8 @@ export function InviteMemberDialog({
     }
   };
 
+  const selectedUser = availableUsers.find((u) => u.id === selectedUserId);
+
   return (
     <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
       <div className="bg-white rounded-lg p-8 w-full max-w-md border border-[#e8e3db] shadow-xl">
@@ -66,13 +76,11 @@ export function InviteMemberDialog({
           Invite Member
         </h2>
 
-        {/* Form correctly wraps all sub-tab inputs and triggers natively */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <Tabs
             value={inviteMethod}
             onValueChange={(v) => {
               setInviteMethod(v as "username" | "email");
-              // Clear complementary configurations when changing contexts
               setSelectedUserId("");
               setSearchInput("");
               setEmail("");
@@ -84,7 +92,7 @@ export function InviteMemberDialog({
                 value="username"
                 className="text-sm rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
               >
-                Select User
+                By Username
               </TabsTrigger>
               <TabsTrigger
                 value="email"
@@ -100,21 +108,21 @@ export function InviteMemberDialog({
             >
               <div>
                 <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
-                  Search & Select User
+                  Search & Select Username
                 </label>
                 <Input
                   type="text"
                   value={searchInput}
                   onChange={(e) => {
                     setSearchInput(e.target.value);
-                    if (selectedUserId) setSelectedUserId(""); // Reset verification if they keep typing
+                    if (selectedUserId) setSelectedUserId("");
                   }}
                   placeholder="Type username..."
                   disabled={loading}
                   className="w-full bg-[#fafaf8] border-[#e8e3db]"
                 />
 
-                <div className="mt-2 border border-[#e8e3db] rounded-lg max-h-40 overflow-y-auto bg-white divide-y divide-[#e8e3db]">
+                <div className="mt-2 border border-[#e8e3db] rounded-lg max-h-48 overflow-y-auto bg-white divide-y divide-[#e8e3db]">
                   {filteredUsers.length === 0 ? (
                     <div className="p-3 text-sm text-[#8b8b8b] text-center italic">
                       No matching users found
@@ -139,15 +147,10 @@ export function InviteMemberDialog({
                   )}
                 </div>
 
-                {selectedUserId && (
+                {selectedUser && (
                   <div className="mt-3 p-2.5 bg-green-50 border border-green-200 rounded-md text-xs font-medium text-green-800 flex items-center gap-1.5 animate-in fade-in duration-200">
                     <span>✓</span> Ready to invite:{" "}
-                    <strong>
-                      {
-                        availableUsers.find((u) => u.id === selectedUserId)
-                          ?.username
-                      }
-                    </strong>
+                    <strong>{selectedUser.username}</strong>
                   </div>
                 )}
               </div>

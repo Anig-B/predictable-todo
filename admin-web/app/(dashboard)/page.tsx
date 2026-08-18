@@ -83,49 +83,62 @@ export default function DashboardPage() {
 
       const managerId = user.id;
       const now = new Date();
-      const oneWeekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000).toISOString();
-      const startOfToday = new Date(now.setHours(0, 0, 0, 0)).toISOString();
+      const oneWeekAgo = new Date(
+        now.getTime() - 7 * 24 * 60 * 60 * 1000,
+      ).toISOString();
+      const startOfToday = new Date(
+        new Date().setHours(0, 0, 0, 0),
+      ).toISOString();
 
-      // 1. Fetch Missions created by or managed by this user
-      const { data: managerMissionsData } = await supabase
+      // 1. Fetch Missions created/managed by this manager
+      const { data: managerMissionsData, error: missionErr } = await supabase
         .from("missions")
-        .select("id, name, is_active, tasks(id, done), mission_members(user_id, joined_at)")
+        .select(
+          "id, name, is_active, tasks:tasks!tasks_mission_id_fk_fkey(id, title, done, points, user_id, created_at), mission_members(user_id, joined_at)",
+        )
         .eq("created_by", managerId);
+
+      if (missionErr) console.error("Error loading missions:", missionErr);
 
       const managerMissions = managerMissionsData || [];
       const managedMissionIds = managerMissions.map((m) => m.id);
 
-      const activeCount = managerMissions.filter((m) => m.is_active !== false).length;
-      const archivedCount = managerMissions.filter((m) => m.is_active === false).length;
+      const activeCount = managerMissions.filter(
+        (m) => m.is_active !== false,
+      ).length;
+      const archivedCount = managerMissions.filter(
+        (m) => m.is_active === false,
+      ).length;
 
-      // 2. Extract Unique Company Members across all managed missions
+      // 2. Extract Unique Company Members across managed missions
       const memberJoinedDates = new Map<string, string>();
 
       managerMissions.forEach((m: any) => {
         (m.mission_members || []).forEach((mem: any) => {
           if (mem.user_id) {
-            // Keep the earliest joined date for multi-mission members
             const existingDate = memberJoinedDates.get(mem.user_id);
-            if (!existingDate || (mem.joined_at && mem.joined_at < existingDate)) {
+            if (
+              !existingDate ||
+              (mem.joined_at && mem.joined_at < existingDate)
+            ) {
               memberJoinedDates.set(mem.user_id, mem.joined_at || "");
             }
           }
         });
       });
 
-      // Always include the manager in their own workspace stats
       if (!memberJoinedDates.has(managerId)) {
         memberJoinedDates.set(managerId, "");
       }
 
       const uniqueMemberIds = Array.from(memberJoinedDates.keys());
 
-      // 3. Fetch Profile Metadata strictly for these company members
+      // 3. Fetch Profile Metadata for company members
       let companyProfiles: any[] = [];
       if (uniqueMemberIds.length > 0) {
         const { data: profilesData } = await supabase
           .from("profiles")
-          .select("id, username, level, streak, xp, created_at")
+          .select("id, username, level, streak, created_at")
           .in("id", uniqueMemberIds);
 
         companyProfiles = profilesData || [];
@@ -133,7 +146,6 @@ export default function DashboardPage() {
 
       const totalUsers = companyProfiles.length;
 
-      // Count new company members added in the last 7 days
       const newUsersThisWeek = companyProfiles.filter((p) => {
         const joinedAt = memberJoinedDates.get(p.id) || p.created_at;
         return joinedAt && joinedAt >= oneWeekAgo;
@@ -144,7 +156,9 @@ export default function DashboardPage() {
         .filter((m) => m.is_active !== false)
         .map((m: any) => {
           const taskList = m.tasks || [];
-          const completedCount = taskList.filter((t: any) => t.done === true).length;
+          const completedCount = taskList.filter(
+            (t: any) => t.done === true,
+          ).length;
           return {
             id: m.id,
             name: m.name,
@@ -154,21 +168,35 @@ export default function DashboardPage() {
           };
         });
 
-      // 5. Pending Proofs Queue for managed missions
+      // 5. Pending Proofs Queue
       let pendingProofsList: ProofItem[] = [];
       if (managedMissionIds.length > 0) {
         const { data: reviewedProofs } = await supabase
           .from("proof_reviews")
           .select("task_id");
 
-        const reviewedTaskIds = new Set((reviewedProofs || []).map((r) => r.task_id));
+        const reviewedTaskIds = new Set(
+          (reviewedProofs || []).map((r) => r.task_id),
+        );
 
-        const { data: pendingTasksData } = await supabase
+        const { data: pendingTasksData, error: pendingErr } = await supabase
           .from("tasks")
-          .select("id, title, proof_image, profiles(username), missions:mission_id_fk(name)")
+          .select(
+            `
+          id, 
+          title, 
+          proof_image, 
+          user_id,
+          profiles:user_id(username), 
+          missions:mission_id_fk(name)
+        `,
+          )
           .in("mission_id_fk", managedMissionIds)
           .not("proof_image", "is", null)
           .neq("proof_image", "");
+
+        if (pendingErr)
+          console.error("Error loading pending proofs:", pendingErr);
 
         pendingProofsList = (pendingTasksData || [])
           .filter((task) => !reviewedTaskIds.has(task.id))
@@ -180,56 +208,75 @@ export default function DashboardPage() {
           }));
       }
 
-      // 6. Recent Activity Logs for company members
+      // 6. Company Task Activity & Company XP Calculation
       let formattedActivities: ActivityItem[] = [];
       let totalXp = 0;
       let xpToday = 0;
+      const memberCompanyXpMap = new Map<string, number>();
 
-      if (uniqueMemberIds.length > 0) {
-        const { data: activityData } = await supabase
-          .from("activity_logs")
-          .select("id, task, points, project, created_at, profiles(username)")
-          .in("user_id", uniqueMemberIds)
-          .order("created_at", { ascending: false })
-          .limit(10);
+      if (managedMissionIds.length > 0) {
+        // Query completed company tasks across managed missions
+        const { data: completedCompanyTasks, error: taskErr } = await supabase
+          .from("tasks")
+          .select(
+            `
+          id, 
+          title, 
+          points, 
+          created_at, 
+          user_id,
+          profiles:user_id(username),
+          missions:mission_id_fk(name)
+        `,
+          )
+          .in("mission_id_fk", managedMissionIds)
+          .eq("done", true)
+          .order("created_at", { ascending: false });
 
-        formattedActivities = (activityData || []).map((act: any) => ({
-          id: act.id,
-          userName: act.profiles?.username || "Member",
-          action: `completed "${act.task}"`,
-          points: act.points,
-          missionName: act.project !== "General" ? act.project : undefined,
-          timestamp: new Date(act.created_at).toLocaleTimeString([], {
+        if (taskErr) console.error("Error loading completed tasks:", taskErr);
+
+        const tasksList = completedCompanyTasks || [];
+
+        // Calculate recent activities (Latest 10 completed company tasks)
+        formattedActivities = tasksList.slice(0, 10).map((task: any) => ({
+          id: task.id,
+          userName: task.profiles?.username || "Member",
+          action: `completed "${task.title}"`,
+          points: task.points,
+          missionName: task.missions?.name,
+          timestamp: new Date(task.created_at).toLocaleTimeString([], {
             hour: "2-digit",
             minute: "2-digit",
           }),
         }));
 
-        const { data: xpLogs } = await supabase
-          .from("activity_logs")
-          .select("points, created_at")
-          .in("user_id", uniqueMemberIds);
-
-        (xpLogs || []).forEach((log) => {
-          const pts = log.points || 0;
+        // Calculate total company XP & member company XP aggregates
+        tasksList.forEach((task: any) => {
+          const pts = task.points || 0;
           totalXp += pts;
-          if (log.created_at && log.created_at >= startOfToday) {
+
+          if (task.created_at && task.created_at >= startOfToday) {
             xpToday += pts;
+          }
+
+          if (task.user_id) {
+            const currentMemberXp = memberCompanyXpMap.get(task.user_id) || 0;
+            memberCompanyXpMap.set(task.user_id, currentMemberXp + pts);
           }
         });
       }
 
-      // 7. Company Leaderboard
+      // 7. Company Leaderboard (Calculated strictly from company task XP)
       const formattedTopMembers: TopMember[] = companyProfiles
-        .sort((a, b) => (b.xp || 0) - (a.xp || 0))
-        .slice(0, 4)
         .map((p) => ({
           id: p.id,
           name: p.username || "Member",
           level: p.level || 1,
           streak: p.streak || 0,
-          xp: p.xp || 0,
-        }));
+          xp: memberCompanyXpMap.get(p.id) || 0, // Scoped Company XP
+        }))
+        .sort((a, b) => b.xp - a.xp)
+        .slice(0, 4);
 
       setStats({
         totalUsers,
@@ -251,7 +298,6 @@ export default function DashboardPage() {
       setLoading(false);
     }
   };
-
   const handleProofReview = async (taskId: string, approved: boolean) => {
     const {
       data: { user },
@@ -285,7 +331,7 @@ export default function DashboardPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-[400px]">
+      <div className="flex items-center justify-center min-h-100">
         <Loader2 className="w-8 h-8 animate-spin text-gray-500" />
       </div>
     );
@@ -298,7 +344,8 @@ export default function DashboardPage() {
           Company Overview
         </h1>
         <p className="text-muted-foreground">
-          Showing members, missions, and proof queues scoped to your organization.
+          Showing members, missions, and proof queues scoped to your
+          organization.
         </p>
       </div>
 
@@ -311,7 +358,9 @@ export default function DashboardPage() {
               <p className="text-sm font-medium text-[#8b8b8b] mb-1">
                 Company Members
               </p>
-              <p className="text-3xl font-bold text-[#1a1a1a]">{stats.totalUsers}</p>
+              <p className="text-3xl font-bold text-[#1a1a1a]">
+                {stats.totalUsers}
+              </p>
             </div>
             <div className="text-right">
               <div className="flex items-center gap-1 text-sm font-medium text-emerald-600">
@@ -395,7 +444,9 @@ export default function DashboardPage() {
             </h2>
             <div className="space-y-4">
               {activities.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No activity from company members yet.</p>
+                <p className="text-xs text-muted-foreground">
+                  No activity from company members yet.
+                </p>
               ) : (
                 activities.map((activity) => (
                   <div
@@ -407,7 +458,9 @@ export default function DashboardPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="text-sm text-[#1a1a1a]">
-                        <span className="font-semibold">{activity.userName}</span>{" "}
+                        <span className="font-semibold">
+                          {activity.userName}
+                        </span>{" "}
                         {activity.action}
                         {activity.points && (
                           <span className="font-semibold text-emerald-600">
@@ -440,7 +493,9 @@ export default function DashboardPage() {
             </h2>
             <div className="space-y-4">
               {proofs.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No pending proof reviews for your company missions.</p>
+                <p className="text-xs text-muted-foreground">
+                  No pending proof reviews for your company missions.
+                </p>
               ) : (
                 proofs.map((proof) => (
                   <div
@@ -490,7 +545,9 @@ export default function DashboardPage() {
             </h2>
             <div className="space-y-5">
               {activeMissions.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No active company missions.</p>
+                <p className="text-xs text-muted-foreground">
+                  No active company missions.
+                </p>
               ) : (
                 activeMissions.map((mission) => (
                   <div key={mission.id} className="space-y-2">
@@ -511,7 +568,7 @@ export default function DashboardPage() {
                             100,
                             ((mission.questsDone || 0) /
                               (mission.questsTotal || 1)) *
-                              100
+                              100,
                           )}%`,
                         }}
                       />
@@ -532,7 +589,9 @@ export default function DashboardPage() {
             </h2>
             <div className="space-y-4">
               {topMembers.length === 0 ? (
-                <p className="text-xs text-muted-foreground">No company members found.</p>
+                <p className="text-xs text-muted-foreground">
+                  No company members found.
+                </p>
               ) : (
                 topMembers.map((user, idx) => (
                   <div

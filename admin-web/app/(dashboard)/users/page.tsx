@@ -1,9 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
-import { useRouter } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InviteMemberDialog } from "@/components/invite-member-dialog";
@@ -12,7 +11,6 @@ import { Trash2 } from "lucide-react";
 
 interface TeamMember {
   id: string;
-  missionId: string;
   userId: string | null;
   username: string;
   role: "member" | "manager";
@@ -30,152 +28,99 @@ interface AvailableUser {
 
 export default function UsersPage() {
   const { role, loading: authLoading } = useAuthCheck();
-  const router = useRouter();
   const supabase = createClient();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
-  const [selectedMember, setSelectedMember] = useState<TeamMember | null>(null);
   const [searchQuery, setSearchQuery] = useState("");
   const [showInviteDialog, setShowInviteDialog] = useState(false);
   const [loading, setLoading] = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
+  const [primaryMissionId, setPrimaryMissionId] = useState<string | null>(null);
 
-  useEffect(() => {
-    if (authLoading) return;
-    fetchCurrentUser();
-  }, [role, authLoading]);
+  const fetchTeamMembers = useCallback(
+    async (userId: string) => {
+      try {
+        setLoading(true);
 
-  const fetchCurrentUser = async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const userId = user?.id || null;
-      setCurrentUserId(userId);
-
-      // Always query fresh missions managed by this user to keep state consistent across devices
-      let missionIds: string[] = [];
-      if (userId) {
-        const { data: managedMissions } = await supabase
+        const { data: missionMembers, error } = await supabase
           .from("mission_members")
-          .select("mission_id")
-          .eq("user_id", userId)
-          .eq("role", "manager");
+          .select(
+            `
+            mission_id,
+            user_id,
+            role,
+            joined_at,
+            user:profiles!user_id(username, level, streak, role)
+          `,
+          )
+          .eq("invited_by", userId);
 
-        if (managedMissions && managedMissions.length > 0) {
-          missionIds = managedMissions.map((m) => m.mission_id);
-          sessionStorage.setItem("userMissionIds", JSON.stringify(missionIds));
+        if (error) throw error;
+
+        const memberMap = new Map<string, TeamMember>();
+
+        for (const member of (missionMembers || []) as any[]) {
+          // Safely extract profile whether Supabase returns an array or single object
+          const profile = Array.isArray(member.user)
+            ? member.user[0]
+            : member.user;
+
+          if (!member.user_id || profile?.role === "admin") continue;
+
+          let weeklyXp = 0;
+          const { data: stats } = await supabase
+            .from("user_stats")
+            .select("weekly_xp")
+            .eq("user_id", member.user_id)
+            .single();
+
+          if (stats) weeklyXp = stats.weekly_xp;
+
+          const isActive = !!member.joined_at;
+          const existing = memberMap.get(member.user_id);
+
+          const memberObj: TeamMember = {
+            id: member.user_id,
+            userId: member.user_id,
+            username: profile?.username || "Pending Registration",
+            role: member.role as "member" | "manager",
+            joinedAt: isActive
+              ? new Date(member.joined_at!).toLocaleDateString()
+              : "Awaiting App Sync",
+            level: profile?.level || 1,
+            streak: profile?.streak || 0,
+            weeklyXp: weeklyXp,
+            status: isActive ? "active" : "pending",
+          };
+
+          if (!existing) {
+            memberMap.set(member.user_id, memberObj);
+          } else {
+            memberMap.set(member.user_id, {
+              ...existing,
+              role:
+                existing.role === "manager" || member.role === "manager"
+                  ? "manager"
+                  : "member",
+              status:
+                existing.status === "active" || isActive ? "active" : "pending",
+            });
+          }
         }
+
+        setMembers(Array.from(memberMap.values()));
+      } catch (err) {
+        console.error("Error fetching team members:", err);
+        toast.error("Failed to sync team roster");
+      } finally {
+        setLoading(false);
       }
+    },
+    [supabase],
+  );
 
-      await Promise.all([fetchTeamMembers(missionIds), fetchAvailableUsers()]);
-    } catch (err) {
-      console.error("Error initializing context:", err);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchTeamMembers = async (missionIds: string[]) => {
-    if (!missionIds || missionIds.length === 0) {
-      setMembers([]);
-      return;
-    }
-
-    try {
-      setLoading(true);
-
-      const { data: missionMembers, error } = await supabase
-        .from("mission_members")
-        .select(
-          `
-          mission_id,
-          user_id,
-          role,
-          joined_at,
-          user:profiles!user_id(username, level, streak, role)  
-        `,
-        )
-        .in("mission_id", missionIds);
-
-      if (error) throw error;
-
-      const rawMembers = await Promise.all(
-        (missionMembers || [])
-          .filter((member: any) => member.user?.role !== "admin")
-          .map(async (member: any) => {
-            let weeklyXp = 0;
-
-            if (member.user_id) {
-              const { data: stats } = await supabase
-                .from("user_stats")
-                .select("weekly_xp")
-                .eq("user_id", member.user_id)
-                .single();
-              if (stats) weeklyXp = stats.weekly_xp;
-            }
-
-            const isActive = !!member.joined_at;
-
-            return {
-              id: `${member.mission_id}-${member.user_id ?? "pending"}`,
-              missionId: member.mission_id,
-              userId: member.user_id,
-              username: member.user?.username || "Pending Registration",
-              role: member.role as "member" | "manager",
-              joinedAt: isActive
-                ? new Date(member.joined_at).toLocaleDateString()
-                : "Awaiting App Sync",
-              level: member.user?.level || 1,
-              streak: member.user?.streak || 0,
-              weeklyXp: weeklyXp,
-              status: isActive ? ("active" as const) : ("pending" as const),
-            };
-          }),
-      );
-
-      // Deduplicate members by userId (or username for pending invites)
-      const memberMap = new Map<string, TeamMember>();
-
-      for (const m of rawMembers) {
-        const key = m.userId || m.username;
-        const existing = memberMap.get(key);
-
-        if (!existing) {
-          memberMap.set(key, m);
-        } else {
-          // Keep 'manager' role if the user holds a manager role in any assigned mission
-          const highestRole =
-            existing.role === "manager" || m.role === "manager"
-              ? "manager"
-              : "member";
-
-          // Keep active status if active in any mission
-          const bestStatus =
-            existing.status === "active" || m.status === "active"
-              ? "active"
-              : "pending";
-
-          memberMap.set(key, {
-            ...existing,
-            role: highestRole,
-            status: bestStatus,
-          });
-        }
-      }
-
-      setMembers(Array.from(memberMap.values()));
-    } catch (err) {
-      console.error("Error fetching team members:", err);
-      toast.error("Failed to sync team membership rosters");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const fetchAvailableUsers = async () => {
+  const fetchAvailableUsers = useCallback(async () => {
     try {
       const { data: users, error } = await supabase
         .from("profiles")
@@ -186,88 +131,93 @@ export default function UsersPage() {
       if (error) throw error;
       setAvailableUsers(users || []);
     } catch (err) {
-      console.error("Error fetching available baseline users:", err);
+      console.error("Error fetching baseline users:", err);
     }
-  };
+  }, [supabase]);
 
-  const handleInvite = async (data: { userId?: string; email?: string }) => {
+  const initContext = useCallback(async () => {
     try {
-      let missionIds = JSON.parse(
-        sessionStorage.getItem("userMissionIds") || "[]",
-      );
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (!missionIds.length && currentUserId) {
-        const { data: fallbackMissions } = await supabase
+      const userId = user?.id || null;
+      setCurrentUserId(userId);
+
+      if (userId) {
+        const { data: managedMission } = await supabase
           .from("mission_members")
           .select("mission_id")
-          .eq("user_id", currentUserId)
-          .eq("role", "manager");
+          .eq("user_id", userId)
+          .eq("role", "manager")
+          .limit(1)
+          .maybeSingle();
 
-        if (fallbackMissions && fallbackMissions.length > 0) {
-          missionIds = fallbackMissions.map((m) => m.mission_id);
-          sessionStorage.setItem("userMissionIds", JSON.stringify(missionIds));
+        if (managedMission) {
+          setPrimaryMissionId(managedMission.mission_id);
         }
-      }
 
-      if (!missionIds.length) {
-        toast.error(
-          "Missing valid management scope. Make sure your profile owns a mission.",
-        );
-        return;
+        await Promise.all([fetchTeamMembers(userId), fetchAvailableUsers()]);
       }
+    } catch (err) {
+      console.error("Error initializing user page:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [supabase, fetchTeamMembers, fetchAvailableUsers]);
 
+  useEffect(() => {
+    if (authLoading) return;
+    initContext();
+  }, [authLoading, initContext]);
+
+  const handleInvite = async (data: { userId?: string; email?: string }) => {
+    if (!currentUserId || !primaryMissionId) {
+      toast.error(
+        "You must create or manage at least one mission to invite users.",
+      );
+      return;
+    }
+
+    try {
       if (data.userId) {
         const existingMember = members.find((m) => m.userId === data.userId);
         if (existingMember) {
-          toast.error(
-            "User already holds a position or pending invite within this mission scope.",
-          );
+          toast.error("User is already on your team.");
           return;
         }
 
-        const { error: memberError } = await supabase
-          .from("mission_members")
-          .insert({
-            mission_id: missionIds[0],
-            user_id: data.userId,
-            role: "member",
-            invited_by: currentUserId,
-            joined_at: null,
-          });
+        const { error } = await supabase.from("mission_members").insert({
+          mission_id: primaryMissionId,
+          user_id: data.userId,
+          role: "member",
+          invited_by: currentUserId,
+          joined_at: null,
+        });
 
-        if (memberError) throw memberError;
-        toast.success("Invitation dispatched to user dashboard!");
+        if (error) throw error;
+        toast.success("Invitation dispatched!");
       }
 
       setShowInviteDialog(false);
-      fetchTeamMembers(missionIds);
+      fetchTeamMembers(currentUserId);
     } catch (err: any) {
-      console.error("Error executing invitation mutation:", err);
-      toast.error(
-        err?.message
-          ? `Invite failed: ${err.message}`
-          : "Failed to execute membership invitation",
-      );
+      toast.error(err?.message || "Failed to invite user");
     }
   };
 
   const handleRoleChange = async (
-    missionId: string,
     userId: string | null,
     newRole: "member" | "manager",
   ) => {
-    if (!userId) return;
-    try {
-      let missionIds = JSON.parse(
-        sessionStorage.getItem("userMissionIds") || "[]",
-      );
+    if (!userId || !currentUserId) return;
 
-      // Update the user's role across all managed missions
+    try {
       const { error } = await supabase
         .from("mission_members")
         .update({ role: newRole })
-        .in("mission_id", missionIds.length > 0 ? missionIds : [missionId])
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("invited_by", currentUserId);
 
       if (error) throw error;
 
@@ -275,43 +225,33 @@ export default function UsersPage() {
         prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m)),
       );
 
-      toast.success(`Role updated successfully to ${newRole}`);
+      toast.success(`Role updated to ${newRole}`);
     } catch (err) {
-      console.error("Error updating role relationship context:", err);
-      toast.error("Could not alter authorization properties");
+      toast.error("Could not update role");
     }
   };
 
   const handleDeleteMember = async (
-    missionId: string,
     userId: string | null,
     username: string,
   ) => {
-    if (!userId) return;
+    if (!userId || !currentUserId) return;
 
-    const confirmDelete = window.confirm(
-      `Are you sure you want to remove ${username} from your team? This action will revoke their access across your managed missions.`,
-    );
-    if (!confirmDelete) return;
+    if (!window.confirm(`Remove ${username} from your team?`)) return;
 
     try {
-      let missionIds = JSON.parse(
-        sessionStorage.getItem("userMissionIds") || "[]",
-      );
-
       const { error } = await supabase
         .from("mission_members")
         .delete()
-        .in("mission_id", missionIds.length > 0 ? missionIds : [missionId])
-        .eq("user_id", userId);
+        .eq("user_id", userId)
+        .eq("invited_by", currentUserId);
 
       if (error) throw error;
 
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
-      toast.success(`${username} removed from team roster.`);
+      toast.success(`${username} removed from team.`);
     } catch (err) {
-      console.error("Error offboarding team member:", err);
-      toast.error("Failed to delete team member. Check your RLS policies.");
+      toast.error("Failed to remove team member");
     }
   };
 
@@ -415,8 +355,7 @@ export default function UsersPage() {
               filteredMembers.map((member) => (
                 <tr
                   key={member.userId || member.username}
-                  onClick={() => setSelectedMember(member)}
-                  className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] cursor-pointer transition-colors last:border-0"
+                  className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] transition-colors last:border-0"
                 >
                   <td className="px-6 py-4">
                     <div className="flex items-center gap-3">
@@ -447,12 +386,10 @@ export default function UsersPage() {
                       }
                       onChange={(e) =>
                         handleRoleChange(
-                          member.missionId,
                           member.userId,
                           e.target.value as "member" | "manager",
                         )
                       }
-                      onClick={(e) => e.stopPropagation()}
                       className="px-2 py-1 text-sm rounded border border-[#e8e3db] bg-white text-[#1a1a1a] disabled:opacity-50"
                     >
                       <option value="member">Member</option>
@@ -477,14 +414,9 @@ export default function UsersPage() {
                     <button
                       type="button"
                       disabled={member.userId === currentUserId}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDeleteMember(
-                          member.missionId,
-                          member.userId,
-                          member.username,
-                        );
-                      }}
+                      onClick={() =>
+                        handleDeleteMember(member.userId, member.username)
+                      }
                       className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:hover:text-gray-400 rounded transition-colors"
                       title={
                         member.userId === currentUserId
