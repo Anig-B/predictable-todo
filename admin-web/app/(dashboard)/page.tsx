@@ -1,8 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { TrendingUp, Loader2 } from "lucide-react";
+import { TrendingUp, Loader2, ExternalLink } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
+import Link from "next/link";
 
 interface DashboardStats {
   totalUsers: number;
@@ -26,6 +27,7 @@ interface ActivityItem {
 interface ProofItem {
   taskId: string;
   questTitle: string;
+  missionId: string;
   missionName: string;
   userName: string;
 }
@@ -187,6 +189,7 @@ export default function DashboardPage() {
           title, 
           proof_image, 
           user_id,
+          mission_id_fk,
           profiles:user_id(username), 
           missions:mission_id_fk(name)
         `,
@@ -203,6 +206,7 @@ export default function DashboardPage() {
           .map((task: any) => ({
             taskId: task.id,
             questTitle: task.title,
+            missionId: task.mission_id_fk,
             missionName: task.missions?.name || "Company Quest",
             userName: task.profiles?.username || "Unknown",
           }));
@@ -215,7 +219,6 @@ export default function DashboardPage() {
       const memberCompanyXpMap = new Map<string, number>();
 
       if (managedMissionIds.length > 0) {
-        // Query completed company tasks across managed missions
         const { data: completedCompanyTasks, error: taskErr } = await supabase
           .from("tasks")
           .select(
@@ -237,7 +240,6 @@ export default function DashboardPage() {
 
         const tasksList = completedCompanyTasks || [];
 
-        // Calculate recent activities (Latest 10 completed company tasks)
         formattedActivities = tasksList.slice(0, 10).map((task: any) => ({
           id: task.id,
           userName: task.profiles?.username || "Member",
@@ -250,7 +252,6 @@ export default function DashboardPage() {
           }),
         }));
 
-        // Calculate total company XP & member company XP aggregates
         tasksList.forEach((task: any) => {
           const pts = task.points || 0;
           totalXp += pts;
@@ -266,14 +267,14 @@ export default function DashboardPage() {
         });
       }
 
-      // 7. Company Leaderboard (Calculated strictly from company task XP)
+      // 7. Company Leaderboard
       const formattedTopMembers: TopMember[] = companyProfiles
         .map((p) => ({
           id: p.id,
           name: p.username || "Member",
           level: p.level || 1,
           streak: p.streak || 0,
-          xp: memberCompanyXpMap.get(p.id) || 0, // Scoped Company XP
+          xp: memberCompanyXpMap.get(p.id) || 0,
         }))
         .sort((a, b) => b.xp - a.xp)
         .slice(0, 4);
@@ -296,28 +297,6 @@ export default function DashboardPage() {
       console.error("Error fetching company dashboard data:", error);
     } finally {
       setLoading(false);
-    }
-  };
-  const handleProofReview = async (taskId: string, approved: boolean) => {
-    const {
-      data: { user },
-    } = await supabase.auth.getUser();
-
-    if (!user) return;
-
-    const { error } = await supabase.from("proof_reviews").insert({
-      task_id: taskId,
-      reviewed_by: user.id,
-      approved,
-      feedback: approved ? "Approved by Manager" : "Rejected by Manager",
-    });
-
-    if (!error) {
-      setProofs((prev) => prev.filter((p) => p.taskId !== taskId));
-      setStats((prev) => ({
-        ...prev,
-        pendingProofsCount: Math.max(0, prev.pendingProofsCount - 1),
-      }));
     }
   };
 
@@ -500,7 +479,7 @@ export default function DashboardPage() {
                 proofs.map((proof) => (
                   <div
                     key={proof.taskId}
-                    className="flex items-center justify-between pb-4 border-b border-[#e8e3db] last:border-0 last:pb-0"
+                    className="flex items-center justify-between pb-4 border-b border-[#e8e3db] last:border-0 last:pb-0 hover:bg-[#f3f0ea]/50 p-2 rounded transition-colors"
                   >
                     <div className="flex items-center gap-3 flex-1 min-w-0">
                       <div className="w-8 h-8 rounded-full bg-amber-500/10 text-amber-600 font-bold text-xs flex items-center justify-center shrink-0">
@@ -515,20 +494,14 @@ export default function DashboardPage() {
                         </p>
                       </div>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      <button
-                        onClick={() => handleProofReview(proof.taskId, true)}
-                        className="px-2.5 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200 hover:bg-emerald-100 rounded transition-colors"
-                      >
-                        Approve
-                      </button>
-                      <button
-                        onClick={() => handleProofReview(proof.taskId, false)}
-                        className="px-2.5 py-1 text-xs font-semibold bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 rounded transition-colors"
-                      >
-                        Reject
-                      </button>
-                    </div>
+
+                    <Link
+                      href={`/missions/${proof.missionId}`}
+                      className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded transition-colors shrink-0"
+                    >
+                      <span>Review Proof</span>
+                      <ExternalLink className="w-3.5 h-3.5" />
+                    </Link>
                   </div>
                 ))
               )}

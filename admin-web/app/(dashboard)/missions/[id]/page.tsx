@@ -14,6 +14,7 @@ import {
   X,
   CheckCircle2,
   Clock,
+  FileCheck,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { toast } from "sonner";
@@ -22,9 +23,8 @@ import {
   TaskRow,
   AssignableUser,
   PRIORITY_XP,
-  TaskPriority,
-  TaskRecurring,
 } from "@/components/create-task";
+import { MissionProofsTab } from "@/components/mission-proofs-tab";
 
 // --- Database Interfaces ---
 interface Mission {
@@ -44,8 +44,8 @@ interface Task {
   desc: string | null;
   time?: string | null;
   points: number;
-  priority?: number; // 0 (low), 1 (medium), 2 (high)
-  recurring?: number; // 0 (none), 1 (daily), 2 (weekly), 3 (monthly)
+  priority?: number;
+  recurring?: number;
   done: boolean;
   proof_notes?: string | null;
   proof_image?: string | null;
@@ -138,7 +138,7 @@ export default function MissionDetailPage({
         <div className="flex items-center gap-4">
           <button
             onClick={() => router.back()}
-            className="p-2 hover:bg-[#f0ebe4] rounded-md transition-colors"
+            className="p-2 hover:bg-[#f0ebe4] rounded-md transition-colors cursor-pointer"
             title="Go back"
           >
             <ArrowLeft className="w-5 h-5 text-[#6b6b6b]" />
@@ -171,7 +171,7 @@ export default function MissionDetailPage({
       <div className="flex gap-2 mb-8 border-b border-[#e8e3db]">
         <button
           onClick={() => setActiveTab("tasks")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "tasks"
               ? "border-[#1a1a1a] text-[#1a1a1a]"
               : "border-transparent text-[#8b8b8b] hover:text-[#6b6b6b]"
@@ -182,7 +182,7 @@ export default function MissionDetailPage({
         </button>
         <button
           onClick={() => setActiveTab("members")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "members"
               ? "border-[#1a1a1a] text-[#1a1a1a]"
               : "border-transparent text-[#8b8b8b] hover:text-[#6b6b6b]"
@@ -193,7 +193,7 @@ export default function MissionDetailPage({
         </button>
         <button
           onClick={() => setActiveTab("proofs")}
-          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors ${
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium border-b-2 transition-colors cursor-pointer ${
             activeTab === "proofs"
               ? "border-[#1a1a1a] text-[#1a1a1a]"
               : "border-transparent text-[#8b8b8b] hover:text-[#6b6b6b]"
@@ -212,9 +212,7 @@ export default function MissionDetailPage({
         {activeTab === "members" && (
           <MissionMembersSection missionId={mission.id} />
         )}
-        {activeTab === "proofs" && (
-          <MissionProofsSection missionId={mission.id} />
-        )}
+        {activeTab === "proofs" && <MissionProofsTab missionId={mission.id} />}
       </div>
     </div>
   );
@@ -237,9 +235,9 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
     title: "",
     desc: "",
     time: "09:00",
-    priority: 1, // Default to Medium (1)
+    priority: 1,
     points: PRIORITY_XP[1],
-    recurring: 0, // Default to None (0)
+    recurring: 0,
     assignMode: "all",
     assigneeIds: [],
   });
@@ -248,31 +246,30 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
     try {
       setLoading(true);
 
-      const { data: tasksData, error: tasksError } = await supabase
-        .from("tasks")
-        .select(`*, assigned_user:profiles!user_id(username)`)
-        .eq("mission_id_fk", missionId);
+      // Run both queries simultaneously instead of awaiting sequentially
+      const [tasksRes, membersRes] = await Promise.all([
+        supabase
+          .from("tasks")
+          .select(`*, assigned_user:profiles!user_id(username)`)
+          .eq("mission_id_fk", missionId),
+        supabase
+          .from("mission_members")
+          .select(`user_id, role, joined_at, profiles!user_id(username)`)
+          .eq("mission_id", missionId),
+      ]);
 
-      if (tasksError) throw tasksError;
+      if (tasksRes.error) throw tasksRes.error;
+      if (membersRes.error) throw membersRes.error;
 
-      const { data: membersData, error: membersError } = await supabase
-        .from("mission_members")
-        .select(`user_id, role, joined_at, profiles!user_id(username)`)
-        .eq("mission_id", missionId);
-
-      if (membersError) throw membersError;
-
-      const formattedMembers: MissionMember[] = (membersData || [])
-        .filter((m: any) => m.user_id)
-        .map((m: any) => ({
+      setTasks(tasksRes.data || []);
+      setMembers(
+        (membersRes.data || []).map((m: any) => ({
           user_id: m.user_id,
           username: m.profiles?.username || "Unknown User",
           role: m.role || "member",
           joined_at: m.joined_at,
-        }));
-
-      setTasks(tasksData || []);
-      setMembers(formattedMembers);
+        })),
+      );
     } catch (err: any) {
       toast.error(err?.message || "Failed to load tasks");
     } finally {
@@ -364,6 +361,7 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
     points: number;
     assignees: string[];
     allDone: boolean;
+    hasPendingProof: boolean;
     created_at?: string;
   };
 
@@ -372,6 +370,9 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
   tasks.forEach((task) => {
     const key = `${task.title}-${task.desc ?? ""}-${task.time ?? ""}-${task.points}`;
     const username = task.assigned_user?.username || "Unassigned";
+    const isProofSubmitted = Boolean(
+      !task.done && (task.proof_image || task.proof_notes),
+    );
 
     if (!groupedTasksMap.has(key)) {
       groupedTasksMap.set(key, {
@@ -383,6 +384,7 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
         points: task.points,
         assignees: [username],
         allDone: task.done,
+        hasPendingProof: isProofSubmitted,
         created_at: task.created_at,
       });
     } else {
@@ -391,9 +393,11 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
       if (!current.assignees.includes(username)) {
         current.assignees.push(username);
       }
-      // If any task in group is not done, aggregate done status
       if (!task.done) {
         current.allDone = false;
+      }
+      if (isProofSubmitted) {
+        current.hasPendingProof = true;
       }
     }
   });
@@ -419,7 +423,7 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
             });
             setShowModal(true);
           }}
-          className="bg-[#1a1a1a] text-white hover:bg-[#333333] flex items-center gap-2 text-xs"
+          className="bg-[#1a1a1a] text-white hover:bg-[#333333] flex items-center gap-2 text-xs cursor-pointer"
         >
           <Plus className="w-4 h-4" /> Add Task
         </Button>
@@ -433,72 +437,75 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
         </div>
       ) : (
         <div className="grid gap-3">
-          {groupedTasks.map((group) => (
-            <div
-              key={group.groupKey}
-              className="flex items-center justify-between p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf9]"
-            >
-              <div className="space-y-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <span className="font-medium text-[#1a1a1a]">
-                    {group.title}
-                  </span>
+          {groupedTasks.map((group) => {
+            // Determine badge configuration according to task state
+            let badgeStyle = "bg-amber-50 text-amber-700 border-amber-200";
+            let badgeIcon = <Clock className="w-3 h-3" />;
+            let badgeText = "Pending";
 
-                  {/* Done / Pending Status Indicator */}
-                  <span
-                    className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium ${
-                      group.allDone
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-amber-50 text-amber-700 border border-amber-200"
-                    }`}
-                  >
-                    {group.allDone ? (
-                      <>
-                        <CheckCircle2 className="w-3 h-3" /> Done
-                      </>
-                    ) : (
-                      <>
-                        <Clock className="w-3 h-3" /> Pending
-                      </>
-                    )}
-                  </span>
+            if (group.allDone) {
+              badgeStyle = "bg-emerald-50 text-emerald-700 border-emerald-200";
+              badgeIcon = <CheckCircle2 className="w-3 h-3" />;
+              badgeText = "Done";
+            } else if (group.hasPendingProof) {
+              badgeStyle = "bg-blue-50 text-blue-700 border-blue-200";
+              badgeIcon = <FileCheck className="w-3 h-3" />;
+              badgeText = "Proof Pending";
+            }
 
-                  <span className="text-[10px] bg-black text-[#ffffff] px-1.5 py-0.5 rounded font-bold">
-                    {group.points} XP
-                  </span>
-                  {group.time && (
-                    <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
-                      {group.time}
-                    </span>
-                  )}
-                </div>
-                {group.desc && (
-                  <p className="text-xs text-gray-500">{group.desc}</p>
-                )}
-                <div className="flex items-center gap-3 text-[11px] text-gray-400 flex-wrap">
-                  <span>Assigned to: {group.assignees.join(", ")}</span>
-
-                  {/* Created Date & Time */}
-                  {group.created_at && (
-                    <span>
-                      • Created:{" "}
-                      {new Date(group.created_at).toLocaleString([], {
-                        dateStyle: "short",
-                        timeStyle: "short",
-                      })}
-                    </span>
-                  )}
-                </div>
-              </div>
-              <button
-                onClick={() => handleDeleteGroup(group.ids)}
-                className="p-1.5 text-gray-400 hover:text-rose-600 rounded cursor-pointer"
-                title="Delete task group"
+            return (
+              <div
+                key={group.groupKey}
+                className="flex items-center justify-between p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf9]"
               >
-                <Trash2 className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <span className="font-medium text-[#1a1a1a]">
+                      {group.title}
+                    </span>
+
+                    <span
+                      className={`inline-flex items-center gap-1 text-[10px] px-2 py-0.5 rounded-full font-medium border ${badgeStyle}`}
+                    >
+                      {badgeIcon} {badgeText}
+                    </span>
+
+                    <span className="text-[10px] bg-black text-[#ffffff] px-1.5 py-0.5 rounded font-bold">
+                      {group.points} XP
+                    </span>
+                    {group.time && (
+                      <span className="text-[10px] bg-gray-100 text-gray-600 px-1.5 py-0.5 rounded border border-gray-200">
+                        {group.time}
+                      </span>
+                    )}
+                  </div>
+                  {group.desc && (
+                    <p className="text-xs text-gray-500">{group.desc}</p>
+                  )}
+                  <div className="flex items-center gap-3 text-[11px] text-gray-400 flex-wrap">
+                    <span>Assigned to: {group.assignees.join(", ")}</span>
+
+                    {group.created_at && (
+                      <span>
+                        • Created:{" "}
+                        {new Date(group.created_at).toLocaleString([], {
+                          dateStyle: "short",
+                          timeStyle: "short",
+                        })}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <button
+                  onClick={() => handleDeleteGroup(group.ids)}
+                  className="p-1.5 text-gray-400 hover:text-rose-600 rounded cursor-pointer"
+                  title="Delete task group"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
 
@@ -508,7 +515,10 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
           <div className="bg-white border border-[#e8e3db] rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-semibold text-gray-800">Add New Task</h3>
-              <button onClick={() => setShowModal(false)}>
+              <button
+                onClick={() => setShowModal(false)}
+                className="cursor-pointer"
+              >
                 <X className="w-5 h-5 text-gray-400" />
               </button>
             </div>
@@ -540,14 +550,14 @@ function MissionTasksSection({ missionId }: { missionId: string }) {
               <Button
                 variant="outline"
                 onClick={() => setShowModal(false)}
-                className="flex-1"
+                className="flex-1 cursor-pointer"
                 disabled={submitting}
               >
                 Cancel
               </Button>
               <Button
                 onClick={handleSaveTask}
-                className="flex-1 bg-[#1a1a1a] text-white"
+                className="flex-1 bg-[#1a1a1a] text-white cursor-pointer"
                 disabled={submitting}
               >
                 {submitting && (
@@ -623,22 +633,6 @@ function MissionMembersSection({ missionId }: { missionId: string }) {
           </div>
         ))}
       </div>
-    </div>
-  );
-}
-
-// --- Proofs Section ---
-function MissionProofsSection({ missionId }: { missionId: string }) {
-  return (
-    <div className="text-center py-8 space-y-2">
-      <ShieldCheck className="w-8 h-8 text-gray-400 mx-auto" />
-      <h4 className="text-sm font-medium text-gray-700">
-        Proof Verification Engine
-      </h4>
-      <p className="text-xs text-gray-400 max-w-sm mx-auto">
-        Review submitted photo proofs and notes for tasks assigned under this
-        mission pack.
-      </p>
     </div>
   );
 }
