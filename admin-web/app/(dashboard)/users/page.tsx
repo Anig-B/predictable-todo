@@ -1,34 +1,23 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { createClient } from "@/lib/supabase/client";
 import { useAuthCheck } from "@/hooks/useAuthCheck";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { InviteMemberDialog } from "@/components/invite-member-dialog";
 import { toast } from "sonner";
 import { Trash2 } from "lucide-react";
-
-interface TeamMember {
-  id: string;
-  userId: string | null;
-  username: string;
-  role: "member" | "manager";
-  joinedAt: string;
-  level: number;
-  streak: number;
-  weeklyXp: number;
-  status: "active" | "pending";
-}
-
-interface AvailableUser {
-  id: string;
-  username: string;
-}
+import {
+  getUsersPageData,
+  inviteTeamMember,
+  updateTeamMemberRole,
+  removeTeamMember,
+  TeamMember,
+  AvailableUser,
+} from "@/actions/users";
 
 export default function UsersPage() {
-  const { role, loading: authLoading } = useAuthCheck();
-  const supabase = createClient();
+  const { loading: authLoading } = useAuthCheck();
 
   const [members, setMembers] = useState<TeamMember[]>([]);
   const [availableUsers, setAvailableUsers] = useState<AvailableUser[]>([]);
@@ -38,138 +27,26 @@ export default function UsersPage() {
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [primaryMissionId, setPrimaryMissionId] = useState<string | null>(null);
 
-  const fetchTeamMembers = useCallback(
-    async (userId: string) => {
-      try {
-        setLoading(true);
-
-        const { data: missionMembers, error } = await supabase
-          .from("mission_members")
-          .select(
-            `
-            mission_id,
-            user_id,
-            role,
-            joined_at,
-            user:profiles!user_id(username, level, streak, role)
-          `,
-          )
-          .eq("invited_by", userId);
-
-        if (error) throw error;
-
-        const memberMap = new Map<string, TeamMember>();
-
-        for (const member of (missionMembers || []) as any[]) {
-          // Safely extract profile whether Supabase returns an array or single object
-          const profile = Array.isArray(member.user)
-            ? member.user[0]
-            : member.user;
-
-          if (!member.user_id || profile?.role === "admin") continue;
-
-          let weeklyXp = 0;
-          const { data: stats } = await supabase
-            .from("user_stats")
-            .select("weekly_xp")
-            .eq("user_id", member.user_id)
-            .single();
-
-          if (stats) weeklyXp = stats.weekly_xp;
-
-          const isActive = !!member.joined_at;
-          const existing = memberMap.get(member.user_id);
-
-          const memberObj: TeamMember = {
-            id: member.user_id,
-            userId: member.user_id,
-            username: profile?.username || "Pending Registration",
-            role: member.role as "member" | "manager",
-            joinedAt: isActive
-              ? new Date(member.joined_at!).toLocaleDateString()
-              : "Awaiting App Sync",
-            level: profile?.level || 1,
-            streak: profile?.streak || 0,
-            weeklyXp: weeklyXp,
-            status: isActive ? "active" : "pending",
-          };
-
-          if (!existing) {
-            memberMap.set(member.user_id, memberObj);
-          } else {
-            memberMap.set(member.user_id, {
-              ...existing,
-              role:
-                existing.role === "manager" || member.role === "manager"
-                  ? "manager"
-                  : "member",
-              status:
-                existing.status === "active" || isActive ? "active" : "pending",
-            });
-          }
-        }
-
-        setMembers(Array.from(memberMap.values()));
-      } catch (err) {
-        console.error("Error fetching team members:", err);
-        toast.error("Failed to sync team roster");
-      } finally {
-        setLoading(false);
-      }
-    },
-    [supabase],
-  );
-
-  const fetchAvailableUsers = useCallback(async () => {
+  const loadData = useCallback(async () => {
     try {
-      const { data: users, error } = await supabase
-        .from("profiles")
-        .select("id, username")
-        .neq("role", "admin")
-        .order("username", { ascending: true });
-
-      if (error) throw error;
-      setAvailableUsers(users || []);
+      setLoading(true);
+      const data = await getUsersPageData();
+      setCurrentUserId(data.currentUserId);
+      setPrimaryMissionId(data.primaryMissionId);
+      setMembers(data.members);
+      setAvailableUsers(data.availableUsers);
     } catch (err) {
-      console.error("Error fetching baseline users:", err);
-    }
-  }, [supabase]);
-
-  const initContext = useCallback(async () => {
-    try {
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      const userId = user?.id || null;
-      setCurrentUserId(userId);
-
-      if (userId) {
-        const { data: managedMission } = await supabase
-          .from("mission_members")
-          .select("mission_id")
-          .eq("user_id", userId)
-          .eq("role", "manager")
-          .limit(1)
-          .maybeSingle();
-
-        if (managedMission) {
-          setPrimaryMissionId(managedMission.mission_id);
-        }
-
-        await Promise.all([fetchTeamMembers(userId), fetchAvailableUsers()]);
-      }
-    } catch (err) {
-      console.error("Error initializing user page:", err);
+      console.error("Error initializing users page:", err);
+      toast.error("Failed to load team members");
     } finally {
       setLoading(false);
     }
-  }, [supabase, fetchTeamMembers, fetchAvailableUsers]);
+  }, []);
 
   useEffect(() => {
     if (authLoading) return;
-    initContext();
-  }, [authLoading, initContext]);
+    loadData();
+  }, [authLoading, loadData]);
 
   const handleInvite = async (data: { userId?: string; email?: string }) => {
     if (!currentUserId || !primaryMissionId) {
@@ -179,28 +56,19 @@ export default function UsersPage() {
       return;
     }
 
+    if (!data.userId) return;
+
+    const existingMember = members.find((m) => m.userId === data.userId);
+    if (existingMember) {
+      toast.error("User is already on your team.");
+      return;
+    }
+
     try {
-      if (data.userId) {
-        const existingMember = members.find((m) => m.userId === data.userId);
-        if (existingMember) {
-          toast.error("User is already on your team.");
-          return;
-        }
-
-        const { error } = await supabase.from("mission_members").insert({
-          mission_id: primaryMissionId,
-          user_id: data.userId,
-          role: "member",
-          invited_by: currentUserId,
-          joined_at: null,
-        });
-
-        if (error) throw error;
-        toast.success("Invitation dispatched!");
-      }
-
+      await inviteTeamMember(primaryMissionId, data.userId);
+      toast.success("Invitation dispatched!");
       setShowInviteDialog(false);
-      fetchTeamMembers(currentUserId);
+      await loadData();
     } catch (err: any) {
       toast.error(err?.message || "Failed to invite user");
     }
@@ -210,24 +78,16 @@ export default function UsersPage() {
     userId: string | null,
     newRole: "member" | "manager",
   ) => {
-    if (!userId || !currentUserId) return;
+    if (!userId) return;
 
     try {
-      const { error } = await supabase
-        .from("mission_members")
-        .update({ role: newRole })
-        .eq("user_id", userId)
-        .eq("invited_by", currentUserId);
-
-      if (error) throw error;
-
+      await updateTeamMemberRole(userId, newRole);
       setMembers((prev) =>
         prev.map((m) => (m.userId === userId ? { ...m, role: newRole } : m)),
       );
-
       toast.success(`Role updated to ${newRole}`);
-    } catch (err) {
-      toast.error("Could not update role");
+    } catch (err: any) {
+      toast.error(err?.message || "Could not update role");
     }
   };
 
@@ -235,23 +95,15 @@ export default function UsersPage() {
     userId: string | null,
     username: string,
   ) => {
-    if (!userId || !currentUserId) return;
-
+    if (!userId) return;
     if (!window.confirm(`Remove ${username} from your team?`)) return;
 
     try {
-      const { error } = await supabase
-        .from("mission_members")
-        .delete()
-        .eq("user_id", userId)
-        .eq("invited_by", currentUserId);
-
-      if (error) throw error;
-
+      await removeTeamMember(userId);
       setMembers((prev) => prev.filter((m) => m.userId !== userId));
       toast.success(`${username} removed from team.`);
-    } catch (err) {
-      toast.error("Failed to remove team member");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to remove team member");
     }
   };
 
