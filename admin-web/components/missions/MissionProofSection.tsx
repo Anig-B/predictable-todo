@@ -35,7 +35,7 @@ interface ProofTask {
   }>;
 }
 
-export function MissionProofsTab({ missionId }: { missionId: string }) {
+export function MissionProofsSection({ missionId }: { missionId: string }) {
   const supabase = createClient();
   const [tasks, setTasks] = useState<ProofTask[]>([]);
   const [loading, setLoading] = useState(true);
