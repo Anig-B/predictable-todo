@@ -1,199 +1,145 @@
 "use client";
 
-import { useState } from "react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useState, useMemo } from "react";
+import { X, Search, UserCheck, AlertCircle, Loader2 } from "lucide-react";
 
-export interface AvailableUser {
+interface User {
   id: string;
   username: string;
-  email?: string | null;
 }
 
 interface InviteMemberDialogProps {
-  availableUsers: AvailableUser[];
+  availableUsers: User[];
   onClose: () => void;
-  onSubmit: (data: { userId?: string; email?: string }) => Promise<void>;
+  onSubmit: (data: { userId: string }) => Promise<void>;
 }
 
-export function InviteMemberDialog({
+export default function InviteMemberDialog({
   availableUsers,
   onClose,
   onSubmit,
 }: InviteMemberDialogProps) {
-  const [inviteMethod, setInviteMethod] = useState<"username" | "email">(
-    "username",
-  );
-  const [selectedUserId, setSelectedUserId] = useState("");
-  const [searchInput, setSearchInput] = useState("");
-  const [email, setEmail] = useState("");
+  const [selectedUserId, setSelectedUserId] = useState<string>("");
+  const [searchInput, setSearchInput] = useState<string>("");
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
-  const filteredUsers = availableUsers.filter((user) =>
-    user.username.toLowerCase().includes(searchInput.toLowerCase()),
-  );
+  const filteredUsers = useMemo(() => {
+    if (!searchInput.trim()) return availableUsers;
+    const query = searchInput.toLowerCase();
+    return availableUsers.filter((user) =>
+      user.username.toLowerCase().includes(query),
+    );
+  }, [availableUsers, searchInput]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrorMessage(null);
+
+    if (!selectedUserId) {
+      setErrorMessage("Please select a user to invite.");
+      return;
+    }
+
     setLoading(true);
 
     try {
-      if (inviteMethod === "username") {
-        if (!selectedUserId) return;
-        await onSubmit({ userId: selectedUserId });
-      } else {
-        if (!email.trim()) return;
-
-        // Auto-match existing user ID if the typed email matches a registered profile
-        const matchedUser = availableUsers.find(
-          (u) => u.email?.toLowerCase() === email.trim().toLowerCase(),
-        );
-
-        if (matchedUser) {
-          await onSubmit({ userId: matchedUser.id });
-        } else {
-          await onSubmit({ email: email.trim() });
-        }
-      }
-
-      setSelectedUserId("");
-      setSearchInput("");
-      setEmail("");
-    } catch (err) {
+      await onSubmit({ userId: selectedUserId });
+      onClose();
+    } catch (err: any) {
       console.error("Form transmission failed:", err);
+      setErrorMessage(err?.message || "Failed to dispatch invitation.");
     } finally {
       setLoading(false);
     }
   };
 
-  const selectedUser = availableUsers.find((u) => u.id === selectedUserId);
-
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg p-8 w-full max-w-md border border-[#e8e3db] shadow-xl">
-        <h2 className="text-2xl font-semibold text-[#1a1a1a] mb-6">
-          Invite Member
-        </h2>
-
-        <form onSubmit={handleSubmit} className="space-y-6">
-          <Tabs
-            value={inviteMethod}
-            onValueChange={(v) => {
-              setInviteMethod(v as "username" | "email");
-              setSelectedUserId("");
-              setSearchInput("");
-              setEmail("");
-            }}
-            className="w-full"
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="bg-white rounded-lg border border-[#e8e3db] shadow-lg w-full max-w-md overflow-hidden">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-[#e8e3db]">
+          <h2 className="text-lg font-semibold text-[#1a1a1a]">
+            Invite Team Member
+          </h2>
+          <button
+            onClick={onClose}
+            aria-label="Close dialog"
+            className="p-1.5 text-gray-500 hover:text-[#1a1a1a] rounded-md transition-colors"
           >
-            <TabsList className="grid w-full grid-cols-2 bg-[#f5f3f0] p-1 rounded-lg">
-              <TabsTrigger
-                value="username"
-                className="text-sm rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                By Username
-              </TabsTrigger>
-              <TabsTrigger
-                value="email"
-                className="text-sm rounded-md data-[state=active]:bg-white data-[state=active]:shadow-sm"
-              >
-                By Email
-              </TabsTrigger>
-            </TabsList>
+            <X className="w-4 h-4" />
+          </button>
+        </div>
 
-            <TabsContent
-              value="username"
-              className="space-y-4 mt-4 outline-none"
-            >
-              <div>
-                <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
-                  Search & Select Username
-                </label>
-                <Input
-                  type="text"
-                  value={searchInput}
-                  onChange={(e) => {
-                    setSearchInput(e.target.value);
-                    if (selectedUserId) setSelectedUserId("");
-                  }}
-                  placeholder="Type username..."
-                  disabled={loading}
-                  className="w-full bg-[#fafaf8] border-[#e8e3db]"
-                />
+        {/* Form Body */}
+        <form onSubmit={handleSubmit} className="p-4 space-y-4">
+          {errorMessage && (
+            <div className="flex items-center gap-2 text-sm text-red-700 bg-red-50 border border-red-200 p-3 rounded-md">
+              <AlertCircle className="w-4 h-4 shrink-0" />
+              <span>{errorMessage}</span>
+            </div>
+          )}
 
-                <div className="mt-2 border border-[#e8e3db] rounded-lg max-h-48 overflow-y-auto bg-white divide-y divide-[#e8e3db]">
-                  {filteredUsers.length === 0 ? (
-                    <div className="p-3 text-sm text-[#8b8b8b] text-center italic">
-                      No matching users found
-                    </div>
-                  ) : (
-                    filteredUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        onClick={() => {
-                          setSelectedUserId(user.id);
-                          setSearchInput(user.username);
-                        }}
-                        className={`p-3 text-sm cursor-pointer transition-colors ${
-                          selectedUserId === user.id
-                            ? "bg-indigo-50 text-indigo-700 font-medium"
-                            : "hover:bg-[#f5f3f0] text-[#1a1a1a]"
-                        }`}
-                      >
-                        {user.username}
-                      </div>
-                    ))
-                  )}
+          <div className="space-y-3">
+            <div className="relative">
+              <Search className="w-4 h-4 absolute left-3 top-3 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search username..."
+                value={searchInput}
+                onChange={(e) => {
+                  setSearchInput(e.target.value);
+                  if (selectedUserId) setSelectedUserId("");
+                }}
+                className="w-full pl-9 pr-3 py-2 border border-[#e8e3db] rounded-md text-sm bg-[#fafaf8] focus:bg-white focus:outline-none focus:ring-2 focus:ring-[#1a1a1a] focus:border-transparent transition-all"
+              />
+            </div>
+
+            <div className="max-h-56 overflow-y-auto border border-[#e8e3db] rounded-md divide-y divide-[#e8e3db]">
+              {filteredUsers.length === 0 ? (
+                <div className="p-4 text-xs text-gray-400 text-center">
+                  No registered users found matching query.
                 </div>
+              ) : (
+                filteredUsers.map((user) => (
+                  <button
+                    key={user.id}
+                    type="button"
+                    onClick={() => setSelectedUserId(user.id)}
+                    className={`w-full flex items-center justify-between p-3 text-left text-sm transition-colors ${
+                      selectedUserId === user.id
+                        ? "bg-indigo-50 text-indigo-950 font-medium"
+                        : "hover:bg-[#fafaf8] text-[#1a1a1a]"
+                    }`}
+                  >
+                    <span className="font-medium">{user.username}</span>
+                    {selectedUserId === user.id && (
+                      <UserCheck className="w-4 h-4 text-indigo-600" />
+                    )}
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
 
-                {selectedUser && (
-                  <div className="mt-3 p-2.5 bg-green-50 border border-green-200 rounded-md text-xs font-medium text-green-800 flex items-center gap-1.5 animate-in fade-in duration-200">
-                    <span>✓</span> Ready to invite:{" "}
-                    <strong>{selectedUser.username}</strong>
-                  </div>
-                )}
-              </div>
-            </TabsContent>
-
-            <TabsContent value="email" className="space-y-4 mt-4 outline-none">
-              <div>
-                <label className="block text-sm font-medium text-[#1a1a1a] mb-2">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder="member@example.com"
-                  disabled={loading}
-                  required={inviteMethod === "email"}
-                  className="w-full bg-[#fafaf8] border-[#e8e3db]"
-                />
-              </div>
-            </TabsContent>
-          </Tabs>
-
-          <div className="flex gap-3 pt-2">
-            <Button
+          {/* Action Buttons */}
+          <div className="flex justify-end gap-2 pt-3 border-t border-[#e8e3db]">
+            <button
               type="button"
-              variant="outline"
               onClick={onClose}
               disabled={loading}
-              className="flex-1 border-[#e8e3db] text-[#1a1a1a] hover:bg-gray-100"
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 border border-[#e8e3db] rounded-md transition-colors disabled:opacity-50"
             >
               Cancel
-            </Button>
-            <Button
+            </button>
+            <button
               type="submit"
-              disabled={
-                loading ||
-                (inviteMethod === "username" ? !selectedUserId : !email.trim())
-              }
-              className="flex-1 bg-[#1a1a1a] text-white hover:bg-[#333]"
+              disabled={loading || !selectedUserId}
+              className="flex items-center gap-1.5 px-4 py-2 text-sm font-medium text-white bg-[#1a1a1a] hover:bg-[#333333] rounded-md transition-colors disabled:opacity-50 shadow-sm"
             >
-              {loading ? "Inviting..." : "Send Invite"}
-            </Button>
+              {loading && <Loader2 className="w-4 h-4 animate-spin" />}
+              Send Invitation
+            </button>
           </div>
         </form>
       </div>
