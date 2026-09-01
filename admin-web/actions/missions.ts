@@ -75,11 +75,13 @@ export async function getMissionsData() {
       `,
       )
       .eq("is_active", true)
+      .eq("is_default", false) // Excludes system default starter pack
       .order("created_at", { ascending: false }),
     supabase
       .from("missions")
       .select("id, name")
       .eq("is_active", false)
+      .eq("is_default", false) // Excludes system default starter pack
       .order("created_at", { ascending: false }),
   ]);
 
@@ -116,6 +118,18 @@ export async function toggleMissionArchiveStatus(
   isActive: boolean,
 ) {
   const supabase = await createClient();
+
+  // Guard against modifying default packs
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("is_default")
+    .eq("id", id)
+    .single();
+
+  if (mission?.is_default) {
+    throw new Error("Default Starter Packs cannot be archived.");
+  }
+
   const { error } = await supabase
     .from("missions")
     .update({ is_active: isActive })
@@ -128,7 +142,19 @@ export async function toggleMissionArchiveStatus(
 export async function deleteMissionPermanently(id: string) {
   const supabase = await createClient();
 
-  await supabase.from("tasks").delete().eq("mission_id", id);
+  // Guard against deleting default packs
+  const { data: mission } = await supabase
+    .from("missions")
+    .select("is_default")
+    .eq("id", id)
+    .single();
+
+  if (mission?.is_default) {
+    throw new Error("Default Starter Packs cannot be deleted.");
+  }
+
+  // Delete matching tasks via FK reference mission_id_fk
+  await supabase.from("tasks").delete().eq("mission_id_fk", id);
   await supabase.from("mission_members").delete().eq("mission_id", id);
 
   const { data, error } = await supabase
@@ -193,6 +219,38 @@ export async function getMissionTasksAndMembers(missionId: string) {
 
 export async function createMissionTasks(tasks: any[], missionId: string) {
   const supabase = await createClient();
+
+  // Extract non-null unique user IDs assigned in this batch
+  const assignedUserIds = Array.from(
+    new Set(tasks.map((t) => t.user_id).filter(Boolean)),
+  );
+
+  if (assignedUserIds.length > 0) {
+    // Verify that every assigned user has an accepted invitation (joined_at is not null)
+    const { data: acceptedMembers, error: checkErr } = await supabase
+      .from("mission_members")
+      .select("user_id")
+      .eq("mission_id", missionId)
+      .in("user_id", assignedUserIds)
+      .not("joined_at", "is", null);
+
+    if (checkErr) throw new Error(checkErr.message);
+
+    const acceptedUserIds = new Set(
+      (acceptedMembers || []).map((m: any) => m.user_id),
+    );
+
+    const invalidAssignment = assignedUserIds.find(
+      (uid) => !acceptedUserIds.has(uid),
+    );
+
+    if (invalidAssignment) {
+      throw new Error(
+        "Cannot assign task: One or more selected users have not accepted their team invitation yet.",
+      );
+    }
+  }
+
   const { error } = await supabase.from("tasks").insert(tasks);
   if (error) throw new Error(error.message);
   revalidatePath(`/missions/${missionId}`);
@@ -206,4 +264,120 @@ export async function deleteMissionTaskGroup(
   const { error } = await supabase.from("tasks").delete().in("id", taskIds);
   if (error) throw new Error(error.message);
   revalidatePath(`/missions/${missionId}`);
+}
+
+// --- Proof Review Actions ---
+
+export async function approveProof(task: Task, feedback?: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  // 1. Record approved review in database
+  const { error: reviewErr } = await supabase.from("proof_reviews").insert({
+    task_id: task.id,
+    reviewed_by: user.id,
+    approved: true,
+    feedback: feedback?.trim() || null,
+  });
+  if (reviewErr) throw new Error(reviewErr.message);
+
+  // 2. Mark task as completed
+  const { error: taskErr } = await supabase
+    .from("tasks")
+    .update({ done: true })
+    .eq("id", task.id);
+  if (taskErr) throw new Error(taskErr.message);
+
+  if (task.user_id) {
+    // 3. Increment profile XP
+    const { data: profile } = await supabase
+      .from("profiles")
+      .select("xp")
+      .eq("id", task.user_id)
+      .single();
+
+    if (profile) {
+      await supabase
+        .from("profiles")
+        .update({ xp: (profile.xp || 0) + task.points })
+        .eq("id", task.user_id);
+    }
+
+    // 4. Increment user_stats
+    const { data: stats } = await supabase
+      .from("user_stats")
+      .select("xp, total_lifetime_tasks")
+      .eq("user_id", task.user_id)
+      .single();
+
+    if (stats) {
+      await supabase
+        .from("user_stats")
+        .update({
+          xp: (stats.xp || 0) + task.points,
+          total_lifetime_tasks: (stats.total_lifetime_tasks || 0) + 1,
+        })
+        .eq("user_id", task.user_id);
+    }
+
+    // 5. Insert activity log
+    await supabase.from("activity_logs").insert({
+      user_id: task.user_id,
+      task: task.title,
+      points: task.points,
+      time: new Date().toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      icon: "ShieldCheck",
+      task_id: task.id,
+      image_url: task.proof_image,
+    });
+  }
+
+  if (task.mission_id_fk) {
+    revalidatePath(`/missions/${task.mission_id_fk}`);
+  }
+  revalidatePath("/dashboard");
+}
+
+export async function rejectProof(task: Task, feedback?: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  if (!user) throw new Error("Unauthorized");
+
+  // 1. Record rejection review entry in database
+  const { error: reviewErr } = await supabase.from("proof_reviews").insert({
+    task_id: task.id,
+    reviewed_by: user.id,
+    approved: false,
+    feedback: feedback?.trim() || null,
+  });
+  if (reviewErr) throw new Error(reviewErr.message);
+
+  // 2. Soft Reset: Clear current proof so member can resubmit
+  const { error: resetErr } = await supabase
+    .from("tasks")
+    .update({
+      proof_image: null,
+      proof_notes: null,
+      done: false,
+    })
+    .eq("id", task.id);
+
+  if (resetErr) throw new Error(resetErr.message);
+
+  if (task.mission_id_fk) {
+    revalidatePath(`/missions/${task.mission_id_fk}`);
+  }
+  revalidatePath("/dashboard");
 }

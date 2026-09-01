@@ -8,7 +8,6 @@ export interface AssignableUser {
   avatar_url?: string | null;
 }
 
-// Unified interface to accept both AssignableUser and MissionMember props
 export type TaskMemberOption =
   | AssignableUser
   | { user_id: string; username: string };
@@ -37,7 +36,7 @@ export const PRIORITY_XP: Record<TaskPriority, number> = {
 interface TaskCardProps {
   task: TaskRow;
   index: number;
-  memberList: TaskMemberOption[];
+  memberList: TaskMemberOption[]; // Members currently scoped to the Mission
   canRemove: boolean;
   saving?: boolean;
   onUpdate: (key: string, patch: Partial<TaskRow>) => void;
@@ -206,16 +205,16 @@ export function TaskCard({
               disabled={saving}
               className="accent-[#1a1a1a]"
             />
-            Specific team members
+            Specific mission members
           </label>
         </div>
 
         {t.assignMode === "specific" && (
           <div className="space-y-1.5 pt-1">
             {normalizedMembers.length === 0 ? (
-              <p className="text-xs text-[#6b6b6b] italic">
-                No active team members found. Invite members to assign them
-                directly.
+              <p className="text-xs text-amber-700 italic">
+                No team members added to this mission yet. Add members in
+                Section 2 above to select specific assignees.
               </p>
             ) : (
               <div className="flex flex-wrap gap-1.5">
@@ -243,7 +242,8 @@ export function TaskCard({
 
             {isSpecificUnassigned && normalizedMembers.length > 0 && (
               <p className="text-[11px] text-amber-700 font-medium pt-1">
-                ⚠️ Please select at least one assignee above.
+                ⚠️ Please select at least one assignee from the mission scope
+                above.
               </p>
             )}
           </div>

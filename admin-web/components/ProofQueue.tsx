@@ -7,6 +7,7 @@ interface ProofItem {
   missionId: string;
   missionName: string;
   userName: string;
+  done?: boolean; // Optional property if passed from backend
 }
 
 const getInitials = (name: string) =>
@@ -17,18 +18,21 @@ const getInitials = (name: string) =>
     .toUpperCase();
 
 export default function ProofQueue({ proofs }: { proofs: ProofItem[] }) {
+  // Client-side safety filter: remove any items explicitly marked done
+  const pendingProofs = proofs.filter((p) => !p.done);
+
   return (
     <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6 shadow-sm">
       <h2 className="text-lg font-semibold text-[#1a1a1a] mb-6">
-        Proof Verification Queue
+        Proof Verification Queue ({pendingProofs.length})
       </h2>
       <div className="space-y-4">
-        {proofs.length === 0 ? (
+        {pendingProofs.length === 0 ? (
           <p className="text-xs text-muted-foreground">
             No pending proof reviews for your company missions.
           </p>
         ) : (
-          proofs.map((proof) => (
+          pendingProofs.map((proof) => (
             <div
               key={proof.taskId}
               className="flex items-center justify-between pb-4 border-b border-[#e8e3db] last:border-0 last:pb-0 hover:bg-[#f3f0ea]/50 p-2 rounded transition-colors"
@@ -48,7 +52,7 @@ export default function ProofQueue({ proofs }: { proofs: ProofItem[] }) {
               </div>
 
               <Link
-                href={`/missions/${proof.missionId}`}
+                href={`/missions/${proof.missionId}?taskId=${proof.taskId}`}
                 className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold bg-indigo-50 text-indigo-700 border border-indigo-200 hover:bg-indigo-100 rounded transition-colors shrink-0"
               >
                 <span>Review Proof</span>

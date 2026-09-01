@@ -33,14 +33,16 @@ export function NewMissionDialog({
 
   const [loading, setLoading] = useState(false);
   const [fetchingUsers, setFetchingUsers] = useState(true);
+
+  // All active team users available to the manager
   const [availableUsers, setAvailableUsers] = useState<AssignableUser[]>([]);
 
   // Form State
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
-  const [globalAssignedUserIds, setGlobalAssignedUserIds] = useState<string[]>(
-    [],
-  );
+
+  // Members explicitly added to THIS mission scope
+  const [missionMemberIds, setMissionMemberIds] = useState<string[]>([]);
 
   const [tasks, setTasks] = useState<TaskRow[]>([createDefaultTask()]);
 
@@ -54,10 +56,12 @@ export function NewMissionDialog({
         } = await supabase.auth.getUser();
         if (authError || !user) throw new Error("Authentication failed");
 
+        // Fetch team members invited by manager who accepted their invite
         const { data: invitedMembers, error: membersError } = await supabase
           .from("mission_members")
           .select("user_id")
-          .eq("invited_by", user.id);
+          .eq("invited_by", user.id)
+          .not("joined_at", "is", null);
 
         if (membersError) throw membersError;
 
@@ -127,18 +131,49 @@ export function NewMissionDialog({
     );
   };
 
-  const toggleGlobalUser = (userId: string) => {
-    setGlobalAssignedUserIds((prev) =>
-      prev.includes(userId)
+  const toggleMissionMember = (userId: string) => {
+    setMissionMemberIds((prev) => {
+      const isRemoving = prev.includes(userId);
+      const nextMembers = isRemoving
         ? prev.filter((id) => id !== userId)
-        : [...prev, userId],
-    );
+        : [...prev, userId];
+
+      // Clean up specific assignee selections in tasks if member is removed from mission scope
+      if (isRemoving) {
+        setTasks((prevTasks) =>
+          prevTasks.map((t) => ({
+            ...t,
+            assigneeIds: t.assigneeIds.filter((id) => id !== userId),
+          })),
+        );
+      }
+
+      return nextMembers;
+    });
   };
+
+  // Filter available users to pass ONLY mission-scoped members to tasks
+  const currentMissionMembers = availableUsers.filter((u) =>
+    missionMemberIds.includes(u.id),
+  );
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
       toast.error("Mission title is required");
+      return;
+    }
+
+    // Validate that tasks set to 'specific' have at least one assignee selected
+    const invalidSpecificTask = tasks.find(
+      (t) => t.assignMode === "specific" && t.assigneeIds.length === 0,
+    );
+    if (invalidSpecificTask) {
+      toast.error(
+        `Please select at least one team member for "${
+          invalidSpecificTask.title || "Untitled Task"
+        }" or change mode to "All mission members".`,
+      );
       return;
     }
 
@@ -165,7 +200,7 @@ export function NewMissionDialog({
       if (missionError) throw missionError;
       const missionId = newMission.id;
 
-      // Register Members
+      // Register Members in mission scope (Manager + Selected Team Members)
       const memberInserts: {
         mission_id: string;
         user_id: string;
@@ -182,14 +217,14 @@ export function NewMissionDialog({
         },
       ];
 
-      globalAssignedUserIds.forEach((invitedUserId) => {
-        if (invitedUserId !== user.id) {
+      missionMemberIds.forEach((memberUserId) => {
+        if (memberUserId !== user.id) {
           memberInserts.push({
             mission_id: missionId,
-            user_id: invitedUserId,
+            user_id: memberUserId,
             role: "member",
             invited_by: user.id,
-            joined_at: null,
+            joined_at: new Date().toISOString(),
           });
         }
       });
@@ -200,18 +235,17 @@ export function NewMissionDialog({
 
       if (membersError) throw membersError;
 
-      // Bulk Insert Tasks
+      // Bulk Insert Tasks based on individual task assignment settings
       const validTasks = tasks.filter((t) => t.title.trim() !== "");
       if (validTasks.length > 0) {
         const taskInserts: any[] = [];
 
         validTasks.forEach((t) => {
+          // Resolve target users for this specific task
           const targetUsers =
             t.assignMode === "all"
-              ? [user.id, ...globalAssignedUserIds]
-              : t.assigneeIds.length > 0
-                ? t.assigneeIds
-                : [user.id];
+              ? [user.id, ...missionMemberIds] // Manager + All Mission Members
+              : t.assigneeIds; // Strictly selected members for this specific task
 
           targetUsers.forEach((assignedUserId) => {
             taskInserts.push({
@@ -230,14 +264,16 @@ export function NewMissionDialog({
           });
         });
 
-        const { error: tasksError } = await supabase
-          .from("tasks")
-          .insert(taskInserts);
+        if (taskInserts.length > 0) {
+          const { error: tasksError } = await supabase
+            .from("tasks")
+            .insert(taskInserts);
 
-        if (tasksError) throw tasksError;
+          if (tasksError) throw tasksError;
+        }
       }
 
-      toast.success("Mission Pack configured successfully!");
+      toast.success("Mission Pack created successfully!");
       onSuccess();
     } catch (err: any) {
       toast.error(err.message || "Failed to create mission pack");
@@ -260,7 +296,7 @@ export function NewMissionDialog({
               Configure Mission Pack
             </h2>
             <p className="text-xs text-gray-400 mt-0.5">
-              Bundle multiple tasks and orchestrate team assignments.
+              Bundle tasks and assign team members under this mission scope.
             </p>
           </div>
           <button
@@ -307,11 +343,22 @@ export function NewMissionDialog({
             </div>
           </div>
 
-          {/* Section 2: Team Roster */}
+          {/* Section 2: Mission Scope Members */}
           <div className="bg-white p-5 border border-[#e8e3db] rounded-lg space-y-3 shadow-xs">
-            <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
-              2. Invite Team Members
-            </h3>
+            <div className="flex items-center justify-between">
+              <h3 className="text-sm font-semibold text-gray-800 uppercase tracking-wider">
+                2. Add Team Members to Mission Scope
+              </h3>
+              <span className="text-xs text-[#6b6b6b] font-medium">
+                {missionMemberIds.length} member(s) included
+              </span>
+            </div>
+            <p className="text-xs text-gray-500">
+              Select members who belong to this mission. Tasks set to "All
+              mission members" will automatically be assigned to everyone
+              selected here.
+            </p>
+
             {fetchingUsers ? (
               <div className="flex items-center gap-2 text-xs text-gray-400 py-2">
                 <Loader2 className="w-3.5 h-3.5 animate-spin" /> Loading team
@@ -319,24 +366,25 @@ export function NewMissionDialog({
               </div>
             ) : availableUsers.length === 0 ? (
               <p className="text-xs text-gray-400 italic">
-                No team members available.
+                No active team members available. (Users must accept their team
+                invite first).
               </p>
             ) : (
               <div className="flex flex-wrap gap-2 pt-1">
                 {availableUsers.map((u) => {
-                  const assigned = globalAssignedUserIds.includes(u.id);
+                  const isScoped = missionMemberIds.includes(u.id);
                   return (
                     <button
                       key={u.id}
                       type="button"
-                      onClick={() => toggleGlobalUser(u.id)}
+                      onClick={() => toggleMissionMember(u.id)}
                       className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium transition-all border ${
-                        assigned
+                        isScoped
                           ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
                           : "bg-[#fafaf8] text-gray-600 border-[#e8e3db] hover:bg-gray-100"
                       }`}
                     >
-                      {assigned ? (
+                      {isScoped ? (
                         <Check className="w-3 h-3" />
                       ) : (
                         <UserPlus className="w-3 h-3" />
@@ -371,7 +419,7 @@ export function NewMissionDialog({
                 key={task.key}
                 task={task}
                 index={index}
-                memberList={availableUsers}
+                memberList={currentMissionMembers}
                 canRemove={tasks.length > 1}
                 saving={loading}
                 onUpdate={handleUpdateTask}
