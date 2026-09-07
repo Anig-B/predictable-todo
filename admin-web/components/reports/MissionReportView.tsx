@@ -31,8 +31,6 @@ export function MissionReportView({
   missionMembers,
   onSelectMission,
 }: MissionReportViewProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
   const completionRate =
     selectedMission.tasksTotal > 0
       ? Math.round(
@@ -42,116 +40,168 @@ export function MissionReportView({
 
   return (
     <div className="space-y-8">
-      <div>
-        <label className="text-sm font-medium text-[#6b6b6b] block mb-2">
-          Managed Mission
-        </label>
-        <div className="relative w-96">
-          <button
-            onClick={() => setDropdownOpen(!dropdownOpen)}
-            className="w-full flex items-center justify-between px-4 py-2 bg-[#fafaf8] border border-[#e8e3db] rounded-lg text-sm text-[#1a1a1a] hover:bg-[#f0ebe4] transition-colors"
-          >
-            <span>{selectedMission.name}</span>
-            <ChevronDown className="w-4 h-4" />
-          </button>
-          {dropdownOpen && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#e8e3db] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-              {missionsList.map((m) => (
-                <button
-                  key={m.id}
-                  onClick={() => {
-                    onSelectMission(m);
-                    setDropdownOpen(false);
-                  }}
-                  className="w-full text-left px-4 py-2 hover:bg-[#f0ebe4] text-sm text-[#1a1a1a]"
-                >
-                  {m.name}
-                </button>
-              ))}
-            </div>
-          )}
-        </div>
-      </div>
+      {/* Dropdown Selector Subcomponent */}
+      <MissionSelector
+        missionsList={missionsList}
+        selectedMission={selectedMission}
+        onSelectMission={onSelectMission}
+      />
 
-      <div className="grid grid-cols-4 gap-4">
-        <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
-          <p className="text-sm text-[#8b8b8b] mb-2">Total tasks</p>
-          <p className="text-3xl font-semibold text-[#1a1a1a]">
-            {selectedMission.tasksTotal}
-          </p>
-        </div>
-        <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
-          <p className="text-sm text-[#8b8b8b] mb-2">Completed</p>
-          <p className="text-3xl font-semibold text-[#1a1a1a]">
-            {selectedMission.tasksDone}
-          </p>
-        </div>
-        <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
-          <p className="text-sm text-[#8b8b8b] mb-2">Completion rate</p>
-          <p className="text-3xl font-semibold text-[#1a1a1a]">
-            {completionRate}%
-          </p>
-        </div>
-        <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
-          <p className="text-sm text-[#8b8b8b] mb-2">XP earned</p>
-          <p className="text-3xl font-semibold text-[#1a1a1a]">
-            {selectedMission.xpEarned}
-          </p>
-        </div>
-      </div>
+      {/* Metrics Grid Subcomponent */}
+      <MissionMetricsGrid
+        tasksTotal={selectedMission.tasksTotal}
+        tasksDone={selectedMission.tasksDone}
+        completionRate={completionRate}
+        xpEarned={selectedMission.xpEarned}
+      />
 
-      <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg overflow-hidden">
-        <table className="w-full">
-          <thead>
-            <tr className="border-b border-[#e8e3db] bg-[#f5f3f0]">
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-                Member
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-                Assigned
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-                Done
-              </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-                XP earned
-              </th>
+      {/* Member Table Subcomponent */}
+      <MissionMemberTable members={missionMembers} />
+    </div>
+  );
+}
+
+/* ============================================================================
+   SUBCOMPONENTS
+   ============================================================================ */
+
+interface MissionSelectorProps {
+  missionsList: MissionOption[];
+  selectedMission: MissionOption;
+  onSelectMission: (mission: MissionOption) => void;
+}
+
+function MissionSelector({
+  missionsList,
+  selectedMission,
+  onSelectMission,
+}: MissionSelectorProps) {
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+
+  return (
+    <div>
+      <label className="text-sm font-medium text-[#6b6b6b] block mb-2">
+        Managed Mission
+      </label>
+      <div className="relative w-96">
+        <button
+          onClick={() => setDropdownOpen(!dropdownOpen)}
+          className="w-full flex items-center justify-between px-4 py-2 bg-[#fafaf8] border border-[#e8e3db] rounded-lg text-sm text-[#1a1a1a] hover:bg-[#f0ebe4] transition-colors"
+        >
+          <span>{selectedMission.name}</span>
+          <ChevronDown className="w-4 h-4" />
+        </button>
+        {dropdownOpen && (
+          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#e8e3db] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
+            {missionsList.map((m) => (
+              <button
+                key={m.id}
+                onClick={() => {
+                  onSelectMission(m);
+                  setDropdownOpen(false);
+                }}
+                className="w-full text-left px-4 py-2 hover:bg-[#f0ebe4] text-sm text-[#1a1a1a]"
+              >
+                {m.name}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+interface MissionMetricsGridProps {
+  tasksTotal: number;
+  tasksDone: number;
+  completionRate: number;
+  xpEarned: number;
+}
+
+function MissionMetricsGrid({
+  tasksTotal,
+  tasksDone,
+  completionRate,
+  xpEarned,
+}: MissionMetricsGridProps) {
+  return (
+    <div className="grid grid-cols-4 gap-4">
+      <MetricCard label="Total tasks" value={tasksTotal} />
+      <MetricCard label="Completed" value={tasksDone} />
+      <MetricCard label="Completion rate" value={`${completionRate}%`} />
+      <MetricCard label="XP earned" value={xpEarned} />
+    </div>
+  );
+}
+
+function MetricCard({
+  label,
+  value,
+}: {
+  label: string;
+  value: string | number;
+}) {
+  return (
+    <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
+      <p className="text-sm text-[#8b8b8b] mb-2">{label}</p>
+      <p className="text-3xl font-semibold text-[#1a1a1a]">{value}</p>
+    </div>
+  );
+}
+
+interface MissionMemberTableProps {
+  members: MissionMemberBreakdown[];
+}
+
+function MissionMemberTable({ members }: MissionMemberTableProps) {
+  return (
+    <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg overflow-hidden">
+      <table className="w-full">
+        <thead>
+          <tr className="border-b border-[#e8e3db] bg-[#f5f3f0]">
+            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              Member
+            </th>
+            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              Assigned
+            </th>
+            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              Done
+            </th>
+            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              XP earned
+            </th>
+          </tr>
+        </thead>
+        <tbody>
+          {members.length === 0 ? (
+            <tr>
+              <td colSpan={4} className="px-6 py-4 text-center text-[#8b8b8b]">
+                No joined members found for this mission
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            {missionMembers.length === 0 ? (
-              <tr>
-                <td
-                  colSpan={4}
-                  className="px-6 py-4 text-center text-[#8b8b8b]"
-                >
-                  No joined members found for this mission
+          ) : (
+            members.map((row) => (
+              <tr
+                key={row.name}
+                className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] last:border-0"
+              >
+                <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
+                  {row.name}
+                </td>
+                <td className="px-6 py-4 text-sm text-[#8b8b8b]">
+                  {row.assigned}
+                </td>
+                <td className="px-6 py-4 text-sm text-[#8b8b8b]">{row.done}</td>
+                <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
+                  {row.xp}
                 </td>
               </tr>
-            ) : (
-              missionMembers.map((row) => (
-                <tr
-                  key={row.name}
-                  className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] last:border-0"
-                >
-                  <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
-                    {row.name}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-[#8b8b8b]">
-                    {row.assigned}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-[#8b8b8b]">
-                    {row.done}
-                  </td>
-                  <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
-                    {row.xp}
-                  </td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
+            ))
+          )}
+        </tbody>
+      </table>
     </div>
   );
 }
