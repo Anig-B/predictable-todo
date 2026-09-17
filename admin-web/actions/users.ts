@@ -241,7 +241,25 @@ export async function inviteTeamMember(arg1: string, arg2?: string) {
     targetUserId = arg1;
   }
 
-  const { error } = await supabase.from("mission_members").insert({
+  // 1. Fetch inviter & mission details for notification text
+  const [{ data: inviterProfile }, { data: missionData }] = await Promise.all([
+    supabase
+      .from("profiles")
+      .select("username")
+      .eq("id", user.id)
+      .maybeSingle(),
+    supabase
+      .from("missions")
+      .select("name")
+      .eq("id", targetMissionId)
+      .maybeSingle(),
+  ]);
+
+  const inviterName = inviterProfile?.username || "A manager";
+  const missionName = missionData?.name || "a mission";
+
+  // 2. Insert member row
+  const { error: memberError } = await supabase.from("mission_members").insert({
     mission_id: targetMissionId,
     user_id: targetUserId,
     role: "member",
@@ -249,16 +267,40 @@ export async function inviteTeamMember(arg1: string, arg2?: string) {
     joined_at: null,
   });
 
-  if (error) {
-    if (error.code === "23505") {
+  if (memberError) {
+    if (memberError.code === "23505") {
       throw new Error("User is already assigned to this team mission.");
     }
-    throw new Error(error.message);
+    throw new Error(`Mission Member Error: ${memberError.message}`);
+  }
+
+  // 3. Insert notification row
+  const { error: notifError } = await supabase.from("notifications").insert({
+    user_id: targetUserId,
+    type: "mission_invite",
+    title: "Mission Invite",
+    message: `${inviterName} invited you to join "${missionName}"!`,
+    is_read: false,
+    metadata: {
+      mission_id: targetMissionId,
+    },
+  });
+
+  // 4. ROLLBACK: Delete the member if sending the notification failed
+  if (notifError) {
+    console.error("Supabase Notification Error:", notifError);
+
+    await supabase
+      .from("mission_members")
+      .delete()
+      .eq("mission_id", targetMissionId)
+      .eq("user_id", targetUserId);
+
+    throw new Error(`Invitation failed: ${notifError.message}`);
   }
 
   revalidatePath("/users");
 }
-
 export async function removeTeamMember(
   targetUserId: string,
   missionId?: string,

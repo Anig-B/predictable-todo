@@ -17,58 +17,60 @@ export interface UserActivity {
   project: string;
   points: number | null;
   timestamp: string;
+  missionId?: string;
 }
 
-export interface PendingReview {
-  id: string;
-  taskId: string;
-  task: string;
-  mission: string;
-  missionId: string;
-  note: string;
-  proofUrl?: string;
-}
-
-export interface ActiveMissionTask {
-  id: string;
-  title: string;
-  status: "completed" | "pending_approval" | "due";
-  dateText: string;
-}
-
-export interface ActiveMission {
-  id: string;
-  name: string;
-  progress: number;
-  tasks: ActiveMissionTask[];
+export interface CompanyOverviewStats {
+  totalMissions: number;
+  completedMissions: number;
+  remainingMissions: number;
+  totalTasks: number;
+  completedTasks: number;
+  remainingTasks: number;
+  companyCompletionRate: number;
+  totalCompanyXp: number;
 }
 
 export interface MissionOption {
   id: string;
   name: string;
+  isActive: boolean;
   tasksTotal: number;
   tasksDone: number;
   xpEarned: number;
+  completionRate: number;
 }
 
 export interface MissionMemberBreakdown {
+  userId: string;
   name: string;
   assigned: number;
   done: number;
   xp: number;
-  isPending: boolean;
 }
 
 export interface ReportsPayload {
+  company: CompanyOverviewStats;
   users: UserOption[];
   missions: MissionOption[];
+  userXpTotal: Record<string, number>;
   activities: Record<string, UserActivity[]>;
+  missionActivities: Record<string, UserActivity[]>;
   completionStats: Record<
     string,
     { done: number; total: number; pending: number; rate: number }
   >;
-  pendingReviews: Record<string, PendingReview[]>;
-  userMissions: Record<string, ActiveMission[]>;
+  userMissions: Record<
+    string,
+    {
+      id: string;
+      name: string;
+      progress: number;
+      tasksTotal: number;
+      tasksDone: number;
+      xpEarned: number;
+    }[]
+  >;
   missionMembers: Record<string, MissionMemberBreakdown[]>;
   userAssignedMissionIds: Record<string, string[]>;
 }
@@ -82,7 +84,7 @@ function getTimeframeStartDate(timeframe: Timeframe): Date | null {
   const now = new Date();
   if (timeframe === "daily") {
     const d = new Date(now);
-    d.setHours(d.getHours() - 24); // UPDATED: Rolling 24-hour window
+    d.setHours(d.getHours() - 24);
     return d;
   }
   if (timeframe === "weekly") {
@@ -115,12 +117,11 @@ export async function getManagerReportsData(
 
   const managerId = user.id;
 
-  // 2. Fetch manager's active missions
+  // 2. Fetch Manager's Missions (Active and Completed)
   const { data: managerMissionsData } = await supabase
     .from("missions")
     .select("id, name, created_at, is_active")
-    .eq("created_by", managerId)
-    .eq("is_active", true);
+    .eq("created_by", managerId);
 
   const managerMissions = managerMissionsData || [];
   const managerMissionIds = managerMissions.map((m) => m.id);
@@ -129,11 +130,22 @@ export async function getManagerReportsData(
     return {
       isManager: true,
       data: {
+        company: {
+          totalMissions: 0,
+          completedMissions: 0,
+          remainingMissions: 0,
+          totalTasks: 0,
+          completedTasks: 0,
+          remainingTasks: 0,
+          companyCompletionRate: 0,
+          totalCompanyXp: 0,
+        },
         users: [],
         missions: [],
+        userXpTotal: {},
         activities: {},
+        missionActivities: {},
         completionStats: {},
-        pendingReviews: {},
         userMissions: {},
         missionMembers: {},
         userAssignedMissionIds: {},
@@ -141,8 +153,8 @@ export async function getManagerReportsData(
     };
   }
 
-  // 3. Fetch joined mission members
-  const { data: missionMembersRes, error: membersErr } = await supabase
+  // 3. Fetch Mission Members
+  const { data: missionMembersRes } = await supabase
     .from("mission_members")
     .select(
       `
@@ -156,12 +168,7 @@ export async function getManagerReportsData(
     .eq("invited_by", managerId)
     .not("joined_at", "is", null);
 
-  if (membersErr) {
-    console.error("Error fetching mission members:", membersErr);
-  }
-
   const rawMembers = missionMembersRes || [];
-
   const validMembers = rawMembers.filter((m: any) => {
     const profile = Array.isArray(m.user) ? m.user[0] : m.user;
     return m.user_id && (!profile || profile.role !== "admin");
@@ -193,69 +200,61 @@ export async function getManagerReportsData(
   const activeUsersList = Array.from(activeUserMap.values());
   const activeUserIds = activeUsersList.map((u) => u.id);
 
-  if (activeUserIds.length === 0) {
-    return {
-      isManager: true,
-      data: {
-        users: [],
-        missions: managerMissions.map((m) => ({
-          id: m.id,
-          name: m.name,
-          tasksTotal: 0,
-          tasksDone: 0,
-          xpEarned: 0,
-        })),
-        activities: {},
-        completionStats: {},
-        pendingReviews: {},
-        userMissions: {},
-        missionMembers: {},
-        userAssignedMissionIds: {},
-      },
-    };
-  }
-
-  const startDate = getTimeframeStartDate(timeframe);
-
-  // 4. Fetch All Tasks (UPDATED: Unfiltered by creation timeframe to retain task IDs)
-  const { data: rawTasks, error: tasksErr } = await supabase
+  // 4. Fetch All Tasks for Manager Missions
+  const { data: rawTasks } = await supabase
     .from("tasks")
     .select(
       "id, user_id, title, desc, points, done, proof_notes, proof_image, proof_rating, mission_id_fk, created_at, time",
     )
-    .in("user_id", activeUserIds)
     .in("mission_id_fk", managerMissionIds);
 
-  if (tasksErr) console.error("Error fetching tasks:", tasksErr);
   const tasks = rawTasks || [];
-  const taskIds = tasks.map((t) => t.id);
+  const managerTaskIds = tasks.map((t) => t.id);
 
-  // 5. Fetch Activity Logs (UPDATED: Strictly apply timeframe filtering here)
+  // 5. Fetch Activity Logs
+  const startDate = getTimeframeStartDate(timeframe);
   let rawLogs: any[] = [];
-  if (taskIds.length > 0) {
+
+  if (managerTaskIds.length > 0) {
     let logsQuery = supabase
       .from("activity_logs")
       .select("id, user_id, task_id, task, project, points, time, created_at")
-      .in("user_id", activeUserIds)
-      .in("task_id", taskIds);
+      .in("task_id", managerTaskIds);
 
     if (startDate) {
       logsQuery = logsQuery.gte("created_at", startDate.toISOString());
     }
 
-    const { data: logsData, error: logsErr } = await logsQuery;
-    if (logsErr) {
-      console.error("Error fetching activity logs:", logsErr);
-    } else {
-      rawLogs = logsData || [];
-    }
+    const { data: logsData } = await logsQuery;
+    rawLogs = logsData || [];
   }
 
-  // Group logs by user_id
-  const logsByUser = new Map<string, any[]>();
+  // Create Task ID to Mission ID mapping
+  const taskToMissionMap = new Map<string, string>();
+  tasks.forEach((t) => taskToMissionMap.set(t.id, t.mission_id_fk));
+
+  // Group Logs by User & Mission
+  const logsByUser = new Map<string, UserActivity[]>();
+  const logsByMission = new Map<string, UserActivity[]>();
+
   rawLogs.forEach((l) => {
+    const missionId = taskToMissionMap.get(l.task_id);
+    const formattedLog: UserActivity = {
+      id: l.id,
+      task: l.task || "Completed Task",
+      project: l.project || "General",
+      points: l.points,
+      timestamp: new Date(l.created_at).toLocaleDateString(),
+      missionId,
+    };
+
     if (!logsByUser.has(l.user_id)) logsByUser.set(l.user_id, []);
-    logsByUser.get(l.user_id)!.push(l);
+    logsByUser.get(l.user_id)!.push(formattedLog);
+
+    if (missionId) {
+      if (!logsByMission.has(missionId)) logsByMission.set(missionId, []);
+      logsByMission.get(missionId)!.push(formattedLog);
+    }
   });
 
   const tasksByUser = new Map<string, any[]>();
@@ -264,28 +263,23 @@ export async function getManagerReportsData(
     tasksByUser.get(t.user_id)!.push(t);
   });
 
-  // 6. Aggregate User Metrics
+  // 6. Aggregate User & Mission Metrics
   const activities: Record<string, UserActivity[]> = {};
   const completionStats: Record<
     string,
     { done: number; total: number; pending: number; rate: number }
   > = {};
-  const pendingReviews: Record<string, PendingReview[]> = {};
-  const userMissions: Record<string, ActiveMission[]> = {};
+  const userMissions: Record<string, any[]> = {};
+  const userXpTotal: Record<string, number> = {};
 
   activeUserIds.forEach((uid) => {
     const userLogs = logsByUser.get(uid) || [];
-    activities[uid] = userLogs.map((l) => ({
-      id: l.id,
-      task: l.task || "Completed Task",
-      project: l.project || "General",
-      points: l.points,
-      timestamp: new Date(l.created_at).toLocaleDateString(),
-    }));
+    activities[uid] = userLogs;
 
     const userTasks = tasksByUser.get(uid) || [];
     const total = userTasks.length;
-    const done = userTasks.filter((t) => t.done).length;
+    const doneTasks = userTasks.filter((t) => t.done);
+    const done = doneTasks.length;
 
     const pendingTasks = userTasks.filter(
       (t) =>
@@ -301,66 +295,67 @@ export async function getManagerReportsData(
       rate: total > 0 ? Math.round((done / total) * 100) : 0,
     };
 
-    pendingReviews[uid] = pendingTasks.map((pt) => ({
-      id: pt.id,
-      taskId: pt.id,
-      task: pt.title,
-      mission:
-        managerMissions.find((m) => m.id === pt.mission_id_fk)?.name ||
-        "General Mission",
-      missionId: pt.mission_id_fk,
-      note: pt.proof_notes || "",
-      proofUrl: pt.proof_image || undefined,
-    }));
+    userXpTotal[uid] = doneTasks.reduce(
+      (acc, curr) => acc + (curr.points || 0),
+      0,
+    );
 
     const assignedIds = userAssignedMissionIds[uid] || [];
-
     userMissions[uid] = assignedIds.map((mId) => {
       const missionObj = managerMissions.find((m) => m.id === mId);
       const mTasks = userTasks.filter((t) => t.mission_id_fk === mId);
-      const mDone = mTasks.filter((t) => t.done).length;
+      const mDoneTasks = mTasks.filter((t) => t.done);
 
       return {
         id: mId,
         name: missionObj?.name || "Unknown Mission",
         progress:
-          mTasks.length > 0 ? Math.round((mDone / mTasks.length) * 100) : 0,
-        tasks: mTasks.map((t) => {
-          let status: "completed" | "pending_approval" | "due" = "due";
-          if (t.done) status = "completed";
-          else if (
-            (t.proof_notes || t.proof_image) &&
-            (t.proof_rating === null || t.proof_rating === undefined)
-          ) {
-            status = "pending_approval";
-          }
-
-          return {
-            id: t.id,
-            title: t.title,
-            status,
-            dateText: new Date(t.created_at).toLocaleDateString(),
-          };
-        }),
+          mTasks.length > 0
+            ? Math.round((mDoneTasks.length / mTasks.length) * 100)
+            : 0,
+        tasksTotal: mTasks.length,
+        tasksDone: mDoneTasks.length,
+        xpEarned: mDoneTasks.reduce((acc, curr) => acc + (curr.points || 0), 0),
       };
     });
   });
 
-  // 7. Aggregate Overall Mission Stats
+  // 7. Overall Missions & Company Stats
   const missionOptions: MissionOption[] = [];
   const missionMembers: Record<string, MissionMemberBreakdown[]> = {};
+  const missionActivities: Record<string, UserActivity[]> = {};
+
+  let companyTasksTotal = tasks.length;
+  let companyTasksDone = tasks.filter((t) => t.done).length;
+  let companyXpTotal = tasks
+    .filter((t) => t.done)
+    .reduce((acc, curr) => acc + (curr.points || 0), 0);
+  let completedMissionsCount = 0;
 
   managerMissions.forEach((m) => {
     const mTasks = tasks.filter((t) => t.mission_id_fk === m.id);
     const mDoneTasks = mTasks.filter((t) => t.done);
+    const mRate =
+      mTasks.length > 0
+        ? Math.round((mDoneTasks.length / mTasks.length) * 100)
+        : 0;
+
+    const isMissionCompleted =
+      !m.is_active ||
+      (mTasks.length > 0 && mDoneTasks.length === mTasks.length);
+    if (isMissionCompleted) completedMissionsCount++;
 
     missionOptions.push({
       id: m.id,
       name: m.name,
+      isActive: m.is_active,
       tasksTotal: mTasks.length,
       tasksDone: mDoneTasks.length,
       xpEarned: mDoneTasks.reduce((acc, curr) => acc + (curr.points || 0), 0),
+      completionRate: mRate,
     });
+
+    missionActivities[m.id] = logsByMission.get(m.id) || [];
 
     const mMemberships = validMembers.filter(
       (mem: any) => mem.mission_id === m.id,
@@ -372,23 +367,39 @@ export async function getManagerReportsData(
       const mUserDone = mUserTasks.filter((t) => t.done);
 
       return {
+        userId: mem.user_id,
         name: profile?.username || "Active Member",
         assigned: mUserTasks.length,
         done: mUserDone.length,
         xp: mUserDone.reduce((acc, curr) => acc + (curr.points || 0), 0),
-        isPending: !Boolean(mem.joined_at),
       };
     });
   });
 
+  const companyStats: CompanyOverviewStats = {
+    totalMissions: managerMissions.length,
+    completedMissions: completedMissionsCount,
+    remainingMissions: managerMissions.length - completedMissionsCount,
+    totalTasks: companyTasksTotal,
+    completedTasks: companyTasksDone,
+    remainingTasks: companyTasksTotal - companyTasksDone,
+    companyCompletionRate:
+      companyTasksTotal > 0
+        ? Math.round((companyTasksDone / companyTasksTotal) * 100)
+        : 0,
+    totalCompanyXp: companyXpTotal,
+  };
+
   return {
     isManager: true,
     data: {
+      company: companyStats,
       users: activeUsersList,
       missions: missionOptions,
+      userXpTotal,
       activities,
+      missionActivities,
       completionStats,
-      pendingReviews,
       userMissions,
       missionMembers,
       userAssignedMissionIds,

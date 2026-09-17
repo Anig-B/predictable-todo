@@ -1,207 +1,236 @@
 "use client";
 
-import { useState } from "react";
-import { ChevronDown } from "lucide-react";
+import React from "react";
+import { Grid } from "lucide-react";
+import { ReportsPayload } from "@/actions/reports";
 
-export interface MissionOption {
-  id: string;
-  name: string;
-  tasksTotal: number;
-  tasksDone: number;
-  xpEarned: number;
-}
-
-export interface MissionMemberBreakdown {
-  name: string;
-  assigned: number;
-  done: number;
-  xp: number;
-}
-
-interface MissionReportViewProps {
-  missionsList: MissionOption[];
-  selectedMission: MissionOption;
-  missionMembers: MissionMemberBreakdown[];
-  onSelectMission: (mission: MissionOption) => void;
-}
+type MissionReportViewProps = {
+  data: ReportsPayload;
+  activeMission: ReportsPayload["missions"][number];
+  onSelectMission: (id: string) => void;
+  getHeatmapBg: (percentage: number) => string;
+};
 
 export function MissionReportView({
-  missionsList,
-  selectedMission,
-  missionMembers,
+  data,
+  activeMission,
   onSelectMission,
+  getHeatmapBg,
 }: MissionReportViewProps) {
-  const completionRate =
-    selectedMission.tasksTotal > 0
-      ? Math.round(
-          (selectedMission.tasksDone / selectedMission.tasksTotal) * 100,
-        )
-      : 0;
+  const activeMissionId = String(activeMission.id);
+
+  const missionMembers = data.missionMembers[activeMissionId] || [];
+  const missionLogs = data.missionActivities[activeMissionId] || [];
 
   return (
-    <div className="space-y-8">
-      {/* Dropdown Selector Subcomponent */}
-      <MissionSelector
-        missionsList={missionsList}
-        selectedMission={selectedMission}
-        onSelectMission={onSelectMission}
-      />
+    <>
+      {/* Selector Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 w-full mb-6">
+        {data.missions.map((m) => (
+          <button
+            key={m.id}
+            onClick={() => onSelectMission(String(m.id))}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap ${
+              activeMissionId === String(m.id)
+                ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
+                : "bg-white text-gray-600 border-[#e8e3db] hover:border-gray-400"
+            }`}
+          >
+            {m.name}
+          </button>
+        ))}
+      </div>
 
-      {/* Metrics Grid Subcomponent */}
-      <MissionMetricsGrid
-        tasksTotal={selectedMission.tasksTotal}
-        tasksDone={selectedMission.tasksDone}
-        completionRate={completionRate}
-        xpEarned={selectedMission.xpEarned}
-      />
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+        <MetricCard
+          title="Completion Progress"
+          value={`${activeMission.completionRate}%`}
+        />
+        <MetricCard
+          title="Tasks Completed"
+          value={`${activeMission.tasksDone} / ${activeMission.tasksTotal}`}
+        />
+        <MetricCard
+          title="XP Accumulated"
+          value={`${activeMission.xpEarned} XP`}
+        />
+      </div>
 
-      {/* Member Table Subcomponent */}
-      <MissionMemberTable members={missionMembers} />
+      {/* Member Heatmap */}
+      <div className="border border-[#e8e3db] rounded-xl bg-white p-6 mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <Grid className="w-5 h-5 text-[#1a1a1a]" />
+          <h2 className="text-lg font-semibold text-[#1a1a1a]">
+            Member Heatmap
+          </h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-6">
+          Member performance visualizer for{" "}
+          <span className="font-semibold text-gray-800">
+            {activeMission.name}
+          </span>
+          .
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {missionMembers.map((mem, idx) => {
+            const completionPct =
+              mem.assigned > 0
+                ? Math.round((mem.done / mem.assigned) * 100)
+                : 0;
+
+            return (
+              <HeatmapCard
+                key={`${mem.name}-${idx}`}
+                title={mem.name}
+                badge={`${mem.xp} XP`}
+                subtext={`${mem.done} of ${mem.assigned} tasks completed`}
+                progress={completionPct}
+                progressLabel="Completion"
+                getHeatmapBg={getHeatmapBg}
+              />
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Logs & Member Breakdown Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="border border-[#e8e3db] rounded-xl bg-white p-6">
+          <h2 className="text-lg font-semibold text-[#1a1a1a] mb-4">
+            Activities on Mission
+          </h2>
+          {missionLogs.length === 0 ? (
+            <p className="text-sm text-gray-500">
+              No activity recorded for this mission.
+            </p>
+          ) : (
+            <div className="space-y-3">
+              {missionLogs.map((act) => (
+                <ActivityItem
+                  key={act.id}
+                  title={act.task}
+                  subtitle={act.timestamp}
+                  points={act.points}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="border border-[#e8e3db] rounded-xl bg-white p-6">
+          <h2 className="text-lg font-semibold text-[#1a1a1a] mb-4">
+            Member Breakdown
+          </h2>
+          <div className="space-y-3">
+            {missionMembers.map((mem, idx) => (
+              <div
+                key={`${mem.name}-${idx}`}
+                className="p-3.5 border border-[#e8e3db] rounded-lg flex items-center justify-between"
+              >
+                <div>
+                  <p className="text-sm font-semibold">{mem.name}</p>
+                  <p className="text-xs text-gray-500">
+                    {mem.done} of {mem.assigned} tasks completed
+                  </p>
+                </div>
+                <span className="text-xs font-semibold bg-gray-100 px-2.5 py-1 rounded-full">
+                  {mem.xp} XP
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function MetricCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="p-5 border border-[#e8e3db] rounded-xl bg-white">
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        {title}
+      </span>
+      <p className="text-2xl font-semibold text-[#1a1a1a] mt-2">{value}</p>
     </div>
   );
 }
 
-/* ============================================================================
-   SUBCOMPONENTS
-   ============================================================================ */
-
-interface MissionSelectorProps {
-  missionsList: MissionOption[];
-  selectedMission: MissionOption;
-  onSelectMission: (mission: MissionOption) => void;
-}
-
-function MissionSelector({
-  missionsList,
-  selectedMission,
-  onSelectMission,
-}: MissionSelectorProps) {
-  const [dropdownOpen, setDropdownOpen] = useState(false);
-
+function HeatmapCard({
+  title,
+  badge,
+  subtext,
+  progress,
+  progressLabel,
+  getHeatmapBg,
+}: {
+  title: string;
+  badge: string;
+  subtext: string;
+  progress: number;
+  progressLabel: string;
+  getHeatmapBg: (pct: number) => string;
+}) {
   return (
-    <div>
-      <label className="text-sm font-medium text-[#6b6b6b] block mb-2">
-        Managed Mission
-      </label>
-      <div className="relative w-96">
-        <button
-          onClick={() => setDropdownOpen(!dropdownOpen)}
-          className="w-full flex items-center justify-between px-4 py-2 bg-[#fafaf8] border border-[#e8e3db] rounded-lg text-sm text-[#1a1a1a] hover:bg-[#f0ebe4] transition-colors"
-        >
-          <span>{selectedMission.name}</span>
-          <ChevronDown className="w-4 h-4" />
-        </button>
-        {dropdownOpen && (
-          <div className="absolute top-full left-0 right-0 mt-2 bg-white border border-[#e8e3db] rounded-lg shadow-lg z-10 max-h-48 overflow-y-auto">
-            {missionsList.map((m) => (
-              <button
-                key={m.id}
-                onClick={() => {
-                  onSelectMission(m);
-                  setDropdownOpen(false);
-                }}
-                className="w-full text-left px-4 py-2 hover:bg-[#f0ebe4] text-sm text-[#1a1a1a]"
-              >
-                {m.name}
-              </button>
-            ))}
-          </div>
-        )}
+    <div
+      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${getHeatmapBg(
+        progress,
+      )}`}
+    >
+      <div>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold truncate">{title}</p>
+          <span className="text-xs font-bold px-2 py-0.5 rounded bg-black/10 whitespace-nowrap">
+            {badge}
+          </span>
+        </div>
+        <p className="text-xs opacity-80 mt-1">{subtext}</p>
+      </div>
+
+      <div className="mt-4 space-y-1.5">
+        <div className="flex justify-between items-center text-xs font-semibold">
+          <span>{progressLabel}</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="bg-current h-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
       </div>
     </div>
   );
 }
 
-interface MissionMetricsGridProps {
-  tasksTotal: number;
-  tasksDone: number;
-  completionRate: number;
-  xpEarned: number;
-}
-
-function MissionMetricsGrid({
-  tasksTotal,
-  tasksDone,
-  completionRate,
-  xpEarned,
-}: MissionMetricsGridProps) {
-  return (
-    <div className="grid grid-cols-4 gap-4">
-      <MetricCard label="Total tasks" value={tasksTotal} />
-      <MetricCard label="Completed" value={tasksDone} />
-      <MetricCard label="Completion rate" value={`${completionRate}%`} />
-      <MetricCard label="XP earned" value={xpEarned} />
-    </div>
-  );
-}
-
-function MetricCard({
-  label,
-  value,
+function ActivityItem({
+  title,
+  subtitle,
+  points,
 }: {
-  label: string;
-  value: string | number;
+  title: string;
+  subtitle: string;
+  points: number | null;
 }) {
   return (
-    <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6">
-      <p className="text-sm text-[#8b8b8b] mb-2">{label}</p>
-      <p className="text-3xl font-semibold text-[#1a1a1a]">{value}</p>
-    </div>
-  );
-}
-
-interface MissionMemberTableProps {
-  members: MissionMemberBreakdown[];
-}
-
-function MissionMemberTable({ members }: MissionMemberTableProps) {
-  return (
-    <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg overflow-hidden">
-      <table className="w-full">
-        <thead>
-          <tr className="border-b border-[#e8e3db] bg-[#f5f3f0]">
-            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-              Member
-            </th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-              Assigned
-            </th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-              Done
-            </th>
-            <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-              XP earned
-            </th>
-          </tr>
-        </thead>
-        <tbody>
-          {members.length === 0 ? (
-            <tr>
-              <td colSpan={4} className="px-6 py-4 text-center text-[#8b8b8b]">
-                No joined members found for this mission
-              </td>
-            </tr>
-          ) : (
-            members.map((row) => (
-              <tr
-                key={row.name}
-                className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] last:border-0"
-              >
-                <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
-                  {row.name}
-                </td>
-                <td className="px-6 py-4 text-sm text-[#8b8b8b]">
-                  {row.assigned}
-                </td>
-                <td className="px-6 py-4 text-sm text-[#8b8b8b]">{row.done}</td>
-                <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
-                  {row.xp}
-                </td>
-              </tr>
-            ))
-          )}
-        </tbody>
-      </table>
+    <div className="p-3.5 border border-[#e8e3db] rounded-lg flex justify-between items-center">
+      <div>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
+      </div>
+      {points !== null && (
+        <span className="text-xs font-semibold bg-gray-100 px-2.5 py-1 rounded-full">
+          +{points} XP
+        </span>
+      )}
     </div>
   );
 }

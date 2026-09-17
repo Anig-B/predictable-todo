@@ -1,288 +1,202 @@
 "use client";
 
-import { useState } from "react";
-import Link from "next/link";
-import {
-  ChevronDown,
-  CheckCircle2,
-  Clock,
-  ExternalLink,
-  Folder,
-  ArrowRight,
-  ListTodo,
-} from "lucide-react";
-import { PendingReview, ActiveMission } from "@/actions/reports";
+import React from "react";
+import { Grid } from "lucide-react";
+import { ReportsPayload } from "@/actions/reports";
 
-export interface UserOption {
-  id: string;
-  name: string;
-  avatarUrl?: string;
-}
-
-export interface UserActivity {
-  id: string;
-  task: string;
-  project: string;
-  points: number | null;
-  timestamp: string;
-}
-
-export interface UserReportViewProps {
-  usersList: UserOption[];
-  selectedUser: UserOption;
-  userActivities?: UserActivity[];
-  completionStats: {
-    done: number;
-    total: number;
-    pending: number;
-    rate: number;
-  };
-  pendingReviews?: PendingReview[];
-  activeMissions?: ActiveMission[];
-  onSelectUser: (user: UserOption) => void;
-}
+type UserReportViewProps = {
+  data: ReportsPayload;
+  activeUser: ReportsPayload["users"][number];
+  onSelectUser: (id: string) => void;
+  getHeatmapBg: (percentage: number) => string;
+};
 
 export function UserReportView({
-  usersList,
-  selectedUser,
-  userActivities = [],
-  completionStats,
-  pendingReviews = [],
-  activeMissions = [],
+  data,
+  activeUser,
   onSelectUser,
+  getHeatmapBg,
 }: UserReportViewProps) {
-  const [selectedMissionFilter, setSelectedMissionFilter] =
-    useState("All Missions");
+  const activeUserId = String(activeUser.id);
 
-  const filteredMissions =
-    selectedMissionFilter === "All Missions"
-      ? activeMissions
-      : activeMissions.filter((m) => m.name === selectedMissionFilter);
+  const userStats = data.completionStats[activeUserId] || null;
+  const userActivities = data.activities[activeUserId] || [];
+  const assignedMissions = data.userMissions[activeUserId] || [];
+  const userTotalXp = data.userXpTotal[activeUserId] || 0;
 
   return (
-    <div className="space-y-6 max-w-5xl mx-auto p-6 bg-[#fafaf8] border border-[#e8e3db] rounded-xl text-[#1a1a1a]">
-      {/* Header & Controls */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 pb-6 border-b border-[#e8e3db]">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-full bg-[#e8e3db] flex items-center justify-center overflow-hidden font-semibold text-lg text-[#6b6b6b]">
-            {selectedUser.avatarUrl ? (
-              <img
-                src={selectedUser.avatarUrl}
-                alt={selectedUser.name}
-                className="w-full h-full object-cover"
+    <>
+      {/* Selector Pills */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 w-full mb-6">
+        {data.users.map((u) => (
+          <button
+            key={u.id}
+            onClick={() => onSelectUser(String(u.id))}
+            className={`px-4 py-2 rounded-lg text-sm font-medium border transition-all whitespace-nowrap ${
+              activeUserId === String(u.id)
+                ? "bg-[#1a1a1a] text-white border-[#1a1a1a]"
+                : "bg-white text-gray-600 border-[#e8e3db] hover:border-gray-400"
+            }`}
+          >
+            {u.name}
+          </button>
+        ))}
+      </div>
+
+      {/* Stats Cards */}
+      {userStats && (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
+          <MetricCard title="XP Accumulated" value={`${userTotalXp} XP`} />
+          <MetricCard title="Completion Rate" value={`${userStats.rate}%`} />
+          <MetricCard
+            title="Tasks Completed"
+            value={`${userStats.done} / ${userStats.total}`}
+          />
+          <MetricCard title="Pending Reviews" value={userStats.pending} />
+        </div>
+      )}
+
+      {/* Heatmap Section */}
+      <div className="border border-[#e8e3db] rounded-xl bg-white p-6 mb-8">
+        <div className="flex items-center gap-2 mb-1">
+          <Grid className="w-5 h-5 text-[#1a1a1a]" />
+          <h2 className="text-lg font-semibold text-[#1a1a1a]">
+            Mission Heatmap
+          </h2>
+        </div>
+        <p className="text-sm text-gray-500 mb-6">
+          Completion progress and activity density for{" "}
+          <span className="font-semibold text-gray-800">{activeUser.name}</span>{" "}
+          across all assigned missions.
+        </p>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {assignedMissions.map((m) => (
+            <HeatmapCard
+              key={m.id}
+              title={m.name}
+              badge={`${m.xpEarned} XP`}
+              subtext={`${m.tasksDone} of ${m.tasksTotal} tasks completed`}
+              progress={m.progress}
+              progressLabel="Progress"
+              getHeatmapBg={getHeatmapBg}
+            />
+          ))}
+        </div>
+      </div>
+
+      {/* Task Logs */}
+      <div className="border border-[#e8e3db] rounded-xl bg-white p-6">
+        <h2 className="text-lg font-semibold text-[#1a1a1a] mb-4">
+          User Task Activity Logs
+        </h2>
+        {userActivities.length === 0 ? (
+          <p className="text-sm text-gray-500">No activities found.</p>
+        ) : (
+          <div className="space-y-3">
+            {userActivities.map((act) => (
+              <ActivityItem
+                key={act.id}
+                title={act.task}
+                subtitle={`${act.project} • ${act.timestamp}`}
+                points={act.points}
               />
-            ) : (
-              selectedUser.name.charAt(0)
-            )}
+            ))}
           </div>
-          <div>
-            <h1 className="text-xl font-bold text-[#1a1a1a]">
-              {selectedUser.name}
-            </h1>
-          </div>
-        </div>
-
-        <div className="flex items-center gap-3">
-          {/* User Selector Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedUser.id}
-              onChange={(e) => {
-                const found = usersList.find((u) => u.id === e.target.value);
-                if (found) onSelectUser(found);
-              }}
-              className="appearance-none bg-white border border-[#e8e3db] rounded-lg px-4 py-2 pr-8 text-sm font-medium hover:bg-[#f0ebe4] transition-colors cursor-pointer focus:outline-none"
-            >
-              {usersList.map((u) => (
-                <option key={u.id} value={u.id}>
-                  {u.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b6b6b] pointer-events-none" />
-          </div>
-
-          {/* Mission Filter Dropdown */}
-          <div className="relative">
-            <select
-              value={selectedMissionFilter}
-              onChange={(e) => setSelectedMissionFilter(e.target.value)}
-              className="appearance-none bg-white border border-[#e8e3db] rounded-lg px-4 py-2 pr-8 text-sm font-medium hover:bg-[#f0ebe4] transition-colors cursor-pointer focus:outline-none"
-            >
-              <option>All Missions</option>
-              {activeMissions.map((m) => (
-                <option key={m.id} value={m.name}>
-                  {m.name}
-                </option>
-              ))}
-            </select>
-            <ChevronDown className="w-4 h-4 absolute right-2.5 top-1/2 -translate-y-1/2 text-[#6b6b6b] pointer-events-none" />
-          </div>
-        </div>
+        )}
       </div>
+    </>
+  );
+}
 
-      {/* Metrics at a Glance */}
+/* -------------------------------------------------------------------------- */
+/*                                LOCAL HELPERS                               */
+/* -------------------------------------------------------------------------- */
+
+function MetricCard({
+  title,
+  value,
+}: {
+  title: string;
+  value: React.ReactNode;
+}) {
+  return (
+    <div className="p-5 border border-[#e8e3db] rounded-xl bg-white">
+      <span className="text-xs font-medium text-gray-500 uppercase tracking-wider">
+        {title}
+      </span>
+      <p className="text-2xl font-semibold text-[#1a1a1a] mt-2">{value}</p>
+    </div>
+  );
+}
+
+function HeatmapCard({
+  title,
+  badge,
+  subtext,
+  progress,
+  progressLabel,
+  getHeatmapBg,
+}: {
+  title: string;
+  badge: string;
+  subtext: string;
+  progress: number;
+  progressLabel: string;
+  getHeatmapBg: (pct: number) => string;
+}) {
+  return (
+    <div
+      className={`p-4 rounded-xl border flex flex-col justify-between transition-all ${getHeatmapBg(
+        progress,
+      )}`}
+    >
       <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#8b8b8b] mb-3">
-          Metrics at a Glance
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-white border border-[#e8e3db] rounded-lg p-5">
-            <p className="text-sm text-[#6b6b6b] mb-1">Completion Rate</p>
-            <p className="text-3xl font-bold">{completionStats.rate}%</p>
-          </div>
-          <div className="bg-white border border-[#e8e3db] rounded-lg p-5">
-            <p className="text-sm text-[#6b6b6b] mb-1">Completed Tasks</p>
-            <p className="text-3xl font-bold">{completionStats.done}</p>
-          </div>
-          <div className="bg-white border border-[#e8e3db] rounded-lg p-5 flex items-center justify-between">
-            <div>
-              <p className="text-sm text-[#6b6b6b] mb-1">Pending Tasks</p>
-              <p className="text-3xl font-bold">{completionStats.pending}</p>
-            </div>
-            <ListTodo className="w-8 h-8 text-[#6b6b6b]" />
-          </div>
+        <div className="flex items-start justify-between gap-2">
+          <p className="text-sm font-semibold truncate">{title}</p>
+          <span className="text-xs font-bold px-2 py-0.5 rounded bg-black/10 whitespace-nowrap">
+            {badge}
+          </span>
         </div>
+        <p className="text-xs opacity-80 mt-1">{subtext}</p>
       </div>
 
-      {/* Pending Reviews */}
+      <div className="mt-4 space-y-1.5">
+        <div className="flex justify-between items-center text-xs font-semibold">
+          <span>{progressLabel}</span>
+          <span>{progress}%</span>
+        </div>
+        <div className="w-full bg-black/10 rounded-full h-1.5 overflow-hidden">
+          <div
+            className="bg-current h-full transition-all"
+            style={{ width: `${progress}%` }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function ActivityItem({
+  title,
+  subtitle,
+  points,
+}: {
+  title: string;
+  subtitle: string;
+  points: number | null;
+}) {
+  return (
+    <div className="p-3.5 border border-[#e8e3db] rounded-lg flex justify-between items-center">
       <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#8b8b8b] mb-3">
-          Pending Reviews ({pendingReviews.length})
-        </h2>
-        <div className="space-y-3">
-          {pendingReviews.length === 0 ? (
-            <div className="bg-white border border-[#e8e3db] rounded-lg p-4 text-center text-sm text-[#8b8b8b]">
-              No pending reviews
-            </div>
-          ) : (
-            pendingReviews.map((review) => (
-              <div
-                key={review.id}
-                className="bg-white border border-[#e8e3db] rounded-lg p-4 flex flex-col md:flex-row md:items-center justify-between gap-4"
-              >
-                <div className="space-y-1">
-                  <p className="text-sm font-semibold">
-                    Task: {review.task}{" "}
-                    <span className="font-normal text-[#6b6b6b]">
-                      | Mission: {review.mission}
-                    </span>
-                  </p>
-                  <div className="flex items-center gap-2 text-xs text-[#6b6b6b]">
-                    <span>Note: "{review.note}"</span>
-                    {review.proofUrl && (
-                      <a
-                        href={review.proofUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="inline-flex items-center gap-1 text-blue-600 hover:underline font-medium"
-                      >
-                        [Proof Link] <ExternalLink className="w-3 h-3" />
-                      </a>
-                    )}
-                  </div>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <Link
-                    href={`/missions/${review.missionId}`}
-                    className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-[#1a1a1a] text-white text-xs font-medium rounded-md hover:bg-[#333333] transition-colors"
-                  >
-                    View in Mission <ArrowRight className="w-3.5 h-3.5" />
-                  </Link>
-                </div>
-              </div>
-            ))
-          )}
-        </div>
+        <p className="text-sm font-medium">{title}</p>
+        <p className="text-xs text-gray-500">{subtitle}</p>
       </div>
-
-      {/* Active Missions */}
-      <div>
-        <h2 className="text-xs font-bold uppercase tracking-wider text-[#8b8b8b] mb-3">
-          Active Missions
-        </h2>
-        <div className="space-y-4">
-          {filteredMissions.length === 0 ? (
-            <div className="bg-white border border-[#e8e3db] rounded-lg p-4 text-center text-sm text-[#8b8b8b]">
-              No active missions
-            </div>
-          ) : (
-            filteredMissions.map((mission) => (
-              <div
-                key={mission.id}
-                className="bg-white border border-[#e8e3db] rounded-lg p-5 space-y-4"
-              >
-                {/* Mission Progress Header */}
-                <div className="space-y-2">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2 font-semibold text-sm">
-                      <Folder className="w-4 h-4 text-[#6b6b6b]" />
-                      <Link
-                        href={`/missions/${mission.id}`}
-                        className="hover:underline hover:text-blue-600"
-                      >
-                        Mission: {mission.name}
-                      </Link>
-                    </div>
-                    <span className="text-xs font-medium text-[#6b6b6b]">
-                      {mission.progress}%
-                    </span>
-                  </div>
-                  {/* Progress Bar */}
-                  <div className="w-full h-2 bg-[#f0ebe4] rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-[#1a1a1a] transition-all duration-300"
-                      style={{ width: `${mission.progress}%` }}
-                    />
-                  </div>
-                </div>
-
-                {/* Task Breakdown */}
-                <div className="space-y-2 pt-2 border-t border-[#f0ebe4]">
-                  {mission.tasks.map((task) => (
-                    <div
-                      key={task.id}
-                      className="flex items-center justify-between text-xs py-1"
-                    >
-                      <div className="flex items-center gap-2">
-                        {task.status === "completed" && (
-                          <CheckCircle2 className="w-3.5 h-3.5 text-green-600" />
-                        )}
-                        {task.status === "pending_approval" && (
-                          <Clock className="w-3.5 h-3.5 text-amber-600" />
-                        )}
-                        {task.status === "due" && (
-                          <span className="w-3.5 h-3.5 rounded-full border border-[#8b8b8b] inline-block" />
-                        )}
-                        <span
-                          className={
-                            task.status === "completed"
-                              ? "line-through text-[#8b8b8b]"
-                              : "text-[#1a1a1a]"
-                          }
-                        >
-                          {task.title}
-                        </span>
-                      </div>
-
-                      <span className="text-[#8b8b8b]">
-                        (
-                        {task.status === "completed"
-                          ? `Completed ${task.dateText}`
-                          : task.status === "pending_approval"
-                            ? "Pending Approval"
-                            : `Due ${task.dateText}`}
-                        )
-                      </span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </div>
+      {points !== null && (
+        <span className="text-xs font-semibold bg-gray-100 px-2.5 py-1 rounded-full">
+          +{points} XP
+        </span>
+      )}
     </div>
   );
 }
