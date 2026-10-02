@@ -42,6 +42,7 @@ export interface Task {
   done: boolean;
   proof_notes?: string | null;
   proof_image?: string | null;
+  lastCompletedAt?: string | null;
   assigned_user?: {
     username: string;
   } | null;
@@ -188,6 +189,45 @@ export async function getMissionById(id: string): Promise<Mission | null> {
 export async function getMissionTasksAndMembers(missionId: string) {
   const supabase = await createClient();
 
+  // --- AUTO-RESET STALE RECURRING TASKS ---
+  const todayStr = new Date().toISOString().split("T")[0]; // YYYY-MM-DD
+
+  const { data: completedRecurring } = await supabase
+    .from("tasks")
+    .select("id, lastCompletedAt, recurring, done")
+    .eq("mission_id_fk", missionId)
+    .eq("done", true)
+    .gt("recurring", 0);
+
+  if (completedRecurring && completedRecurring.length > 0) {
+    const staleTaskIds: string[] = [];
+
+    for (const t of completedRecurring) {
+      if (!t.lastCompletedAt) {
+        staleTaskIds.push(t.id);
+        continue;
+      }
+      const lastDate = t.lastCompletedAt.split("T")[0];
+      // If completed on a previous day, reset for the new cycle
+      if (lastDate < todayStr) {
+        staleTaskIds.push(t.id);
+      }
+    }
+
+    if (staleTaskIds.length > 0) {
+      await supabase
+        .from("tasks")
+        .update({
+          done: false,
+          proof_image: null,
+          proof_notes: null,
+          proof_rating: null,
+        })
+        .in("id", staleTaskIds);
+    }
+  }
+  // ----------------------------------------
+
   const [tasksRes, membersRes] = await Promise.all([
     supabase
       .from("tasks")
@@ -253,6 +293,40 @@ export async function createMissionTasks(tasks: any[], missionId: string) {
 
   const { error } = await supabase.from("tasks").insert(tasks);
   if (error) throw new Error(error.message);
+
+  // --- TRIGGER NOTIFICATIONS FOR ASSIGNED TASKS ---
+  try {
+    const { data: missionData } = await supabase
+      .from("missions")
+      .select("name")
+      .eq("id", missionId)
+      .single();
+
+    const missionName = missionData?.name || "a mission";
+
+    const notificationsData = tasks.map((task) => ({
+      user_id: task.user_id,
+      title: "New Task Assigned 🎯",
+      message: `You were assigned a new task "${task.title}" in mission "${missionName}"`,
+      type: "system",
+      metadata: { task_id: task.id, mission_id: missionId },
+      is_read: false,
+    }));
+
+    if (notificationsData.length > 0) {
+      const { error: notifError } = await supabase
+        .from("notifications")
+        .insert(notificationsData);
+
+      if (notifError) {
+        console.error("Failed to insert notifications:", notifError.message);
+      }
+    }
+  } catch (notifErr) {
+    console.error("Error creating notifications:", notifErr);
+  }
+  // ------------------------------------------------
+
   revalidatePath(`/missions/${missionId}`);
 }
 
@@ -286,10 +360,13 @@ export async function approveProof(task: Task, feedback?: string) {
   });
   if (reviewErr) throw new Error(reviewErr.message);
 
-  // 2. Mark task as completed
+  // 2. Mark task as completed & record completion timestamp for recurring tracker
   const { error: taskErr } = await supabase
     .from("tasks")
-    .update({ done: true })
+    .update({
+      done: true,
+      lastCompletedAt: new Date().toISOString(),
+    })
     .eq("id", task.id);
   if (taskErr) throw new Error(taskErr.message);
 
@@ -380,4 +457,83 @@ export async function rejectProof(task: Task, feedback?: string) {
     revalidatePath(`/missions/${task.mission_id_fk}`);
   }
   revalidatePath("/dashboard");
+}
+
+// --- Mission Member Management Actions ---
+
+export async function addMemberToMission(missionId: string, userId: string) {
+  const supabase = await createClient();
+
+  const {
+    data: { user: manager },
+  } = await supabase.auth.getUser();
+
+  if (!manager) throw new Error("Unauthorized");
+
+  // 1. Insert member into mission_members
+  const { error } = await supabase.from("mission_members").insert({
+    mission_id: missionId,
+    user_id: userId,
+    invited_by: manager.id,
+    joined_at: new Date().toISOString(),
+  });
+
+  if (error) throw new Error(error.message);
+
+  // 2. Fetch mission name for the message
+  const { data: missionData } = await supabase
+    .from("missions")
+    .select("name")
+    .eq("id", missionId)
+    .single();
+
+  // 3. Send notification to the user
+  await supabase.from("notifications").insert({
+    user_id: userId,
+    title: "New Mission Briefing 🚀",
+    message: `You have been added to the mission: "${missionData?.name || "Unknown Mission"}"`,
+    type: "system",
+    metadata: { mission_id: missionId },
+    is_read: false,
+  });
+
+  revalidatePath(`/missions/${missionId}`);
+}
+
+export async function removeMemberFromMission(
+  missionId: string,
+  userId: string,
+) {
+  const supabase = await createClient();
+
+  const {
+    data: { user: manager },
+  } = await supabase.auth.getUser();
+
+  if (!manager) throw new Error("Unauthorized");
+
+  // 1. Delete tasks assigned to this user inside this mission
+  const { error: taskDeleteError } = await supabase
+    .from("tasks")
+    .delete()
+    .eq("mission_id_fk", missionId)
+    .eq("user_id", userId);
+
+  if (taskDeleteError) {
+    throw new Error(`Failed to delete user tasks: ${taskDeleteError.message}`);
+  }
+
+  // 2. Remove the user from mission_members
+  const { error: memberDeleteError } = await supabase
+    .from("mission_members")
+    .delete()
+    .eq("mission_id", missionId)
+    .eq("user_id", userId);
+
+  if (memberDeleteError) {
+    throw new Error(`Failed to remove member: ${memberDeleteError.message}`);
+  }
+
+  revalidatePath(`/missions/${missionId}`);
+  return { success: true };
 }

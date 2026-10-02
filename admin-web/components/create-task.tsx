@@ -90,8 +90,8 @@ export function TaskCard({
           </div>
 
           <div>
-            <label className="mb-1 block text-xs font-medium text-[#6b6b6b]">
-              Description
+            <label className="mb-1 block text-xs font-semibold text-[#1a1a1a]">
+              Description <span className="text-red-500">*</span>
             </label>
             <textarea
               value={t.desc}
@@ -99,6 +99,7 @@ export function TaskCard({
               placeholder="Task details and expectations for the user"
               disabled={saving}
               rows={2}
+              required
               className="w-full rounded-md border border-[#e8e3db] bg-white px-3 py-2 text-xs text-[#1a1a1a] outline-none transition focus:border-[#1a1a1a] disabled:opacity-50"
             />
           </div>

@@ -16,7 +16,15 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import {
+  Trash2,
+  Flame,
+  Search,
+  UserPlus,
+  Zap,
+  CheckCircle2,
+  Clock,
+} from "lucide-react";
 import {
   getUsersPageData,
   inviteTeamMember,
@@ -45,49 +53,87 @@ const MemberRow = React.memo(
     const isSelf = member.userId === currentUserId;
 
     return (
-      <tr className="border-b border-[#e8e3db] hover:bg-[#f0ebe4] transition-colors last:border-0">
+      <tr className="border-b border-[#e8e3db] hover:bg-[#f8f7f4] transition-colors last:border-0">
+        {/* Member Profile Info */}
         <td className="px-6 py-4">
           <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-full bg-indigo-50 text-indigo-600 font-bold text-xs flex items-center justify-center">
+            <div className="w-9 h-9 rounded-full bg-[#1a1a1a] text-white font-semibold text-xs flex items-center justify-center shrink-0 shadow-sm">
               {getInitials(member.username || "User")}
             </div>
-            <span className="text-sm font-medium text-[#1a1a1a]">
-              {member.username}
-            </span>
+            <div>
+              <span className="text-sm font-semibold text-[#1a1a1a] block">
+                {member.username}
+              </span>
+              {isSelf && (
+                <span className="text-[10px] font-medium text-[#8b8b8b] uppercase tracking-wider">
+                  You
+                </span>
+              )}
+            </div>
           </div>
         </td>
-        <td className="px-6 py-4 text-sm font-medium text-gray-700">
-          Lvl {member.level}
-        </td>
-        <td className="px-6 py-4">
-          <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-amber-50 text-amber-700 border border-amber-200">
-            {member.streak} days 🔥
+
+        {/* Level */}
+        <td className="px-6 py-4 text-sm font-medium text-[#6b6b6b]">
+          <span className="inline-flex items-center gap-1 font-mono text-xs font-semibold px-2 py-1 bg-[#f0ebe4] text-[#1a1a1a] rounded">
+            LVL {member.level}
           </span>
         </td>
-        <td className="px-6 py-4 text-sm font-bold text-indigo-600">
-          {member.weeklyXp} XP
+
+        {/* Streak (Replaced 🔥 emoji with sleek Lucide Flame Icon) */}
+        <td className="px-6 py-4">
+          <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold bg-amber-50 text-amber-800 border border-amber-200/60">
+            <Flame className="w-3.5 h-3.5 fill-amber-500 text-amber-500 shrink-0" />
+            <span>{member.streak} Days</span>
+          </span>
         </td>
+
+        {/* Weekly XP */}
         <td className="px-6 py-4 text-sm font-semibold text-[#1a1a1a]">
+          <div className="flex items-center gap-1 text-xs font-mono">
+            <Zap className="w-3.5 h-3.5 text-amber-500 fill-amber-500" />
+            <span>{member.weeklyXp.toLocaleString()} XP</span>
+          </div>
+        </td>
+
+        {/* Assigned Tasks */}
+        <td className="px-6 py-4 text-sm font-medium text-[#1a1a1a]">
           {member.tasksAssigned ?? 0}
         </td>
-        <td className="px-6 py-4 text-sm text-[#6b6b6b]">{member.joinedAt}</td>
+
+        {/* Date Joined */}
+        <td className="px-6 py-4 text-xs font-medium text-[#6b6b6b]">
+          {member.joinedAt}
+        </td>
+
+        {/* Status Badge */}
         <td className="px-6 py-4">
           <span
-            className={`inline-block px-2 py-0.5 rounded text-xs font-semibold ${
+            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-xs font-medium border ${
               member.status === "active"
-                ? "bg-green-50 text-green-700 border border-green-200"
-                : "bg-yellow-50 text-yellow-700 border border-yellow-200"
+                ? "bg-emerald-50 text-emerald-700 border-emerald-200"
+                : "bg-amber-50 text-amber-700 border-amber-200"
             }`}
           >
-            {member.status === "active" ? "Active" : "Pending"}
+            {member.status === "active" ? (
+              <>
+                <CheckCircle2 className="w-3 h-3 text-emerald-600" /> Active
+              </>
+            ) : (
+              <>
+                <Clock className="w-3 h-3 text-amber-600" /> Pending
+              </>
+            )}
           </span>
         </td>
+
+        {/* Action Button */}
         <td className="px-6 py-4 text-center">
           <button
             type="button"
             disabled={isSelf}
             onClick={() => onRequestDelete(member)}
-            className="p-1.5 text-gray-400 hover:text-red-600 disabled:opacity-30 disabled:hover:text-gray-400 rounded transition-colors"
+            className="p-1.5 text-[#8b8b8b] hover:text-red-600 hover:bg-red-50 disabled:opacity-20 disabled:hover:bg-transparent disabled:hover:text-[#8b8b8b] rounded-md transition-all cursor-pointer"
             title={isSelf ? "You cannot remove yourself" : "Remove Member"}
           >
             <Trash2 className="w-4 h-4" />
@@ -194,12 +240,13 @@ export default function UsersPage() {
 
   if (authLoading || loading) {
     return (
-      <div className="p-8">
-        <div className="animate-pulse space-y-4">
-          <div className="h-8 bg-gray-200 rounded w-1/4"></div>
+      <div className="p-8 max-w-7xl mx-auto">
+        <div className="animate-pulse space-y-6">
+          <div className="h-8 bg-[#e8e3db] rounded w-1/4"></div>
+          <div className="h-10 bg-[#e8e3db] rounded w-1/3"></div>
           <div className="space-y-3">
-            {[...Array(4)].map((_, i) => (
-              <div key={i} className="h-16 bg-gray-200 rounded"></div>
+            {[...Array(5)].map((_, i) => (
+              <div key={i} className="h-16 bg-[#e8e3db] rounded-lg"></div>
             ))}
           </div>
         </div>
@@ -208,59 +255,65 @@ export default function UsersPage() {
   }
 
   return (
-    <div className="p-8">
-      <div className="flex items-center justify-between mb-8">
+    <div className="p-8 max-w-7xl mx-auto space-y-6">
+      {/* Header Section */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-[#e8e3db]">
         <div>
-          <h1 className="text-3xl font-semibold text-[#1a1a1a]">
+          <h1 className="text-2xl font-bold text-[#1a1a1a] tracking-tight">
             Team Members
           </h1>
-          <p className="text-sm text-gray-500 mt-1">
-            Manage your team, track task completion, and send invitations.
+          <p className="text-sm text-[#8b8b8b] mt-1">
+            Manage your team, track active task contributions, and issue
+            invitations.
           </p>
         </div>
         <Button
           onClick={() => setShowInviteDialog(true)}
-          className="bg-[#1a1a1a] text-white hover:bg-[#333333]"
+          className="bg-[#1a1a1a] hover:bg-black text-white text-xs uppercase font-semibold tracking-wider px-4 py-2 flex items-center gap-2 shadow-sm cursor-pointer"
         >
+          <UserPlus className="w-4 h-4" />
           Invite Member
         </Button>
       </div>
 
-      <div className="mb-6">
+      {/* Search Bar */}
+      <div className="relative max-w-sm">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#8b8b8b]" />
         <Input
-          placeholder="Search members by name..."
+          placeholder="Search members by username..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="max-w-md bg-[#fafaf8] border-[#e8e3db]"
+          className="pl-9 bg-white border-[#e8e3db] text-sm text-[#1a1a1a] focus:outline-none focus:border-[#1a1a1a]"
         />
       </div>
 
-      <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg overflow-hidden">
-        <table className="w-full">
+      {/* Members Table */}
+      <div className="bg-white border border-[#e8e3db] rounded-lg overflow-hidden shadow-sm">
+        <table className="w-full text-left">
           <thead>
-            <tr className="border-b border-[#e8e3db] bg-[#f5f3f0]">
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+            <tr className="border-b border-[#e8e3db] bg-[#f8f7f4]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Member
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Level
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Streak
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Weekly XP
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
-                No. of Tasks
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
+                Active Tasks
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Joined
               </th>
-              <th className="px-6 py-4 text-left text-sm font-medium text-[#6b6b6b]">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b]">
                 Status
               </th>
-              <th className="px-6 py-4 text-center text-sm font-medium text-[#6b6b6b] w-20">
+              <th className="px-6 py-3.5 text-xs font-semibold uppercase tracking-wider text-[#8b8b8b] text-center w-20">
                 Actions
               </th>
             </tr>
@@ -270,9 +323,9 @@ export default function UsersPage() {
               <tr>
                 <td
                   colSpan={8}
-                  className="px-6 py-4 text-center text-[#8b8b8b]"
+                  className="px-6 py-8 text-center text-sm text-[#8b8b8b]"
                 >
-                  No team members found
+                  No team members matching your search query.
                 </td>
               </tr>
             ) : (
@@ -300,31 +353,36 @@ export default function UsersPage() {
         />
       )}
 
-      {/* Yes/No Delete Confirmation Dialog */}
+      {/* Delete Confirmation Dialog */}
       <AlertDialog
         open={Boolean(memberToDelete)}
         onOpenChange={(open) => {
           if (!open) setMemberToDelete(null);
         }}
       >
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white border-[#e8e3db]">
           <AlertDialogHeader>
-            <AlertDialogTitle>
-              Do you wanna delete {memberToDelete?.username}?
+            <AlertDialogTitle className="text-base font-bold text-[#1a1a1a]">
+              Remove {memberToDelete?.username}?
             </AlertDialogTitle>
-            <AlertDialogDescription>
-              Warning: This action will permanently remove this member from your
-              team mission and unassign all active tasks associated with them.
+            <AlertDialogDescription className="text-sm text-[#6b6b6b]">
+              This action will permanently unassign active tasks associated with
+              this user and remove them from your team mission.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>No</AlertDialogCancel>
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="border-[#e8e3db]"
+            >
+              Cancel
+            </AlertDialogCancel>
             <AlertDialogAction
               disabled={isDeleting}
               onClick={handleConfirmDelete}
               className="bg-red-600 hover:bg-red-700 text-white"
             >
-              {isDeleting ? "Deleting..." : "Yes"}
+              {isDeleting ? "Removing..." : "Remove Member"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

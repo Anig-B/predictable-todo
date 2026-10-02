@@ -1,4 +1,7 @@
-import { Sidebar } from "@/components/sidebar"; // Double check this points to your file!
+"use client";
+
+// Added curly braces for named import
+import { Sidebar } from "@/components/sidebar";
 import { Toaster } from "sonner";
 
 export default function DashboardLayout({
