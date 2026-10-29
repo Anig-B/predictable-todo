@@ -1,12 +1,8 @@
 "use client";
 
 import { Check, X } from "lucide-react";
-import {
-  ProofTask,
-  ProofReview,
-  getInitials,
-  getTimeAgo,
-} from "@/actions/proofs";
+import { ProofTask, ProofReview } from "@/actions/proofs";
+import { getInitials, getTimeAgo } from "@/lib/utils";
 
 interface HistoryCardProps {
   task: ProofTask;

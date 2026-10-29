@@ -1,7 +1,14 @@
 "use client";
 
 import Link from "next/link";
-import { CheckSquare, Users2, MoreVertical } from "lucide-react";
+import {
+  CheckSquare,
+  Users2,
+  MoreVertical,
+  Layers,
+  Archive,
+  ArrowRight,
+} from "lucide-react";
 import { MissionWithStats } from "@/actions/missions";
 
 interface MissionCardProps {
@@ -23,40 +30,47 @@ export function MissionCard({
       : 0;
 
   return (
-    <div className="bg-[#fafaf8] border border-[#e8e3db] rounded-lg p-6 hover:shadow-md transition-all h-full flex flex-col justify-between relative">
+    <div className="bg-[#fafaf8] border border-[#e8e3db] hover:border-[#1a1a1a]/30 rounded-lg p-6 transition-all duration-200 h-full flex flex-col justify-between relative group shadow-xs hover:shadow-md">
       <div>
-        <div className="flex items-start justify-between mb-2">
+        {/* Title and Options Header */}
+        <div className="flex items-start justify-between gap-3 mb-3">
           <Link
             href={`/missions/${mission.id}`}
-            className="text-lg font-semibold text-[#1a1a1a] hover:underline flex-1 truncate pr-2"
+            className="text-base font-bold text-[#1a1a1a] hover:underline truncate transition-colors leading-snug"
           >
             {mission.name}
           </Link>
 
-          <div className="relative z-10">
+          {/* More Action Dropdown */}
+          <div className="relative z-10 shrink-0">
             <button
+              type="button"
               onClick={(e) => {
                 e.stopPropagation();
                 onToggleMenu();
               }}
-              className="p-1 hover:bg-[#e8e3db] rounded-md transition-colors"
+              aria-label="Toggle Mission Menu"
+              className="p-1 hover:bg-[#e8e3db] text-[#8b8b8b] hover:text-[#1a1a1a] rounded-md transition-colors cursor-pointer"
             >
-              <MoreVertical className="w-5 h-5 text-[#6b6b6b]" />
+              <MoreVertical className="w-4 h-4" />
             </button>
 
             {isMenuOpen && (
-              <div className="absolute top-full right-0 mt-2 bg-white border border-[#e8e3db] rounded-lg shadow-lg z-20 min-w-48">
+              <div className="absolute top-full right-0 mt-1 bg-white border border-[#e8e3db] rounded-md shadow-lg z-20 min-w-44 py-1 animate-in fade-in zoom-in-95 duration-100">
                 <Link
                   href={`/missions/${mission.id}`}
-                  className="block px-4 py-2 hover:bg-[#f0ebe4] text-sm text-[#1a1a1a] rounded-t-lg"
+                  className="flex items-center gap-2 px-3 py-2 text-xs font-semibold text-[#1a1a1a] hover:bg-[#f8f7f4] transition-colors"
                 >
+                  <Layers className="w-3.5 h-3.5 text-[#8b8b8b]" />
                   Manage Tasks
                 </Link>
-                <hr className="border-[#e8e3db]" />
+                <div className="my-1 border-t border-[#e8e3db]" />
                 <button
+                  type="button"
                   onClick={() => onArchive(mission.id, mission.name)}
-                  className="w-full text-left px-4 py-2 hover:bg-[#f0ebe4] text-sm text-rose-600 rounded-b-lg"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs font-semibold text-rose-600 hover:bg-rose-50 transition-colors cursor-pointer"
                 >
+                  <Archive className="w-3.5 h-3.5 text-rose-600" />
                   Archive Pack
                 </button>
               </div>
@@ -64,40 +78,51 @@ export function MissionCard({
           </div>
         </div>
 
-        <Link href={`/missions/${mission.id}`} className="block text-inherit">
-          <div className="flex items-center gap-3 text-xs font-medium text-gray-400 mb-4">
-            <span className="flex items-center gap-1">
-              <CheckSquare className="w-3.5 h-3.5" />
+        {/* Task Stats Overview */}
+        <Link href={`/missions/${mission.id}`} className="block group/link">
+          <div className="flex items-center gap-3 text-xs font-medium text-[#8b8b8b] mb-4">
+            <span className="flex items-center gap-1.5">
+              <CheckSquare className="w-3.5 h-3.5 text-[#1a1a1a]" />
               {mission.questsTotal} Tasks
             </span>
-            <span>•</span>
-            <span className="flex items-center gap-1">
-              <Users2 className="w-3.5 h-3.5" />
+            <span className="text-[#e8e3db]">•</span>
+            <span className="flex items-center gap-1.5">
+              <Users2 className="w-3.5 h-3.5 text-[#1a1a1a]" />
               {mission.memberCount} Members
             </span>
           </div>
 
-          <div className="mb-2 mt-4">
-            <div className="w-full bg-[#e8e3db] rounded-full h-1.5 overflow-hidden">
+          {/* Progress Bar */}
+          <div className="space-y-1.5 my-4">
+            <div className="w-full bg-[#e8e3db] rounded-full h-2 overflow-hidden p-0.5">
               <div
-                className="h-1.5 rounded-full bg-[#1a1a1a] transition-all duration-300"
+                className="h-full rounded-full bg-[#1a1a1a] transition-all duration-500 ease-out"
                 style={{ width: `${progressPercent}%` }}
               />
             </div>
-          </div>
-          <div className="flex justify-between items-center text-xs text-[#8b8b8b] mb-6">
-            <span>Task Pack Completion</span>
-            <span className="font-semibold text-gray-700">
-              {mission.questsDone}/{mission.questsTotal} ({progressPercent}%)
-            </span>
+            <div className="flex justify-between items-center text-[11px] text-[#8b8b8b] pt-1">
+              <span>Task Pack Completion</span>
+              <span className="font-bold text-[#1a1a1a]">
+                {mission.questsDone}/{mission.questsTotal} ({progressPercent}%)
+              </span>
+            </div>
           </div>
         </Link>
       </div>
 
-      <div className="flex items-center justify-between pt-4 border-t border-[#e8e3db]/60 mt-auto">
-        <span className="inline-block px-2 py-0.5 rounded text-xs font-semibold bg-emerald-50 text-emerald-700 border border-emerald-200">
+      {/* Footer Status & Action */}
+      <div className="flex items-center justify-between pt-4 border-t border-[#e8e3db] mt-auto">
+        <span className="inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-800 border border-emerald-200">
           Live Pack
         </span>
+
+        <Link
+          href={`/missions/${mission.id}`}
+          className="inline-flex items-center gap-1 text-xs font-semibold text-[#8b8b8b] group-hover:text-[#1a1a1a] transition-colors"
+        >
+          View Details
+          <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover:translate-x-0.5" />
+        </Link>
       </div>
     </div>
   );

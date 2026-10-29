@@ -58,9 +58,9 @@ export async function getManagerSettingsData(): Promise<{
       return { success: false, error: "Failed to retrieve user profile." };
     }
 
-    // Fetch user registered FCM devices
+    // FIXED: Query 'device_tokens' instead of 'user_devices'
     const { data: devices, error: devicesError } = await supabase
-      .from("user_devices")
+      .from("device_tokens")
       .select("fcm_token, platform, updated_at")
       .eq("user_id", user.id)
       .order("updated_at", { ascending: false });
@@ -160,8 +160,9 @@ export async function revokeDeviceToken(
       return { success: false, error: "Unauthorized." };
     }
 
+    // FIXED: Target 'device_tokens' table instead of 'user_devices'
     const { error } = await supabase
-      .from("user_devices")
+      .from("device_tokens")
       .delete()
       .eq("fcm_token", fcmToken)
       .eq("user_id", user.id);
@@ -220,12 +221,15 @@ export async function sendMissionNotification(params: {
     const recipientIds = members.map((m) => m.user_id);
 
     // 2. Queue notifications in the database
+    // FIXED: Used 'message' column instead of 'body', stored extra metadata inside 'metadata' jsonb column
     const notificationPayloads = recipientIds.map((recipientId) => ({
       user_id: recipientId,
-      sender_id: params.senderId,
-      mission_id: params.missionId,
       title: params.title.trim(),
-      body: params.message.trim(),
+      message: params.message.trim(),
+      metadata: {
+        sender_id: params.senderId,
+        mission_id: params.missionId,
+      },
       created_at: new Date().toISOString(),
     }));
 

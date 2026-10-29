@@ -23,6 +23,8 @@ export interface TaskRow {
   priority: TaskPriority;
   points: number;
   recurring: TaskRecurring;
+  weeklyDay?: number | null; // 1-7
+  monthlyDay?: number | null; // 1-28 or 0
   assignMode: "all" | "specific";
   assigneeIds: string[];
 }
@@ -33,10 +35,39 @@ export const PRIORITY_XP: Record<TaskPriority, number> = {
   2: 80, // High
 };
 
+const WEEKDAYS = [
+  { value: 1, label: "Monday" },
+  { value: 2, label: "Tuesday" },
+  { value: 3, label: "Wednesday" },
+  { value: 4, label: "Thursday" },
+  { value: 5, label: "Friday" },
+  { value: 6, label: "Saturday" },
+  { value: 7, label: "Sunday" },
+];
+
+/**
+ * Helper to construct an ISO timestamptz from a 24h time string (e.g., "14:30")
+ */
+export function constructDueAtTimestamp(timeStr: string): string | null {
+  if (!timeStr) return null;
+  const [hours, minutes] = timeStr.split(":").map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return null;
+
+  const due = new Date();
+  due.setHours(hours, minutes, 0, 0);
+
+  // If the time entered has already passed today, set the due date for tomorrow
+  if (due.getTime() <= Date.now()) {
+    due.setDate(due.getDate() + 1);
+  }
+
+  return due.toISOString();
+}
+
 interface TaskCardProps {
   task: TaskRow;
   index: number;
-  memberList: TaskMemberOption[]; // Members currently scoped to the Mission
+  memberList: TaskMemberOption[];
   canRemove: boolean;
   saving?: boolean;
   onUpdate: (key: string, patch: Partial<TaskRow>) => void;
@@ -54,7 +85,6 @@ export function TaskCard({
   onRemove,
   onToggleAssignee,
 }: TaskCardProps) {
-  // Normalize member items to guarantee an `id` property
   const normalizedMembers: AssignableUser[] = memberList.map((m: any) => ({
     id: m.id || m.user_id,
     username: m.username || "Unknown Member",
@@ -110,7 +140,7 @@ export function TaskCard({
             type="button"
             onClick={() => onRemove(t.key)}
             disabled={saving}
-            className="rounded-md p-1.5 text-xs text-[#6b6b6b] hover:bg-[#f5f2ec] hover:text-red-600 transition"
+            className="rounded-md p-1.5 text-xs text-[#6b6b6b] hover:bg-[#f5f2ec] hover:text-red-600 transition cursor-pointer"
             aria-label="Remove task"
           >
             ✕
@@ -151,7 +181,7 @@ export function TaskCard({
               onUpdate(t.key, { priority, points: PRIORITY_XP[priority] });
             }}
             disabled={saving}
-            className="h-8 w-full rounded-md border border-[#e8e3db] bg-white px-2 text-xs text-[#1a1a1a] focus:border-[#1a1a1a] outline-none"
+            className="h-8 w-full rounded-md border border-[#e8e3db] bg-white px-2 text-xs text-[#1a1a1a] focus:border-[#1a1a1a] outline-none cursor-pointer"
           >
             <option value={0}>Low (+20 XP)</option>
             <option value={1}>Medium (+40 XP)</option>
@@ -159,20 +189,26 @@ export function TaskCard({
           </select>
         </div>
 
-        {/* Recurring */}
+        {/* Recurring Cadence */}
         <div>
           <label className="mb-1 block text-xs font-medium text-[#6b6b6b]">
             Recurring Cadence
           </label>
           <select
             value={t.recurring}
-            onChange={(e) =>
+            onChange={(e) => {
+              const recurring = Number(e.target.value) as TaskRecurring;
               onUpdate(t.key, {
-                recurring: Number(e.target.value) as TaskRecurring,
-              })
-            }
+                recurring,
+                weeklyDay:
+                  recurring === 2
+                    ? (t.weeklyDay ?? (new Date().getDay() || 7))
+                    : null,
+                monthlyDay: recurring === 3 ? (t.monthlyDay ?? 1) : null,
+              });
+            }}
             disabled={saving}
-            className="h-8 w-full rounded-md border border-[#e8e3db] bg-white px-2 text-xs text-[#1a1a1a] focus:border-[#1a1a1a] outline-none"
+            className="h-8 w-full rounded-md border border-[#e8e3db] bg-white px-2 text-xs text-[#1a1a1a] focus:border-[#1a1a1a] outline-none cursor-pointer"
           >
             <option value={0}>One-off</option>
             <option value={1}>Daily</option>
@@ -181,6 +217,65 @@ export function TaskCard({
           </select>
         </div>
       </div>
+
+      {/* Conditional Day Selectors */}
+      {t.recurring === 2 && (
+        <div className="rounded-md border border-purple-200 bg-purple-50/40 p-2.5 space-y-1">
+          <label className="block text-xs font-semibold text-purple-900">
+            Active Day of Week
+          </label>
+          <select
+            value={t.weeklyDay ?? 1}
+            onChange={(e) =>
+              onUpdate(t.key, { weeklyDay: Number(e.target.value) })
+            }
+            disabled={saving}
+            className="h-8 w-full rounded-md border border-purple-200 bg-white px-2 text-xs text-[#1a1a1a] outline-none focus:border-purple-500 cursor-pointer"
+          >
+            {WEEKDAYS.map((day) => (
+              <option key={day.value} value={day.value}>
+                Every {day.label}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
+      {t.recurring === 3 && (
+        <div className="rounded-md border border-purple-200 bg-purple-50/40 p-3 space-y-2">
+          <label className="block text-xs font-semibold text-purple-900">
+            Active Day of Month
+          </label>
+
+          {/* Quick Preset Buttons */}
+          <div className="flex gap-1.5">
+            {[
+              { label: "1st", val: 1 },
+              { label: "15th", val: 15 },
+              { label: "Last Day", val: 0 },
+            ].map((preset) => {
+              const active = t.monthlyDay === preset.val;
+              return (
+                <button
+                  key={preset.val}
+                  type="button"
+                  disabled={saving}
+                  onClick={() => onUpdate(t.key, { monthlyDay: preset.val })}
+                  className={`flex-1 rounded-md py-1 text-xs font-semibold border transition cursor-pointer ${
+                    active
+                      ? "border-purple-600 bg-purple-600 text-white"
+                      : "border-purple-200 bg-white text-purple-900 hover:bg-purple-100/50"
+                  }`}
+                >
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {/* Custom Date Selector */}
+        </div>
+      )}
 
       {/* Assignment Controls */}
       <div className="border-t border-[#e8e3db] pt-3">

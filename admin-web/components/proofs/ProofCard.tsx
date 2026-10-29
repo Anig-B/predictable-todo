@@ -4,7 +4,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Clock, ChevronDown, ChevronUp } from "lucide-react";
 import { ExpandedReviewPanel } from "./ExpandedReviewPanel";
-import { ProofTask, getInitials, getTimeAgo } from "@/actions/proofs";
+import { ProofTask } from "@/actions/proofs";
+import { getInitials, getTimeAgo } from "@/lib/utils";
 
 interface ProofCardProps {
   task: ProofTask;

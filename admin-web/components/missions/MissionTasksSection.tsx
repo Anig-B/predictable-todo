@@ -11,6 +11,7 @@ import {
   CheckCircle2,
   Clock,
   FileCheck,
+  Repeat,
 } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -34,11 +35,35 @@ type GroupedTask = {
   desc: string | null;
   time?: string | null;
   points: number;
+  recurring?: number;
+  weeklyDay?: number | null;
+  monthlyDay?: number | null;
   assignees: string[];
   allDone: boolean;
   hasPendingProof: boolean;
   created_at?: string;
 };
+
+const WEEKDAYS = ["", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+
+function getRecurringLabel(
+  recurring?: number,
+  weeklyDay?: number | null,
+  monthlyDay?: number | null,
+) {
+  if (recurring === 1) return "Daily";
+  if (recurring === 2) {
+    return weeklyDay && weeklyDay >= 1 && weeklyDay <= 7
+      ? `Weekly (${WEEKDAYS[weeklyDay]})`
+      : "Weekly";
+  }
+  if (recurring === 3) {
+    if (monthlyDay === 0) return "Monthly (Last Day)";
+    if (monthlyDay) return `Monthly (${monthlyDay}th)`;
+    return "Monthly";
+  }
+  return null;
+}
 
 export function MissionTasksSection({ missionId }: { missionId: string }) {
   const supabase = createClient();
@@ -57,6 +82,8 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
     priority: 1,
     points: PRIORITY_XP[1],
     recurring: 0,
+    weeklyDay: new Date().getDay() || 7, // 1-7
+    monthlyDay: 1,
     assignMode: "all",
     assigneeIds: [],
   });
@@ -108,6 +135,8 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
         time: taskRow.time || null,
         priority: taskRow.priority,
         recurring: taskRow.recurring,
+        weeklyDay: taskRow.recurring === 2 ? taskRow.weeklyDay : null,
+        monthlyDay: taskRow.recurring === 3 ? taskRow.monthlyDay : null,
         points: taskRow.points,
         done: false,
       }));
@@ -149,7 +178,7 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
   const groupedTasksMap = new Map<string, GroupedTask>();
 
   tasks.forEach((task) => {
-    const key = `${task.title}-${task.desc ?? ""}-${task.time ?? ""}-${task.points}`;
+    const key = `${task.title}-${task.desc ?? ""}-${task.time ?? ""}-${task.points}-${task.recurring ?? 0}-${task.weeklyDay ?? ""}-${task.monthlyDay ?? ""}`;
     const username = task.assigned_user?.username || "Unassigned";
     const isProofSubmitted = Boolean(
       !task.done && (task.proof_image || task.proof_notes),
@@ -163,6 +192,9 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
         desc: task.desc,
         time: task.time,
         points: task.points,
+        recurring: task.recurring,
+        weeklyDay: task.weeklyDay,
+        monthlyDay: task.monthlyDay,
         assignees: [username],
         allDone: task.done,
         hasPendingProof: isProofSubmitted,
@@ -184,7 +216,7 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800">Mission Tasks</h3>
+        <h3 className="text-lg font-semibold text-[#1a1a1a]">Mission Tasks</h3>
         <Button
           onClick={() => {
             setTaskRow({
@@ -195,6 +227,8 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
               priority: 1,
               points: PRIORITY_XP[1],
               recurring: 0,
+              weeklyDay: new Date().getDay() || 7,
+              monthlyDay: 1,
               assignMode: "all",
               assigneeIds: [],
             });
@@ -207,7 +241,7 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
       </div>
 
       {groupedTasks.length === 0 ? (
-        <div className="text-center py-8 border border-dashed rounded-lg border-gray-200">
+        <div className="text-center py-8 border border-dashed rounded-lg border-[#e8e3db] bg-[#fafaf8]">
           <p className="text-sm text-gray-400">
             No tasks created yet for this mission pack.
           </p>
@@ -229,10 +263,16 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
               badgeText = "Proof Pending";
             }
 
+            const recurringLabel = getRecurringLabel(
+              group.recurring,
+              group.weeklyDay,
+              group.monthlyDay,
+            );
+
             return (
               <div
                 key={group.groupKey}
-                className="flex items-center justify-between p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf9]"
+                className="flex items-center justify-between p-4 border border-[#e8e3db] rounded-lg bg-[#fafaf8]"
               >
                 <div className="space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -244,7 +284,14 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
                     >
                       {badgeIcon} {badgeText}
                     </span>
-                    <span className="text-[10px] bg-black text-[#ffffff] px-1.5 py-0.5 rounded font-bold">
+
+                    {recurringLabel && (
+                      <span className="text-[10px] bg-purple-50 text-purple-700 border border-purple-200 px-1.5 py-0.5 rounded font-medium flex items-center gap-1">
+                        <Repeat className="w-2.5 h-2.5" />
+                        {recurringLabel}
+                      </span>
+                    )}
+                    <span className="text-[10px] bg-[#1a1a1a] text-white px-1.5 py-0.5 rounded font-bold">
                       {group.points} XP
                     </span>
                     {group.time && (
@@ -284,7 +331,7 @@ export function MissionTasksSection({ missionId }: { missionId: string }) {
 
       {showModal && (
         <div className="fixed inset-0 bg-black/30 z-50 flex items-center justify-center p-4 backdrop-blur-xs">
-          <div className="bg-white border border-[#e8e3db] rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl">
+          <div className="bg-white border border-[#e8e3db] rounded-xl max-w-lg w-full p-6 space-y-4 shadow-xl max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b pb-3">
               <h3 className="font-semibold text-gray-800">Add New Task</h3>
               <button
