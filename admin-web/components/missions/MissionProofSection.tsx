@@ -262,11 +262,25 @@ export function MissionProofsSection({ missionId }: { missionId: string }) {
               </p>
             </div>
           ) : (
-            reviewedTasks.map((t) =>
-              t.proof_reviews.map((rev) => (
-                <HistoryCard key={rev.id} task={t} review={rev} />
-              )),
-            )
+            <div className="space-y-4">
+              {reviewedTasks.length === 0 ? (
+                <div className="text-center py-12 border border-dashed rounded-xl border-border">
+                  <h4 className="text-sm font-medium text-foreground">
+                    No Review History
+                  </h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Completed and rejected decisions will appear here.
+                  </p>
+                </div>
+              ) : (
+                reviewedTasks.map((t) =>
+                  // Add optional chaining (?.) here to safely handle undefined proof_reviews
+                  t.proof_reviews?.map((rev) => (
+                    <HistoryCard key={rev.id} task={t} review={rev} />
+                  )),
+                )
+              )}
+            </div>
           )}
         </div>
       )}
